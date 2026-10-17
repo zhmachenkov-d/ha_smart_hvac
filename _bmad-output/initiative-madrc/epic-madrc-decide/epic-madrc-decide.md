@@ -65,3 +65,4 @@ Diagnosis, ADR decisions, `control_interval`, Weather Feedforward keep/drop impl
 - Sequencing: entries 3, 4, 5 may run in parallel after spike 2; partition test modules to avoid harness API collisions.
 - Metrics for R1/R2/R7: `spike-metrics-for-jump-madrc-and-ff-decisions.md`
 - metrics spike: accepted 2026-10-17; X=30%; ε=10; Z=0.2
+- R1 classification: `story-classify-swt-command-jumps.md` (Screen-2 class (c); evidence in `tests/test_r1_jump_classification.py`)
