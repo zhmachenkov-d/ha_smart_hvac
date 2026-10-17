@@ -63,3 +63,4 @@ Diagnosis, ADR decisions, `control_interval`, Weather Feedforward keep/drop impl
 - Decision: 2026-10-17 — refactor sweep kept (default for >3 entries).
 - Assumption: unit/sim harness from entry 1 is the shared setup later epics reuse.
 - Sequencing: entries 3, 4, 5 may run in parallel after spike 2; partition test modules to avoid harness API collisions.
+- Metrics for R1/R2/R7: `spike-metrics-for-jump-madrc-and-ff-decisions.md` — **accept pending** (HITL ritual: `metrics spike: accepted YYYY-MM-DD; X=…; ε=…; Z=…`).
