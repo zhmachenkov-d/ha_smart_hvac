@@ -146,11 +146,11 @@ Session: 41e757bb-fc96-49b0-8334-54011a9f88c4 · Timestamp: 2026-10-18T01:29:00+
 - Evidence: user “да”
 - Open: commit + push + gh pr create
 
-## 16 — wrap-up — started
+## 17 — wrap-up — done
 
-Session: 41e757bb-fc96-49b0-8334-54011a9f88c4 · Timestamp: 2026-10-18T01:29:00+03:00
+Session: 41e757bb-fc96-49b0-8334-54011a9f88c4 · Timestamp: 2026-10-18T01:30:00+03:00
 
-- Action: User confirmed wrap-up: commit walkthrough, push, open PR.
-- Result: In progress.
-- Evidence: user “да”
-- Open: commit + push + gh pr create
+- Action: Committed walkthrough `74221bd`, pushed branch, opened PR #51; deduped log entry 16.
+- Result: Wrap-up complete.
+- Evidence: https://github.com/zhmachenkov-d/ha_smart_hvac/pull/51
+- Open: none

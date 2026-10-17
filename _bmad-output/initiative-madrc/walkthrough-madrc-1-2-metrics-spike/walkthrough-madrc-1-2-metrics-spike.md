@@ -1,8 +1,8 @@
 # Walkthrough — Branch docs/madrc-1-2-metrics-spike: Metrics for jump, MADRC, and FF decisions
 
-Target: branch `docs/madrc-1-2-metrics-spike` @ `0a83c15` (feature commits `f969c67` spike note, `33d23cd` HITL accept, `0a83c15` party memlog)
+Target: [PR #51](https://github.com/zhmachenkov-d/ha_smart_hvac/pull/51) — branch `docs/madrc-1-2-metrics-spike` @ `74221bd` (feature commits `f969c67` spike note, `33d23cd` HITL accept, `0a83c15` party memlog, `74221bd` walkthrough)
 Focus: human review of accepted metrics spike (story 1.2 / decide epic)
-Current block: closed — wrap-up in progress (commit walkthrough + push + open PR)
+Current block: closed — walkthrough complete; wrap-up done (walkthrough committed `74221bd`; PR #51 open)
 
 ## Blocks
 
