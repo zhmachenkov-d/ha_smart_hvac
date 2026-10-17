@@ -2,7 +2,7 @@
 
 Target: [PR #49](https://github.com/zhmachenkov-d/ha_smart_hvac/pull/49) — branch `feat/madrc-1-1-plant-lag-harness`, feature commit `c3c319e` (branch also has BMAD ticket-tree chore + merge)
 Focus: human review of plant-lag multi-tick sim harness (story 1.1 / decide epic setup)
-Current block: closed — walkthrough complete; wrap-up: delete staging + commit walkthrough + push + merge PR #49 + check plan Execution tasks
+Current block: closed — walkthrough complete; wrap-up done (staging deleted; commit `d34f305` pushed; PR #49 MERGED; plan Execution checked + status done)
 
 ## Blocks
 
