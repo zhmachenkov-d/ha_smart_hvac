@@ -3,7 +3,7 @@ title: 'Metrics for jump, MADRC, and FF decisions'
 type: 'feature'
 ticket: '2'
 created: '2026-10-17'
-status: 'built'
+status: done
 baseline_revision: 'd9c6959020ac9ba35588404706f6d3feb63f0294'
 route: 'full'
 route_source: 'auto'
@@ -98,6 +98,7 @@ context:
 ## Implementation Notes
 
 - 2026-10-17 — Doc-only spike landed: wrote `spike-metrics-for-jump-madrc-and-ff-decisions.md` (Never-disclaimer; M1–M6 table; X=30%/ε=10 pp/Z=0.2 placeholders; R1 lex+inseparable; R7 relative-Δ + residue-at-zero; R2 \(G_{cp}\) stub). Epic Notes pointer with **accept pending**. No Python / harness / production changes. HITL accept ritual still open.
+- 2026-10-17 — HITL accept: epic Notes `metrics spike: accepted 2026-10-17; X=30%; ε=10; Z=0.2`; note status updated; plan → done.
 - 2026-10-17 — Review fixes on spike note only: M6 = sample var of residue; M1 domain t=1..N-1; M4 discrete IAE·dt; sample period = `ladrc_config.dt`; material-X = improvement Δ%; R1 ranks on |Δ%|; ε/inseparable + executable fallthrough + class map a/b/c on Screen 2 only.
 
 ## Plan Change Log

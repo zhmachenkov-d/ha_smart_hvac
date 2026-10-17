@@ -1,6 +1,6 @@
 # Metrics for jump, MADRC, and FF decisions
 
-**Status:** HITL accept pending (epic Notes ritual not yet fired).
+**Status:** accepted 2026-10-17 (epic Notes: `metrics spike: accepted 2026-10-17; X=30%; ε=10; Z=0.2`).
 
 ## Never-disclaimer
 
