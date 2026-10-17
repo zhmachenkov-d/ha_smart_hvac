@@ -3,7 +3,7 @@ title: 'Verify stranger HACS install'
 type: 'chore'
 ticket: '1'
 created: '2026-10-17'
-status: 'built'
+status: done
 baseline_revision: '31202e2cad15893b54c0d219fecd5cfa049a1618'
 route: 'oneshot'
 route_source: 'auto'

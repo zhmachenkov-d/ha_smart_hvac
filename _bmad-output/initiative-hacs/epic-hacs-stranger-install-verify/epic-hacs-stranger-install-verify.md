@@ -7,6 +7,7 @@ parent: initiative-hacs
 covers: [R4]
 after: []
 assignee: ""
+status: done
 risk: medium
 estimate: ""
 estimate_basis: ""
@@ -50,3 +51,4 @@ Human install verification and docs-only `app_dir` touch for Production/stranger
 - Assumption: a published Release on `main` and README/`apps.yaml.example` on that Release are sufficient prerequisites (already on `main`).
 - Decision: 2026-10-17 refine 1.1 — Done when #1–#2 package path is `ha_smart_hvac/` (not `hvac/`).
 - Verify 2026-10-17 (story 1.1): non-Exclusive Session HA; HACS custom repo → install Release `v1.0.0`; package at `/config/appdaemon/apps/ha_smart_hvac/`; `apps.yaml` beside package from `apps.yaml.example` with house placeholders replaced; wiring `module: ha_smart_hvac`, `class: HvacApp` (apps.yaml key `hvac`); AppDaemon log `HVAC LADRC app initialized` then control ticks. Done when #1–#3 met.
+- Decision: 2026-10-17 — epic closed; closure check SAFE_TO_CLOSE (Done when #1–#3 MET; child 1.1 done).
