@@ -15,7 +15,7 @@ dev = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["apps"]
+pythonpath = ["apps", "tests"]
 
 [tool.ruff]
 target-version = "py312"

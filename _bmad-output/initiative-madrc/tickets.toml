@@ -1,0 +1,24 @@
+# Initiative breakdown — build order is table order.
+
+[[epic]]
+id = 1
+slug = "epic-madrc-decide"
+title = "Diagnose jumps, interval, MADRC and FF go/no-go"
+covers = ["R1", "R2", "R3", "R6", "R7", "R8"]
+
+[[epic]]
+id = 2
+slug = "epic-madrc-compensator"
+title = "MADRC inertia compensator G_cp"
+covers = ["R4", "R6"]
+after = [{ epic = 1, needs = "go decision on G_cp; control_interval and plant-channel constraints; unit/sim harness from diagnosis" }]
+
+[[epic]]
+id = 3
+slug = "epic-madrc-scheduling"
+title = "Schedule kp and T by regime"
+covers = ["R5", "R6"]
+after = [
+  { epic = 1, needs = "go decision on scheduling; regime signal; ωc coexistence rule; whether scheduling without G_cp is allowed" },
+  { epic = 2, needs = "G_cp T on plant channel when scheduling T; skip this gate if ADR allows scheduling without G_cp" },
+]
