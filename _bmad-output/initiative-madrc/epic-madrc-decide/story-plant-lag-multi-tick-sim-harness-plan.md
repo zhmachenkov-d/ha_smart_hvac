@@ -3,7 +3,7 @@ title: 'Plant-lag multi-tick sim harness'
 type: 'feature'
 ticket: '1'
 created: '2026-10-17'
-status: 'built'
+status: 'done'
 baseline_revision: 'a2625210e5e4b22ca93cf9b02293d639c8a627c8'
 route: 'full'
 route_source: 'auto'
@@ -81,9 +81,9 @@ context:
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `pyproject.toml` — add `"tests"` to pytest `pythonpath` — enable `import harness` for this and later stories
-- [ ] `tests/harness/__init__.py`, `tests/harness/plant.py`, `tests/harness/runner.py` — Euler cascade plant + multi-tick runner (outdoor; FF-on vs `u_ff=0`; track → guard → sticky latch → reset-on-trip → residue → plant; append series) — shared setup for R1/R3/R7
-- [ ] `tests/test_plant_lag_harness.py` — N-tick closed-loop with pinned defaults; FF-on and `u_ff=0` series assertions; one forced guard-trip case — verify ticket AC + I/O matrix
+- [x] `pyproject.toml` — add `"tests"` to pytest `pythonpath` — enable `import harness` for this and later stories
+- [x] `tests/harness/__init__.py`, `tests/harness/plant.py`, `tests/harness/runner.py` — Euler cascade plant + multi-tick runner (outdoor; FF-on vs `u_ff=0`; track → guard → sticky latch → reset-on-trip → residue → plant; append series) — shared setup for R1/R3/R7
+- [x] `tests/test_plant_lag_harness.py` — N-tick closed-loop with pinned defaults; FF-on and `u_ff=0` series assertions; one forced guard-trip case — verify ticket AC + I/O matrix
 
 **Acceptance Criteria:**
 - Given a \(K/(Ts+1)^n\) plant and outdoor temperature, when the harness runs N ticks with FF on (pinned defaults below), then logged series for `command` and `u_track` (and `y`, `z1`, `z2`) have length N and all finite.
