@@ -3,7 +3,7 @@ title: 'Compare control_interval candidates'
 type: 'feature'
 ticket: '4'
 created: '2026-10-18'
-status: 'built'
+status: done
 baseline_revision: '67fa9dc9171d9b56334a2f72ca316c4353f8b29f'
 route: 'full'
 route_source: 'auto'
