@@ -1,0 +1,82 @@
+# Epic breakdown — leaf build order. `id` is stable; table order is build order.
+
+[[entry]]
+id = 1
+type = "story"
+title = "Tracer: weather-curve SWT law"
+description = "Rewrites the control tick so Plant Management / Heating Demand gates command Set Water Temperature as clamp(weather_feedforward) only, with Heating Demand as any-zone boolean and no air tracking term."
+verify = "Automated tests show demand→clamp(u_ff), plant-on idle→write 0+clear, plant-off→no write+clear, near-setpoint flat air no climb to setpoint_max via tracking, and max-error zone air not added to SWT."
+covers = ["CAP-1", "CAP-2", "CAP-3", "CAP-5"]
+after = []
+hitl = false
+risk = "medium"
+notes = ["Interim: LADRC module files may remain unwired until entry 2; this entry does not claim CAP-4."]
+
+[[entry]]
+id = 2
+type = "story"
+title = "Remove LADRC and ωc from the water path"
+description = "Deletes water-path LADRC, ωc auto-tune, blow-up latch helpers, Critical Zone as SWT driver wiring, related config/yaml, and ωc persistence so they are not dormant."
+verify = "Package has no SWT-path LADRC/tuner runtime; apps.yaml.example has no ladrc/tune keys; old water-path LADRC/tuner tests are gone or rewritten as absence checks."
+covers = ["CAP-4"]
+after = [1]
+hitl = false
+risk = "medium"
+
+[[entry]]
+id = 3
+type = "story"
+title = "New ADR and domain docs for weather-curve SWT"
+description = "Adds a new ADR superseding 0002 and 0003, and updates CONTEXT, AGENTS, and house-calibration so Weather Feedforward base/slope stay yaml-commissionable and Critical Zone no longer drives SWT, including CAP-7 formula/persistence from the spike."
+verify = "New ADR states weather-curve-only SWT plus FF yaml commission and rise-rate auto-correct; CONTEXT/AGENTS/house-calibration match; example yaml still documents FF base/slope."
+covers = ["CAP-4", "CAP-6"]
+after = [2, 4]
+hitl = false
+risk = "low"
+
+[[entry]]
+id = 4
+type = "spike"
+title = "FF rise-rate auto-correct rule"
+description = "Chooses the rise-rate signal, adaptation formula, guards, and persistence shape for auto-correcting Weather Feedforward parameters from the max-error Heating Demand zone without adding an SWT tracking term."
+verify = "A short written decision states formula, guards, persistence, and what not to do — enough for entry 5 to implement without inventing the law."
+covers = ["CAP-7"]
+after = [1]
+hitl = true
+risk = "high"
+refine = true
+
+[[entry]]
+id = 5
+type = "story"
+title = "Auto-correct FF from max-error zone rise rate"
+description = "Implements the spike's rule so FF parameters adapt from the max-error zone's air temperature rise rate under Heating Demand while SWT remains clamp(weather_feedforward) with updated params."
+verify = "Tests show FF params move with the rise-rate signal under demand and SWT command stays clamp(u_ff) with no additive air tracking term."
+covers = ["CAP-7", "CAP-5"]
+after = [2, 4]
+hitl = false
+risk = "high"
+unknown = "Exact adaptation formula, guards, and persistence — settled by entry 4."
+notes = ["CAP-5 part: ensure CAP-7 does not reintroduce air→SWT tracking (not a redo of CAP-5 a–d from entry 1)."]
+
+[[entry]]
+id = 6
+type = "story"
+title = "Refactor sweep"
+description = "Cleans deferred review findings and orphans left by the weather-curve SWT change; no new scope."
+verify = "uv run pytest and ruff clean; no unused water-path LADRC leftovers called out in this epic's deferred notes."
+covers = []
+after = [3, 5]
+hitl = false
+risk = "low"
+
+[[entry]]
+id = 7
+type = "story"
+title = "Live Exclusive Session windup check"
+description = "On an Exclusive Session against the house, reproduces the near-setpoint flat-air windup shape and confirms SWT stays at the feedforward clamp."
+verify = "Operator notes or log evidence that command did not climb to setpoint_max via tracking under the logged windup conditions."
+covers = []
+after = [6]
+hitl = true
+risk = "medium"
