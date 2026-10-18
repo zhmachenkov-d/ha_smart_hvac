@@ -3,13 +3,13 @@ title: 'Remove LADRC and ωc from the water path'
 type: 'feature'
 ticket: '2'
 created: '2026-10-18'
-status: 'in-progress'
+status: 'built'
 baseline_revision: '6bf761e53fa5c52198f3a6235898c027764fa89f'
 route: 'full'
 route_source: 'auto'
-review: ''
-review_source: ''
-lenses_ran: []
+review: 'quick'
+review_source: 'pinned'
+lenses_ran: ['quick']
 review_loop_iteration: 0
 context:
   - '{project-root}/_bmad-output/initiative-weather-curve-zone-actuators/spec-weather-curve-swt-only/spec-weather-curve-swt-only.md'
@@ -91,6 +91,10 @@ context:
 ## Plan Change Log
 
 ## Review Triage Log
+
+| Pass | high | medium | low | false | maybe-false | Notes |
+|------|------|--------|-----|-------|-------------|-------|
+| quick (loop 0) | 0 | 0 | 0 | 0 | 0 | No findings reported |
 
 ## Design Notes
 
