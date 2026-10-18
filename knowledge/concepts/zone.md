@@ -3,7 +3,7 @@ type: Concept
 title: Zone
 description: Controllable heating area with a temperature reading and one or more HA climate thermostats, sharing boiler demand.
 tags: [zone, home-assistant]
-timestamp: 2026-07-08T15:34:24Z
+timestamp: 2026-10-18T10:00:00Z
 ---
 
 # Zone
@@ -19,6 +19,7 @@ Huang et al. (2018) model a single AHU-served zone for LADRC; this project coord
 - [/concepts/zone-error.md](/concepts/zone-error.md)
 - [/concepts/critical-zone.md](/concepts/critical-zone.md)
 - [/concepts/plant.md](/concepts/plant.md)
+- [/concepts/sonoff-trvzb.md](/concepts/sonoff-trvzb.md) — Zigbee TRV used as some Zone climate thermostats
 
 # Citations
 

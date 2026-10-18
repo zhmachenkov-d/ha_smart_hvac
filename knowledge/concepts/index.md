@@ -17,6 +17,7 @@ description: Index of concepts in the knowledge bundle.
 | [Outdoor Temperature](/concepts/outdoor-temperature.md) | Measured outdoor air temperature used when calculating Set Water Temperature. |
 | [Plant](/concepts/plant.md) | Boiler and primary water circuit supplying heat to Zones, commanded via OpenTherm. |
 | [Set Water Temperature](/concepts/set-water-temperature.md) | OpenTherm boiler water setpoint the App commands on the Plant. |
+| [Sonoff TRVZB](/concepts/sonoff-trvzb.md) | Zigbee 3.0 thermostatic radiator valve used as a Zone climate thermostat; HA exposes setpoint and heating/idle running state. |
 | [Total disturbance](/concepts/total-disturbance.md) | ADRC’s lumped unknown — internal model error plus external loads — estimated by the ESO and cancelled in the control law. |
 | [Zone](/concepts/zone.md) | Controllable heating area with a temperature reading and one or more HA climate thermostats, sharing boiler demand. |
 | [Zone Error](/concepts/zone-error.md) | Difference between a Zone’s thermostat setpoint and that Zone’s current temperature. |
