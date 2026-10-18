@@ -3,7 +3,7 @@ title: 'ADR go/no-go for MADRC, scheduling, FF, interval'
 type: 'feature'
 ticket: '6'
 created: '2026-10-18'
-status: built
+status: done
 baseline_revision: 'fe27b358f6b8f895a6dfadbb36aa250dd9a75ebe'
 route: 'full'
 route_source: 'auto'
