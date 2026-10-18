@@ -66,3 +66,4 @@ Diagnosis, ADR decisions, `control_interval`, Weather Feedforward keep/drop impl
 - Metrics for R1/R2/R7: `spike-metrics-for-jump-madrc-and-ff-decisions.md`
 - metrics spike: accepted 2026-10-17; X=30%; ε=10; Z=0.2
 - R1 classification: `story-classify-swt-command-jumps.md` (Screen-2 class (c); evidence in `tests/test_r1_jump_classification.py`)
+- R3 control_interval candidates: `story-compare-control-interval-candidates.md` (recommend 30; evidence in `tests/test_r3_control_interval_candidates.py`)
