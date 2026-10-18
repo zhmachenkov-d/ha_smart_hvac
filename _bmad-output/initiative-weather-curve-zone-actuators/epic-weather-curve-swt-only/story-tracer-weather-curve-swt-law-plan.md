@@ -3,7 +3,7 @@ title: 'Tracer: weather-curve SWT law'
 type: 'feature'
 ticket: '1'
 created: '2026-10-18'
-status: 'built'
+status: done
 baseline_revision: '406b6a00d8cbdaf8681b1e69275bedf2de20448b'
 route: 'full'
 route_source: 'auto'
