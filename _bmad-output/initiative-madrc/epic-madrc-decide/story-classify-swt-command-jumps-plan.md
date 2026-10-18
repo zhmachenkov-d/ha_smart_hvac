@@ -3,7 +3,7 @@ title: 'Classify SWT command jumps'
 type: 'feature'
 ticket: '3'
 created: '2026-10-18'
-status: 'built'
+status: done
 baseline_revision: '51dbb55c858be1a97844ef57a5ce1c3875a1cd60'
 route: 'full'
 route_source: 'auto'
