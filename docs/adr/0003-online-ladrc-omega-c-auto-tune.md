@@ -26,4 +26,4 @@ Adapted ωc is stored in `ladrc_tune_state.json` under the AppDaemon app directo
 
 ## Out of scope
 
-Weather Feedforward auto-tune, online ωo adaptation, and relay/step commissioning remain out of scope. MADRC inertia compensator \(G_{cp}\) go/authorization, scheduling coexistence with this ωc tuner, and related gates are decided in ADR 0004 (ωc auto-tune **coexists**; scheduling does not replace it). Online \(b_0\) is an intended follow-on via stub epic `epic-online-b0` (see ADR 0004) — not implemented here.
+Weather Feedforward auto-tune, online b₀ or ωo adaptation, relay/step commissioning, MADRC inertia compensator.

@@ -2,13 +2,6 @@
 
 Append-only history of OKF ingest and lint passes.
 
-## 2026-10-18 — Ingest Sonoff TRVZB Zigbee protocol
-
-- **Source:** `raw/sonoff-trvzb/` (Zigbee2MQTT device page, ZHA quirk `trvzb.py`, interview signature from zha-device-handlers#2772, SONOFF product help).
-- **Created:** reference `sonoff-trvzb-zigbee`; concept `sonoff-trvzb`.
-- **Updated:** `zone`, `zone-error` cross-links; root `index.md` recent ingest.
-- **House fit:** TRVZB climate entities supply setpoint + heating/idle for Zone Error; App does not write TRV valve/`0xFC11`; zone air for LADRC stays on separate sensors.
-
 ## 2026-07-08 — Ingest Wang et al. 2026 (adaptive MADRC SST)
 
 - **Source:** `raw/wang-2026-madrc-sst/processes-14-00308.pdf` (Wang, Tong, Wu, Zheng, Li, Jia; *Processes* 14(2):308; DOI [10.3390/pr14020308](https://doi.org/10.3390/pr14020308)). HTML/`mdpi.com` PDF endpoints 403 from this environment; full PDF fetched from `mdpi-res.com` CDN.
