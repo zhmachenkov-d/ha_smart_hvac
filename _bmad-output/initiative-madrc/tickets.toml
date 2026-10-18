@@ -19,6 +19,14 @@ slug = "epic-madrc-scheduling"
 title = "Schedule kp and T by regime"
 covers = ["R5", "R6"]
 after = [
-  { epic = 1, needs = "go decision on scheduling; regime signal; ωc coexistence rule; whether scheduling without G_cp is allowed" },
-  { epic = 2, needs = "G_cp T on plant channel when scheduling T; skip this gate if ADR allows scheduling without G_cp" },
+  { epic = 1, needs = "go decision on scheduling; regime signal; ωc coexistence rule; without-G_cp forbidden (ADR 0004)" },
+  { epic = 2, needs = "G_cp on plant channel; scheduling T is compensator plant-channel T (scheduling without G_cp forbidden per ADR 0004 — no skip)" },
 ]
+
+[[epic]]
+id = 4
+slug = "epic-online-b0"
+title = "Online b0 adaptation (follow-on)"
+covers = []
+after = [{ epic = 3, needs = "scheduling and G_cp structure landed; online b0 fenced out of epic 2/3 and decide entries 1.7/1.8 per ADR 0004" }]
+

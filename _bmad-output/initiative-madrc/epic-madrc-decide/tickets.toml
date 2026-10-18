@@ -60,8 +60,8 @@ risk = "medium"
 id = 6
 type = "story"
 title = "ADR go/no-go for MADRC, scheduling, FF, interval"
-description = "Writes the ADR (new or amend 0002/0003) with decision fields only: go/no-go for G_cp and kp/T scheduling (including without-G_cp), ωc coexistence, regime signal, control_interval choice, FF keep/drop, b0/ωo closed, and named handoffs for later epics (go flags, interval, regime, ωc rule, harness location)."
-verify = "ADR draft accepted by the user contains every R2/R3/R7 decision field and the downstream handoff list."
+description = "Writes ADR 0004 (decision record; thin see-0004 pointers in 0002/0003 only) with decision fields: G_cp go as build authorization (not verified superiority), kp/T scheduling go, without-G_cp forbidden, ωc coexist with 0003, regime=outdoor, control_interval=30, FF drop as policy despite R7 Δ%≈0, residue-at-zero=command, ωo closed, online b0 follow-on via stub epic-online-b0 (fenced out of epic 2/3 and entries 7–8), and named handoffs (go flags, interval, regime, ωc rule, harness, epic-online-b0)."
+verify = "User accepts docs/adr/0004-madrc-ff-interval-go-no-go.md containing every frozen Intent decision field and the downstream handoff list; 0002/0003 have thin 0004 pointers; initiative tickets.toml has stub epic-online-b0."
 covers = ["R2", "R3", "R7"]
 after = [3, 4, 5]
 hitl = true

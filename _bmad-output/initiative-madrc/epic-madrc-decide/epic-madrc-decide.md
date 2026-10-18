@@ -57,7 +57,7 @@ Diagnosis, ADR decisions, `control_interval`, Weather Feedforward keep/drop impl
 
 - Decision: 2026-10-17 — opening epic; no platform-baseline (initiative Notes).
 - Decision: 2026-10-17 — R7/R8 owned here; no separate FF epic (user confirmed).
-- Decision: 2026-10-17 — whether scheduling may ship without \(G_{cp}\) is settled in this epic’s ADR (R2), not presupposed; epic-madrc-scheduling’s after on epic 2 is conditional on that ADR.
+- Decision: 2026-10-17 — whether scheduling may ship without \(G_{cp}\) is settled in this epic’s ADR (R2), not presupposed. Settled in ADR 0004: without-\(G_{cp}\) **forbidden** (epic-madrc-scheduling stays gated on epic 2; no skip).
 - Decision: 2026-10-17 — inception approved: nine entries (harness → metrics spike → classify ∥ interval ∥ FF → ADR → FF apply → interval/docs → refactor sweep); outdoor is a harness input; user confirmed outdoor=yes.
 - Decision: 2026-10-17 — tracer bullet is entry 1 (plant-lag multi-tick harness through LADRC track/guard/residue with FF toggle and outdoor input); classification and ADR follow that path.
 - Decision: 2026-10-17 — refactor sweep kept (default for >3 entries).
@@ -68,3 +68,4 @@ Diagnosis, ADR decisions, `control_interval`, Weather Feedforward keep/drop impl
 - R1 classification: `story-classify-swt-command-jumps.md` (Screen-2 class (c); evidence in `tests/test_r1_jump_classification.py`)
 - R3 control_interval candidates: `story-compare-control-interval-candidates.md` (recommend 30; evidence in `tests/test_r3_control_interval_candidates.py`)
 - R7 weather feedforward compare: `story-compare-weather-feedforward-on-vs-off.md` (cold/hot FF-on vs zero_uff; evidence in `tests/test_r7_weather_feedforward_compare.py`)
+- ADR go/no-go (R2/R3/R7): `docs/adr/0004-madrc-ff-interval-go-no-go.md` (thin see-0004 pointers in 0002/0003); stub follow-on `epic-online-b0` in initiative `tickets.toml`
