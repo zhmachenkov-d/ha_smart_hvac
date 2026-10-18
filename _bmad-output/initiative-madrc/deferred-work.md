@@ -7,3 +7,7 @@
 - source_plan: `_bmad-output/initiative-madrc/epic-madrc-decide/story-classify-swt-command-jumps-plan.md`
   summary: Dedicated Screen-2 edge-case suite (synthetic inseparable + intentional forced M3≥Z latch/(d) plant run)
   evidence: Split from 1.3; classification cites whatever the real one-knob ablations produce (including inseparable if they fire); synthetic ranker edges are independently shippable
+
+- source_plan: `_bmad-output/initiative-madrc/epic-madrc-decide/story-compare-weather-feedforward-on-vs-off-plan.md`
+  summary: Unrelated party-mode memlog edits sitting dirty beside R7 evidence work
+  evidence: Diff since baseline includes `_bmad-output/party-mode/memories/installed/.memlog.md` from a prior party approve-and-stop; not an R7 deliverable — leave for party/memory hygiene, do not fold into the compare PR
