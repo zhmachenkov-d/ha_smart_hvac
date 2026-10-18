@@ -72,13 +72,6 @@ def _run_guard(
     )
 
 
-def test_control_tick_uses_tracking_residue_seam():
-    """Call site must advance via seam, not absolute LadrcState.advance."""
-    src = inspect.getsource(HvacApp.control_tick)
-    assert "advance_with_tracking_residue" in src
-    assert "self._ladrc.advance(" not in src
-
-
 def test_residue_known_input_differs_behaviorally_from_absolute():
     """Residue vs absolute SWT must move the ESO differently (no private field)."""
     config = _config()
@@ -284,22 +277,6 @@ def test_format_blow_up_warning_floor_fields():
         assert "zone_two" in msg
 
 
-def test_control_tick_calls_guard_after_compute_tracking():
-    src = inspect.getsource(HvacApp.control_tick)
-    assert src.index("compute_tracking") < src.index("guard_u_track")
-    assert "format_blow_up_warning" in src
-    assert "self._ladrc.guard" not in src
-
-
-def test_control_tick_warns_before_write_on_demand_path():
-    """Demand path: format_blow_up_warning before _write_setpoint(guard.command)."""
-    src = inspect.getsource(HvacApp.control_tick)
-    demand = src.split("if not decision.has_demand:")[1].split("return", 1)[1]
-    assert demand.index("format_blow_up_warning") < demand.index(
-        "_write_setpoint(guard.command)"
-    )
-
-
 def test_latch_after_zone_change_matrix():
     assert latch_after_zone_change("A", "B", True) is False
     assert latch_after_zone_change("A", "A", True) is True
@@ -307,11 +284,6 @@ def test_latch_after_zone_change_matrix():
     assert latch_after_zone_change("A", "B", False) is False
     assert latch_after_zone_change("A", "A", False) is False
     assert latch_after_zone_change(None, "B", False) is False
-
-
-def test_control_tick_latch_helper_before_compute_tracking():
-    src = inspect.getsource(HvacApp.control_tick)
-    assert src.index("latch_after_zone_change") < src.index("compute_tracking")
 
 
 def test_idle_paths_clear_blow_up_latch():
@@ -323,74 +295,9 @@ def test_idle_paths_clear_blow_up_latch():
     assert "_blow_up_latch = False" in idle
     assert "_blow_up_warned = False" in idle
     # no-demand path clears latch with clear()
-    no_demand = tick.split("if not decision.has_demand:")[1].split("return")[0]
+    no_demand = tick.split("if not has_heating_demand(zones):")[1].split("return")[0]
     assert "_blow_up_latch = False" in no_demand
     assert "_blow_up_warned = False" in no_demand
-
-
-def test_control_tick_trip_info_uses_guarded_marker():
-    src = inspect.getsource(HvacApp.control_tick)
-    assert "guarded" in src
-    # Log trip branch is the last `if guard.tripped:` (after AI-6 reset).
-    log_trip = src.rsplit("if guard.tripped:", 1)[1]
-    trip_branch = log_trip.split("else:")[0]
-    assert "guarded" in trip_branch
-    assert "u_track={u_track:.2f}" not in trip_branch
-    healthy_branch = log_trip.split("else:")[1]
-    assert "u_track={u_track:.2f}" in healthy_branch
-
-
-def test_control_tick_wires_should_warn_and_sticky_latch():
-    """AI-7 / F-V3 + CAP-4: WARN before write; sticky only after successful write."""
-    src = inspect.getsource(HvacApp.control_tick)
-    assert "sticky_blow_up_latch(" in src
-    assert "guard.latch_out" not in src
-    assert "if guard.should_warn and not self._blow_up_warned:" in src
-    write_i = src.index("_write_setpoint(guard.command)")
-    warn_i = src.index("if guard.should_warn and not self._blow_up_warned:")
-    assert warn_i < write_i
-    assert write_i < src.index("sticky_blow_up_latch(")
-    # Fail-write early return remains before sticky (sticky-after-write).
-    fail_return = src[write_i:].split("return", 1)[0]
-    assert "sticky_blow_up_latch" not in fail_return
-
-
-def test_control_tick_persists_omega_c_via_apply_proposed_after_write():
-    """AI-5 / F-R2: persist adapted ωc only via apply_proposed after write."""
-    src = inspect.getsource(HvacApp.control_tick)
-    write_i = src.index("_write_setpoint(guard.command)")
-    # Provisional apply gate before write; post-write commit gated by apply_proposed.
-    assert src.index("should_apply_omega_c") < write_i
-    post_write = src[write_i:]
-    assert "omega_to_commit" not in post_write
-    assert "should_apply_omega_c" not in post_write
-    commit_gate = "if apply_proposed:"
-    assert commit_gate in post_write
-    # Normal commit lives in the else of the CAP-4 decay branch.
-    normal_commit = post_write.split(commit_gate, 1)[1]
-    assert "_tuner.commit_omega_c(new_omega_c)" in normal_commit
-    # Must not regress to persistence-only gating (guard.tripped alone).
-    assert "if new_omega_c is not None and not guard.tripped:" not in src
-    # CAP-4: decay branch before normal apply_proposed else.
-    assert "latch_decay_residue_holds" in post_write
-    assert "next_decayed_omega_c" in post_write
-    assert post_write.index("next_decayed_omega_c") < post_write.index(commit_gate)
-
-
-def test_control_tick_skips_maybe_adapt_when_latched_at_start():
-    """CAP-6(e): latch already active at tick start → maybe_adapt not called."""
-    src = inspect.getsource(HvacApp.control_tick)
-    demand = src.split("if not decision.has_demand:")[1].split("return", 1)[1]
-    adapt_call = "self._tuner.maybe_adapt("
-    assert "latch_at_start = self._blow_up_latch" in demand
-    assert demand.index("latch_at_start = self._blow_up_latch") < demand.index(
-        adapt_call
-    )
-    assert "if latch_at_start:" in demand
-    skip_block = demand.split("if latch_at_start:")[1].split("else:")[0]
-    assert "self._tuner.clear_steady()" in skip_block
-    assert "new_omega_c = None" in skip_block
-    assert adapt_call not in skip_block
 
 
 @pytest.mark.parametrize(
@@ -479,19 +386,6 @@ def test_saturated_upward_proposal_does_not_ratchet_applied_or_committed() -> No
             committed_omega = proposed
 
         assert committed_omega == config.omega_c
-
-
-def test_control_tick_resets_eso_after_successful_write_on_trip():
-    """AI-6 / F-R4: ESO reset only after plant write succeeds, before advance."""
-    src = inspect.getsource(HvacApp.control_tick)
-    write_i = src.index("_write_setpoint(guard.command)")
-    # Trip reset lives in the post-write block (not inside guard_u_track).
-    post_write = src[write_i:]
-    assert "self._ladrc.reset(decision.measured)" in post_write
-    assert post_write.index("self._ladrc.reset(decision.measured)") < post_write.index(
-        "advance_with_tracking_residue"
-    )
-    assert "ladrc.reset" not in inspect.getsource(guard_u_track)
 
 
 # --- CAP-4 / CAP-6(e): latch decay + skip adapt ---
@@ -852,69 +746,6 @@ def _tick_app(
     return app
 
 
-def _blow_up_warning_count(app: HvacApp) -> int:
-    """Count WARNING logs that look like blow-up guard episodes."""
-    count = 0
-    for call in app.log.call_args_list:
-        msg = call.args[0] if call.args else ""
-        level = call.kwargs.get("level")
-        if level == "WARNING" and "LADRC blow-up guard" in str(msg):
-            count += 1
-    return count
-
-
-def test_control_tick_post_latch_clear_steady_no_upward_rebound(tmp_path: Path) -> None:
-    """AI-1: warm steady → latched ticks clear_steady → first unlatched tick no ωc↑."""
-    # Small e + high u_track_max: latched ticks neither trip nor decay; re-seed latch.
-    app = _tick_app(
-        tmp_path,
-        omega_c=0.10,
-        u_track_max=250.0,
-        zone_temp=21.0,
-        setpoint=22.0,
-        blow_up_latch=True,
-    )
-    app._tuner._steady_ticks = 5
-    app._tuner._last_critical_zone = _ZONE_NAME
-    app._ladrc.reset(21.0)
-    app._ladrc.critical_zone = _ZONE_NAME
-
-    for _ in range(3):
-        app._blow_up_latch = True
-        app.control_tick({})
-        assert app._tuner._steady_ticks == 0
-
-    # Fresh ESO so the unlatched tick is not a trip/decay edge from drifted z1.
-    app._ladrc.reset(21.0)
-    app._ladrc.critical_zone = _ZONE_NAME
-    omega_at_clear = app._tuner.omega_c
-    app._blow_up_latch = False
-    app.control_tick({})
-
-    assert app._tuner.omega_c == pytest.approx(omega_at_clear)
-    assert app._tuner._steady_ticks == 1  # clear_steady prevented hot rebound propose
-
-
-def test_control_tick_unlatched_does_not_clear_steady(tmp_path: Path) -> None:
-    """Regression: clear_steady stays on latched-only path (not before maybe_adapt)."""
-    app = _tick_app(
-        tmp_path,
-        omega_c=0.10,
-        u_track_max=250.0,
-        zone_temp=21.0,
-        setpoint=22.0,
-        blow_up_latch=False,
-    )
-    app._tuner._steady_ticks = 3
-    app._tuner._last_critical_zone = _ZONE_NAME
-    app._ladrc.reset(21.0)
-    app._ladrc.critical_zone = _ZONE_NAME
-
-    app.control_tick({})
-
-    assert app._tuner._steady_ticks == 4
-
-
 def test_initialize_sets_blow_up_flags_false(tmp_path: Path) -> None:
     """initialize pins latch + warned false (stubs must not be the only assign site)."""
     app = object.__new__(HvacApp)
@@ -931,152 +762,6 @@ def test_initialize_sets_blow_up_flags_false(tmp_path: Path) -> None:
     assert app._blow_up_latch is False
     assert app._blow_up_warned is False
     app.run_every.assert_called_once()
-
-
-def test_control_tick_fail_write_warns_once_no_sticky(tmp_path: Path) -> None:
-    """AI-2: trip + unreadable plant two ticks → one WARN; latch stays False."""
-    app = _tick_app(
-        tmp_path,
-        omega_c=0.10,
-        u_track_max=50.0,
-        zone_temp=15.0,
-        setpoint=22.0,
-        plant_setpoint="unavailable",
-    )
-    omega_before = app._tuner.omega_c
-
-    app.control_tick({})
-    app.control_tick({})
-
-    assert _blow_up_warning_count(app) == 1
-    assert app._blow_up_latch is False
-    assert app._blow_up_warned is True
-    assert app._tuner.omega_c == pytest.approx(omega_before)
-    app.call_service.assert_not_called()
-
-
-def test_control_tick_fail_then_success_sticky_decay_no_second_warn(
-    tmp_path: Path,
-) -> None:
-    """AI-2: fail-write trip then success trip → sticky+decay; no second WARN."""
-    plant_ok = [False]
-
-    def get_state(entity_id: str, attribute: str | None = None):
-        if entity_id == _PLANT_MGMT:
-            return "on"
-        if entity_id == _OUTDOOR:
-            return 0.0
-        if entity_id == _ZONE_TEMP:
-            return 15.0
-        if entity_id == _PLANT_SETPOINT:
-            return 45.0 if plant_ok[0] else "unavailable"
-        if entity_id == _CLIMATE:
-            if attribute == "temperature":
-                return 22.0
-            if attribute == "hvac_action":
-                return "heating"
-            return "heat"
-        return None
-
-    app = _tick_app(
-        tmp_path,
-        omega_c=0.10,
-        u_track_max=50.0,
-        zone_temp=15.0,
-        setpoint=22.0,
-    )
-    app.get_state = MagicMock(side_effect=get_state)
-    omega_before = app._tuner.omega_c
-    expected = next_decayed_omega_c(
-        omega_before,
-        app._config.ladrc.tune.max_rate_fraction,
-        app._config.ladrc.omega_c_min,
-    )
-
-    app.control_tick({})  # fail-write
-    assert _blow_up_warning_count(app) == 1
-    assert app._blow_up_latch is False
-    assert app._blow_up_warned is True
-
-    plant_ok[0] = True
-    app.control_tick({})
-
-    assert _blow_up_warning_count(app) == 1
-    assert app._blow_up_latch is True
-    assert app._blow_up_warned is True
-    assert app._tuner.omega_c == pytest.approx(expected)
-    assert app._tuner.omega_c < omega_before
-
-
-def test_control_tick_episode_clear_resets_blow_up_warned(tmp_path: Path) -> None:
-    """Q1: after warned, successful healthy demand tick ending unlatched clears flag."""
-    app = _tick_app(
-        tmp_path,
-        omega_c=0.10,
-        u_track_max=250.0,
-        zone_temp=21.5,
-        setpoint=22.0,
-        blow_up_warned=True,
-        blow_up_latch=False,
-    )
-    app._ladrc.reset(21.5)
-    app._ladrc.critical_zone = _ZONE_NAME
-
-    app.control_tick({})
-
-    assert app._blow_up_latch is False
-    assert app._blow_up_warned is False
-
-
-def test_control_tick_warn_rearms_after_episode_clear(tmp_path: Path) -> None:
-    """After Q1 clear, a new trip-edge emits WARNING again."""
-    # Phase 1: fail-write trip arms warned.
-    plant_ok = [False]
-    zone_temp = [15.0]
-
-    def get_state(entity_id: str, attribute: str | None = None):
-        if entity_id == _PLANT_MGMT:
-            return "on"
-        if entity_id == _OUTDOOR:
-            return 0.0
-        if entity_id == _ZONE_TEMP:
-            return zone_temp[0]
-        if entity_id == _PLANT_SETPOINT:
-            return 45.0 if plant_ok[0] else "unavailable"
-        if entity_id == _CLIMATE:
-            if attribute == "temperature":
-                return 22.0
-            if attribute == "hvac_action":
-                return "heating"
-            return "heat"
-        return None
-
-    app = _tick_app(tmp_path, omega_c=0.10, u_track_max=50.0)
-    app.get_state = MagicMock(side_effect=get_state)
-    app.control_tick({})
-    assert app._blow_up_warned is True
-    assert _blow_up_warning_count(app) == 1
-
-    # Phase 2: healthy success clears episode (Q1).
-    plant_ok[0] = True
-    zone_temp[0] = 21.5
-    app._config = parse_config(_tick_args(omega_c=0.10, u_track_max=250.0))
-    app._tuner._config = app._config.ladrc
-    app._ladrc.reset(21.5)
-    app._ladrc.critical_zone = _ZONE_NAME
-    app.control_tick({})
-    assert app._blow_up_latch is False
-    assert app._blow_up_warned is False
-
-    # Phase 3: new trip-edge re-arms WARN.
-    zone_temp[0] = 15.0
-    app._config = parse_config(_tick_args(omega_c=0.10, u_track_max=50.0))
-    app._tuner._config = app._config.ladrc
-    app.log.reset_mock()
-    app.control_tick({})
-
-    assert _blow_up_warning_count(app) == 1
-    assert app._blow_up_warned is True
 
 
 def test_idle_paths_clear_blow_up_warned(tmp_path: Path) -> None:
@@ -1104,73 +789,224 @@ def test_idle_paths_clear_blow_up_warned(tmp_path: Path) -> None:
     assert app._blow_up_latch is False
 
 
-def test_control_tick_multi_tick_latched_decay_persists(tmp_path: Path) -> None:
-    """Deferred Q5: ≥3 latched demand ticks strictly decrease ωc; JSON/reload match."""
-    app = _tick_app(
-        tmp_path,
-        omega_c=0.10,
-        u_track_max=50.0,
-        zone_temp=15.0,
-        setpoint=22.0,
-        outdoor=0.0,
-        blow_up_latch=True,
-    )
-    state_path = tmp_path / app._config.tune_state_path
-
-    for _ in range(3):
-        before = app._tuner.omega_c
-        app.control_tick({})
-        assert app._blow_up_latch is True
-        assert app._tuner.omega_c < before
-
-    final = app._tuner.omega_c
-    persisted = json.loads(state_path.read_text(encoding="utf-8"))["omega_c"]
-    assert persisted == pytest.approx(final)
-    reloaded = LadrcTuner(app._config.ladrc, state_path)
-    assert reloaded.omega_c == pytest.approx(final)
+# --- CAP-5: weather-curve-only SWT law ---
 
 
-def test_control_tick_equal_setpoint_skips_set_value_still_sticky_decays(
-    tmp_path: Path,
-) -> None:
-    """Deferred Q5: plant==clamp(u_ff) skips set_value; sticky+decay still run."""
-    config = parse_config(_tick_args(omega_c=0.10, u_track_max=50.0))
-    desired = max(
-        config.setpoint_min,
-        min(
-            config.setpoint_max,
-            weather_feedforward(0.0, config.weather_feedforward),
-        ),
-    )
-    assert desired == pytest.approx(49.0)
+def _expected_ff_clamp(config, outdoor: float) -> float:
+    u_ff = weather_feedforward(outdoor, config.weather_feedforward)
+    return max(config.setpoint_min, min(config.setpoint_max, u_ff))
 
-    app = _tick_app(
-        tmp_path,
-        omega_c=0.10,
-        u_track_max=50.0,
-        zone_temp=15.0,
-        setpoint=22.0,
-        outdoor=0.0,
-        plant_setpoint=desired,
-        blow_up_latch=False,
-    )
-    omega_before = app._tuner.omega_c
-    expected = next_decayed_omega_c(
-        omega_before,
-        app._config.ladrc.tune.max_rate_fraction,
-        app._config.ladrc.omega_c_min,
-    )
 
-    app.control_tick({})
-
-    set_value_calls = [
-        c
+def _set_value_writes(app: HvacApp) -> list[float]:
+    return [
+        c.kwargs["value"]
         for c in app.call_service.call_args_list
         if c.args and c.args[0] == "number/set_value"
     ]
-    assert set_value_calls == []
-    assert app._blow_up_latch is True
-    assert app._tuner.omega_c == pytest.approx(expected)
+
+
+def test_cap5_demand_writes_clamp_uff_only(tmp_path: Path) -> None:
+    """CAP-5(a): demand → clamp(u_ff) only; no tracking / publish_sensor."""
+    outdoor = 10.0
+    app = _tick_app(
+        tmp_path,
+        zone_temp=20.0,
+        setpoint=22.0,
+        outdoor=outdoor,
+        plant_setpoint=45.0,
+    )
+    expected = _expected_ff_clamp(app._config, outdoor)
+    with (
+        patch.object(
+            app._ladrc, "compute_tracking", wraps=app._ladrc.compute_tracking
+        ) as track,
+        patch.object(
+            app._tuner, "publish_sensor", wraps=app._tuner.publish_sensor
+        ) as publish,
+        patch.object(app._tuner, "maybe_adapt", wraps=app._tuner.maybe_adapt) as adapt,
+    ):
+        app.control_tick({})
+
+    assert _set_value_writes(app) == [expected]
+    track.assert_not_called()
+    publish.assert_not_called()
+    adapt.assert_not_called()
+    info_msgs = [
+        str(c.args[0])
+        for c in app.log.call_args_list
+        if c.kwargs.get("level") is None or c.kwargs.get("level") == "INFO"
+    ]
+    joined = " ".join(info_msgs)
+    assert "u_ff=" in joined
+    assert "command=" in joined
+    assert "Critical zone" not in joined
+    assert "u_track=" not in joined
+
+
+def test_cap5_plant_on_idle_writes_zero_and_clears(tmp_path: Path) -> None:
+    """CAP-5(b): Plant-on idle → write 0 + clear water-path state."""
+    app = _tick_app(
+        tmp_path,
+        zone_temp=22.0,
+        setpoint=22.0,
+        blow_up_latch=True,
+        blow_up_warned=True,
+    )
+    app._ladrc.reset(22.0)
+    app._ladrc.z2 = 1.0
+    app._tuner._steady_ticks = 3
+
+    app.control_tick({})
+
+    assert _set_value_writes(app) == [0.0]
+    assert app._blow_up_latch is False
+    assert app._blow_up_warned is False
+    assert app._ladrc.z2 == 0.0
+    assert app._tuner._steady_ticks == 0
+
+
+def test_cap5_plant_off_no_write_and_clears(tmp_path: Path) -> None:
+    """CAP-5(c): Plant-off → no Set Water Temperature write + clear."""
+    app = _tick_app(
+        tmp_path,
+        plant_management="off",
+        blow_up_latch=True,
+        blow_up_warned=True,
+    )
+    app._ladrc.reset(20.0)
+    app._ladrc.z2 = 1.0
+
+    app.control_tick({})
+
+    assert _set_value_writes(app) == []
+    app.call_service.assert_not_called()
+    assert app._blow_up_latch is False
+    assert app._blow_up_warned is False
+    assert app._ladrc.z2 == 0.0
+
+
+def test_cap5_flat_air_multi_tick_stays_at_ff_clamp(tmp_path: Path) -> None:
+    """CAP-5(d): flat near-setpoint air never climbs to max via tracking."""
+    outdoor = 10.0
+    app = _tick_app(
+        tmp_path,
+        zone_temp=21.8,
+        setpoint=22.0,
+        outdoor=outdoor,
+        plant_setpoint=45.0,
+    )
+    expected = _expected_ff_clamp(app._config, outdoor)
+    assert expected < app._config.setpoint_max
+
+    for _ in range(5):
+        app.call_service.reset_mock()
+        app.control_tick({})
+        writes = _set_value_writes(app)
+        assert writes == [expected]
+        assert writes[0] == expected
+        assert writes[0] < app._config.setpoint_max
+
+
+def test_cap5_max_error_zone_air_not_additive_on_swt(tmp_path: Path) -> None:
+    """CAP-5(e): distinct max-error zone air is not an additive term on SWT."""
+    outdoor = 10.0
+    zone_two_temp = "sensor.zone_two_temp"
+    climate_two = "climate.zone_two"
+    args = _tick_args()
+    args["zones"] = [
+        {
+            "name": "zone_one",
+            "temperature": _ZONE_TEMP,
+            "thermostats": [_CLIMATE],
+        },
+        {
+            "name": "zone_two",
+            "temperature": zone_two_temp,
+            "thermostats": [climate_two],
+        },
+    ]
+    config = parse_config(args)
+    expected = _expected_ff_clamp(config, outdoor)
+
+    app = object.__new__(HvacApp)
+    app._config = config
+    app._ladrc = LadrcState()
+    app._tuner = LadrcTuner(config.ladrc, tmp_path / config.tune_state_path)
+    app._blow_up_latch = False
+    app._blow_up_warned = False
+    app.call_service = MagicMock()
+    app.log = MagicMock()
+    app.set_state = MagicMock()
+
+    def get_state(entity_id: str, attribute: str | None = None):
+        if entity_id == _PLANT_MGMT:
+            return "on"
+        if entity_id == _OUTDOOR:
+            return outdoor
+        if entity_id == _ZONE_TEMP:
+            return 21.5  # small error
+        if entity_id == zone_two_temp:
+            return 15.0  # max-error zone, distinct air
+        if entity_id == _PLANT_SETPOINT:
+            return 45.0
+        if entity_id == _CLIMATE:
+            if attribute == "temperature":
+                return 22.0
+            if attribute == "hvac_action":
+                return "heating"
+            return "heat"
+        if entity_id == climate_two:
+            if attribute == "temperature":
+                return 22.0
+            if attribute == "hvac_action":
+                return "heating"
+            return "heat"
+        return None
+
+    app.get_state = MagicMock(side_effect=get_state)
+    app.control_tick({})
+
+    assert _set_value_writes(app) == [expected]
+
+
+def test_matrix_outdoor_missing_goes_idle(tmp_path: Path) -> None:
+    """I/O matrix: outdoor unavailable → _go_idle write 0 + clear."""
+    app = _tick_app(
+        tmp_path,
+        outdoor="unavailable",
+        blow_up_latch=True,
+        blow_up_warned=True,
+    )
+    app._ladrc.reset(20.0)
+    app._ladrc.z2 = 1.0
+    app._tuner._steady_ticks = 2
+
+    app.control_tick({})
+
+    assert _set_value_writes(app) == [0.0]
+    assert app._blow_up_latch is False
+    assert app._blow_up_warned is False
+    assert app._ladrc.z2 == 0.0
+    assert app._tuner._steady_ticks == 0
+
+
+def test_matrix_no_valid_zones_goes_idle(tmp_path: Path) -> None:
+    """I/O matrix: no valid zones → _go_idle write 0 + clear."""
+    app = _tick_app(
+        tmp_path,
+        zone_temp="unavailable",
+        blow_up_latch=True,
+        blow_up_warned=True,
+    )
+    app._ladrc.reset(20.0)
+    app._ladrc.z2 = 1.0
+
+    app.control_tick({})
+
+    assert _set_value_writes(app) == [0.0]
+    assert app._blow_up_latch is False
+    assert app._blow_up_warned is False
+    assert app._ladrc.z2 == 0.0
 
 
 # --- CAP-6 (c)(d): write-on-change vs fail-closed ---
