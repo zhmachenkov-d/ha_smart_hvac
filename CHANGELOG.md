@@ -2,6 +2,24 @@
 
 <!-- version list -->
 
+## v1.3.0 (2026-10-18)
+
+### Chores
+
+- **bmad**: Mark story 1.2 CAP-4 plan built
+  ([`5906bb8`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/5906bb8b3835acd04f108e14bf712b3721c59703))
+
+### Documentation
+
+- **bmad**: Add PR #63 CAP-4 walkthrough
+  ([`277a53b`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/277a53b40432f30d47cfcd1986bb734acde27523))
+
+### Features
+
+- **hvac**: Remove water-path LADRC and ωc (CAP-4)
+  ([`abefa5d`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/abefa5d4fcafe418c32647fbf45ad55b1524bba1))
+
+
 ## v1.2.0 (2026-10-18)
 
 ### Chores
