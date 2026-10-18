@@ -8,7 +8,7 @@ from typing import NamedTuple
 import appdaemon.plugins.hass.hassapi as hass
 
 from ha_smart_hvac.config import ConfigError, parse_config
-from ha_smart_hvac.coordinator import select_critical_zone
+from ha_smart_hvac.coordinator import has_heating_demand
 from ha_smart_hvac.feedforward import weather_feedforward
 from ha_smart_hvac.ladrc import LadrcState
 from ha_smart_hvac.ladrc_tuner import LadrcTuner
@@ -199,155 +199,20 @@ class HvacApp(hass.Hass):
             self._go_idle("No zones with valid readings this tick")
             return
 
-        decision = select_critical_zone(zones)
-
-        if not decision.has_demand:
+        if not has_heating_demand(zones):
             self._ladrc.clear()
             self._tuner.clear_steady()
             self._blow_up_latch = False
             self._blow_up_warned = False
             self._write_setpoint(0.0)
-            self.log(
-                f"No heating demand (max zone error {decision.zone_error:.2f} °C); "
-                "setpoint 0"
-            )
+            self.log("No heating demand; setpoint 0")
             return
-
-        # CAP-4: skip adapt when latch already active at tick start.
-        latch_at_start = self._blow_up_latch
-        tracking_error = decision.reference - self._ladrc.z1
-        if latch_at_start:
-            self._tuner.clear_steady()
-            new_omega_c = None
-        else:
-            new_omega_c = self._tuner.maybe_adapt(
-                tracking_error,
-                decision.critical_zone,
-                decision.has_demand,
-                apply=False,
-            )
-        current_omega_c = self._tuner.omega_c
-        committed_ladrc = config.ladrc.with_omega_c(current_omega_c)
 
         u_ff = weather_feedforward(outdoor, config.weather_feedforward)
-        prev_zone = self._ladrc.critical_zone
-        self._blow_up_latch = latch_after_zone_change(
-            prev_zone,
-            decision.critical_zone,
-            self._blow_up_latch,
-        )
-        # latch_in for sticky CAP-4 (same value passed to the write-path guard).
-        latch_in = self._blow_up_latch
-
-        def track_and_guard(
-            ladrc_cfg: LadrcConfig, *, latch: bool
-        ) -> tuple[float, GuardUTrackResult]:
-            u = self._ladrc.compute_tracking(
-                measured=decision.measured,
-                reference=decision.reference,
-                config=ladrc_cfg,
-                critical_zone=decision.critical_zone,
-            )
-            g = guard_u_track(
-                u,
-                u_ff,
-                ladrc_cfg.u_track_max,
-                config.setpoint_min,
-                config.setpoint_max,
-                latch,
-            )
-            return u, g
-
-        # Strict apply: provisional track+guard with proposed ωc decides apply;
-        # blocked proposals never enter write-path tracking (CAP-2).
-        apply_proposed = False
-        if new_omega_c is not None:
-            proposed_ladrc = config.ladrc.with_omega_c(new_omega_c)
-            u_track, guard = track_and_guard(proposed_ladrc, latch=latch_in)
-            apply_proposed = should_apply_omega_c(
-                new_omega_c,
-                current_omega_c,
-                guard_tripped=guard.tripped,
-                command=guard.command,
-                setpoint_min=config.setpoint_min,
-                setpoint_max=config.setpoint_max,
-            )
-            if apply_proposed:
-                effective_ladrc = proposed_ladrc
-            else:
-                # Discard provisional; final track+guard with committed ωc.
-                # Do not re-eval should_apply_omega_c on this final guard.
-                u_track, guard = track_and_guard(committed_ladrc, latch=latch_in)
-                effective_ladrc = committed_ladrc
-        else:
-            u_track, guard = track_and_guard(committed_ladrc, latch=latch_in)
-            effective_ladrc = committed_ladrc
-
-        if guard.should_warn and not self._blow_up_warned:
-            self.log(
-                format_blow_up_warning(
-                    guard.reason or "unknown",
-                    u_track,
-                    effective_ladrc.u_track_max,
-                    decision.critical_zone,
-                ),
-                level="WARNING",
-            )
-            self._blow_up_warned = True
-        if not self._write_setpoint(guard.command):
+        command = max(config.setpoint_min, min(config.setpoint_max, u_ff))
+        if not self._write_setpoint(command):
             return
-        # Sticky CAP-4 latch only after successful plant write (not latch_out alone).
-        self._blow_up_latch = sticky_blow_up_latch(
-            latch_in,
-            guard.tripped,
-            u_track,
-            effective_ladrc.u_track_max,
-        )
-        if not self._blow_up_latch:
-            self._blow_up_warned = False
-        # AI-6: reset ESO only after successful plant write (not inside guard).
-        if guard.tripped:
-            self._ladrc.reset(decision.measured)
-
-        advance_with_tracking_residue(
-            self._ladrc,
-            decision.measured,
-            guard.command,
-            u_ff,
-            effective_ladrc,
-        )
-        # CAP-4 decay persist (even when guard trip blocks normal commit).
-        if self._blow_up_latch and latch_decay_residue_holds(
-            u_track, effective_ladrc.u_track_max
-        ):
-            self._tuner.commit_omega_c(
-                next_decayed_omega_c(
-                    current_omega_c,
-                    effective_ladrc.tune.max_rate_fraction,
-                    effective_ladrc.omega_c_min,
-                )
-            )
-        else:
-            # Commit when apply_proposed (write-path already passed the gate).
-            if apply_proposed:
-                assert new_omega_c is not None
-                self._tuner.commit_omega_c(new_omega_c)
-        self._tuner.publish_sensor(self)
-        if guard.tripped:
-            self.log(
-                f"Critical zone {decision.critical_zone}: "
-                f"error={decision.zone_error:.2f} °C, "
-                f"y={decision.measured:.2f} °C, T_r={decision.reference:.2f} °C, "
-                f"u_ff={u_ff:.2f}, command={guard.command:.2f} guarded"
-            )
-        else:
-            self.log(
-                f"Critical zone {decision.critical_zone}: "
-                f"error={decision.zone_error:.2f} °C, "
-                f"y={decision.measured:.2f} °C, T_r={decision.reference:.2f} °C, "
-                f"u_ff={u_ff:.2f}, u_track={u_track:.2f}, "
-                f"command={guard.command:.2f}"
-            )
+        self.log(f"outdoor={outdoor:.2f} °C, u_ff={u_ff:.2f}, command={command:.2f}")
 
     def _hands_off(self, message: str) -> None:
         self._ladrc.clear()
