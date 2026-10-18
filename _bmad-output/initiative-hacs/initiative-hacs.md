@@ -7,7 +7,6 @@ parent: none
 covers: [R1, R2, R3, R4, R5, R6]
 after: []
 assignee: ""
-status: done
 risk: medium
 estimate: ""
 estimate_basis: ""
@@ -69,4 +68,3 @@ Capability / distribution boundary: AppDaemon HACS packaging and public-repo rea
 - Decision: 2026-10-17 slice+inception approved — epic covers [R4]; one hitl story; Validate PR triage parked; no refactor sweep.
 - Decision: 2026-10-17 — HACS install broken: `apps.yaml.example` under `apps/` stole first contents slot; HACS local path = repo name so package/repo must be valid Python id. Rename package + GitHub repo to `ha_smart_hvac`; move example to repo root.
 - Decision: 2026-10-17 verify 1.1 — Done when #1 package path is `ha_smart_hvac/` (aligned with rename).
-- Decision: 2026-10-17 — initiative closed; closure check SAFE_TO_CLOSE (Done when #1–#5 MET; epic-hacs-stranger-install-verify done). Parked remain: `hacs/default`, Validate PR-ref noise.

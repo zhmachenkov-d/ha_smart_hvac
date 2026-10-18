@@ -3,7 +3,7 @@ type: Concept
 title: Zone Error
 description: Difference between a Zone’s thermostat setpoint and that Zone’s current temperature.
 tags: [zone, control]
-timestamp: 2026-10-18T10:00:00Z
+timestamp: 2026-07-08T15:34:24Z
 ---
 
 # Zone Error
@@ -12,15 +12,6 @@ timestamp: 2026-10-18T10:00:00Z
 
 Use **Heating Demand** when a Zone needs heat (zone error > 0). Avoid “delta” (ambiguous).
 
-On [Sonoff TRVZB](/concepts/sonoff-trvzb.md) climate entities, HA `hvac_action` follows Zigbee Thermostat `running_state` (`heat` → `heating`, `idle` → `idle`).
-
-## Related
-
-- [/concepts/zone.md](/concepts/zone.md)
-- [/concepts/critical-zone.md](/concepts/critical-zone.md)
-- [/concepts/sonoff-trvzb.md](/concepts/sonoff-trvzb.md)
-
 # Citations
 
 - [`CONTEXT.md`](../../CONTEXT.md) — Zone Error
-- [/references/sonoff-trvzb-zigbee.md](/references/sonoff-trvzb-zigbee.md)

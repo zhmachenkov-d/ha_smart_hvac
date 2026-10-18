@@ -2,36 +2,6 @@
 
 <!-- version list -->
 
-## v1.1.0 (2026-10-17)
-
-### Chores
-
-- **bmad**: Add MADRC initiative ticket tree and party memlog
-  ([`f92b222`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/f92b222d432fb31bbe57e386af1cc50465a6fd8d))
-
-- **bmad**: Close HACS initiative and stranger-install epic
-  ([`8b9e750`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/8b9e750f0d4e7a067b557e392ddb2990b12e1cc3))
-
-- **bmad**: Mark stranger HACS verify story done
-  ([`8e88bbf`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/8e88bbf25d4157961fdac51a7d8aba64bf0fc50c))
-
-- **bmad**: Record stranger HACS install verify pass
-  ([`47d4937`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/47d49376eb3e511e2de9667171b0f0c2263d9ede))
-
-- **bmad**: Refine HACS stranger-install verify story
-  ([`31202e2`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/31202e2cad15893b54c0d219fecd5cfa049a1618))
-
-### Documentation
-
-- **bmad**: Add PR #49 walkthrough and mark story 1.1 done
-  ([`d34f305`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/d34f3056b0e200897cc0bf6ae7aa5f50e2726461))
-
-### Features
-
-- Add plant-lag multi-tick sim harness
-  ([`c3c319e`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/c3c319e4f5e7b853bc2d0db530adc88ef1c702a7))
-
-
 ## v1.0.0 (2026-10-17)
 
 ### Bug Fixes
