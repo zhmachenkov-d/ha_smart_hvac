@@ -2,6 +2,92 @@
 
 <!-- version list -->
 
+## v1.2.0 (2026-10-18)
+
+### Chores
+
+- Restore repository tree to a262521
+  ([`dbae19f`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/dbae19f3faa243d59ddb8947d093523b68125e9f))
+
+- **bmad**: Mark story 1.1 weather-curve SWT tracer done
+  ([`3159ff9`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/3159ff94c25f79bd17fa152fd1bd8fe2e93aed77))
+
+- **bmad**: Mark story 1.3 classify SWT jumps done
+  ([`4adaced`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/4adaced18fcfba5aeafb76da944923d3027361bd))
+
+- **bmad**: Mark story 1.4 control_interval compare done
+  ([`2f81255`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/2f812555e244364157dedbe013afa9405f325998))
+
+- **bmad**: Mark story 1.6 ADR go/no-go done
+  ([`cf622bd`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/cf622bd7b8eeffdd7ea1892577bb613693f3f6f5))
+
+- **bmad**: Record party memlog for spike 1.2 metrics review
+  ([`0a83c15`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/0a83c15e602b91d2f9bd3b641f4c2fe3db4752d4))
+
+### Documentation
+
+- **adr**: Accept ADR 0004 HITL go/no-go decisions
+  ([`973540a`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/973540ab89c68c2e222e2389c923dd6f97223497))
+
+- **adr**: Record MADRC/scheduling/FF/interval go-no-go in 0004
+  ([`e20ac93`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/e20ac936e260ae740ec868022c2a2130b659e0da))
+
+- **bmad**: Accept spike 1.2 metrics thresholds
+  ([`33d23cd`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/33d23cdafa973dae69b457020e6a1358bb3de421))
+
+- **bmad**: Add PR #54 walkthrough and mark story 1.5 done
+  ([`e68a365`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/e68a365bb833b6bbd29778de7f80a2233e6821ba))
+
+- **bmad**: Add PR #62 weather-curve SWT walkthrough
+  ([`2234a32`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/2234a32d03704fb848f3b62668f7ffe804200491))
+
+- **bmad**: Add walkthrough for metrics spike 1.2
+  ([`74221bd`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/74221bdda8abbe2f9cfbd7b784f8abf28b603986))
+
+- **bmad**: Add weather-curve SWT-only initiative planning
+  ([`756ff99`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/756ff992927ffb9b67b54aa83fa201ae90670e66))
+
+- **bmad**: Append PR #54 walkthrough wrap-up log
+  ([`e765383`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/e7653836b9a03ae3e313fbb56258942acdbc7022))
+
+- **bmad**: Finalize PR #54 walkthrough wrap-up status
+  ([`b299422`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/b2994228467f21a59120dc1e3ad25b8a433e3f34))
+
+- **bmad**: Note PR #49 walkthrough wrap-up merged
+  ([`73bf730`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/73bf7304db68d34786dd922b1ffe5a1bd4a2f868))
+
+- **bmad**: Note PR #51 metrics-spike walkthrough wrap-up
+  ([`bec15c5`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/bec15c5592f27dc90eed9070e5714ca663a4d59a))
+
+- **bmad**: Spike 1.2 metrics for jump, MADRC, and FF decisions
+  ([`f969c67`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/f969c67894bb394a87ce6225d475201738ee31b2))
+
+- **bmad**: Triage MADRC deferred-work after R7
+  ([`94a4521`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/94a452188ef8ee7bc1db170db31e4acb85039d53))
+
+- **knowledge**: Add Sonoff TRVZB Zigbee protocol notes
+  ([`fb04923`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/fb0492327d8e33d58ebf9b890ee02e17fd9d25a2))
+
+### Features
+
+- **hvac**: Command SWT as clamp(weather feedforward) only
+  ([`a10c00d`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/a10c00dff85dd478bcac4bb9cd80281575ad66eb))
+
+### Testing
+
+- **hvac**: Lock demand abort when plant setpoint unread
+  ([`c328048`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/c32804891f4207c58e1e1c395bfc55191ee75579))
+
+- **madrc**: Classify SWT jumps with Screen-2 ablations
+  ([`0b182ea`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/0b182ea30efd9533ccde80f23cbf6df7d0491be1))
+
+- **madrc**: Compare control_interval candidates for R3
+  ([`a3347c1`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/a3347c1a134f05ba42d2e29328faf747f750a7dd))
+
+- **madrc**: Compare weather feedforward on vs off
+  ([`6aba90a`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/6aba90ac7eb0437dee93099c1062538fa574ba4e))
+
+
 ## v1.0.0 (2026-10-17)
 
 ### Bug Fixes
