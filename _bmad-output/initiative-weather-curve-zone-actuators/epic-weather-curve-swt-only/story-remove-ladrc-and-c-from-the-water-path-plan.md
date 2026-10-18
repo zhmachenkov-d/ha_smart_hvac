@@ -3,7 +3,7 @@ title: 'Remove LADRC and ωc from the water path'
 type: 'feature'
 ticket: '2'
 created: '2026-10-18'
-status: 'built'
+status: done
 baseline_revision: '6bf761e53fa5c52198f3a6235898c027764fa89f'
 route: 'full'
 route_source: 'auto'
