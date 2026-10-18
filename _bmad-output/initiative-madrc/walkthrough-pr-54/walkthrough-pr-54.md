@@ -2,7 +2,7 @@
 
 Target: [PR #54](https://github.com/zhmachenkov-d/ha_smart_hvac/pull/54) — branch `feat/madrc-1-5-compare-weather-ff`, commit `6aba90a`
 Focus: human review of R7 FF-on vs zero_uff Screen-3 evidence (story 1.5)
-Current block: closed — walkthrough complete; wrap-up in progress (commit walkthrough + memlog; mark plan done; merge PR #54)
+Current block: closed — walkthrough complete; wrap-up done (walkthrough+memlog in `e68a365`; plan `done`; PR #54 MERGED; wrap-up log via PR #55)
 
 ## Blocks
 
