@@ -14,21 +14,6 @@ hvac:
     base: 25
     slope: 1.2
     comfort_ref: 20
-  ladrc:
-    b0: 5.0e-4
-    omega_o: 0.03
-    # Starting point for online ωc tune (ADR 0003); not the CAP-5 unit-test value.
-    # Package A (тепло): cold-start |e|=2 stays under u_track_max; see house-calibration.
-    omega_c: 0.03
-    omega_c_min: 0.02
-    omega_c_max: 0.15
-    # Live magnitude guard (°C). 250 pairs with example ωc so |e|≲3 °C is tracking, not trip.
-    u_track_max: 250
-    tune:
-      ki: 0.005
-      deadband: 0.2
-      min_steady_ticks: 5
-      max_rate_fraction: 0.05
   zones:
     - name: zone_one
       temperature: sensor.YOUR_ZONE_ONE_TEMPERATURE

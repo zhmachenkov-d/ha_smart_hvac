@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
@@ -48,50 +48,10 @@ class ZoneSnapshot:
 
 
 @dataclass(frozen=True)
-class ControlDecision:
-    critical_zone: str | None
-    reference: float | None
-    measured: float | None
-    zone_error: float
-    has_demand: bool
-
-
-@dataclass(frozen=True)
 class WeatherFeedforwardConfig:
     base: float
     slope: float
     comfort_ref: float
-
-
-@dataclass(frozen=True)
-class LadrcTuneConfig:
-    ki: float
-    deadband: float
-    min_steady_ticks: int
-    max_rate_fraction: float
-
-
-@dataclass(frozen=True)
-class LadrcConfig:
-    b0: float
-    omega_o: float
-    omega_c: float
-    omega_c_min: float
-    omega_c_max: float
-    tune: LadrcTuneConfig
-    dt: float = 60.0
-    u_track_max: float = 250.0
-
-    @property
-    def kp(self) -> float:
-        return self.omega_c
-
-    @property
-    def beta2(self) -> float:
-        return self.omega_o * self.omega_o
-
-    def with_omega_c(self, omega_c: float) -> LadrcConfig:
-        return replace(self, omega_c=omega_c)
 
 
 def plant_management_enabled(switch_state: str | None) -> bool:
@@ -107,6 +67,4 @@ class HvacConfig:
     setpoint_max: float
     control_interval: int
     weather_feedforward: WeatherFeedforwardConfig
-    ladrc: LadrcConfig
-    tune_state_path: str
     zones: tuple[ZoneConfig, ...]
