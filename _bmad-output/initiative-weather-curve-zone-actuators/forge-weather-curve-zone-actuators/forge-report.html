@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Forge Report — Weather-curve SWT only</title>
+  <style>
+    :root {
+      --ink: #1a1410;
+      --paper: #f3ebe0;
+      --rule: #c4b5a0;
+      --accent: #8b1e1e;
+      --muted: #5c5348;
+      --card: #fffaf3;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+      background:
+        radial-gradient(ellipse at 20% 0%, #fff8ee 0%, transparent 50%),
+        radial-gradient(ellipse at 90% 10%, #e8dcc8 0%, transparent 40%),
+        var(--paper);
+      color: var(--ink);
+      line-height: 1.45;
+      padding: 2.5rem 1.25rem 4rem;
+    }
+    main { max-width: 42rem; margin: 0 auto; }
+    header {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 1.5rem;
+      align-items: start;
+      border-bottom: 2px solid var(--ink);
+      padding-bottom: 1.25rem;
+      margin-bottom: 1.75rem;
+    }
+    h1 {
+      font-size: 1.65rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin: 0 0 0.35rem;
+    }
+    .meta { color: var(--muted); font-size: 0.95rem; margin: 0; }
+    .seal { width: 7.5rem; height: 7.5rem; flex-shrink: 0; }
+    .seal text {
+      fill: #f5e6d3;
+      font-family: Georgia, serif;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+    }
+    h2 {
+      font-size: 1.05rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      border-bottom: 1px solid var(--rule);
+      padding-bottom: 0.35rem;
+      margin: 1.75rem 0 0.75rem;
+    }
+    ul { margin: 0; padding-left: 1.15rem; }
+    li { margin: 0.35rem 0; }
+    .rejected li::marker { color: var(--accent); }
+    .voices { display: grid; gap: 0.65rem; margin-top: 0.5rem; }
+    .voice {
+      background: var(--card);
+      border: 1px solid var(--rule);
+      padding: 0.65rem 0.85rem;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 0.65rem;
+      align-items: start;
+    }
+    .icon { font-size: 1.35rem; line-height: 1; }
+    .voice strong { display: block; font-size: 0.95rem; }
+    .voice span { color: var(--muted); font-size: 0.88rem; }
+    footer {
+      margin-top: 2.5rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--rule);
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+    code {
+      font-family: ui-monospace, "Cascadia Code", Menlo, monospace;
+      font-size: 0.88em;
+      background: #ebe1d2;
+      padding: 0.05em 0.3em;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <h1>Weather-curve SWT only</h1>
+        <p class="meta">Forge outcome · 2026-10-18 · pressure-test → hardened</p>
+        <p class="meta">Initiative: <code>initiative-weather-curve-zone-actuators</code></p>
+        <p class="meta">Workspace: <code>_bmad-output/initiative-weather-curve-zone-actuators/forge-weather-curve-zone-actuators/</code></p>
+      </div>
+      <svg class="seal" viewBox="0 0 120 120" role="img" aria-label="HARDENED">
+        <defs>
+          <radialGradient id="wax" cx="40%" cy="35%" r="65%">
+            <stop offset="0%" stop-color="#a82424"/>
+            <stop offset="55%" stop-color="#7a1616"/>
+            <stop offset="100%" stop-color="#4a0c0c"/>
+          </radialGradient>
+        </defs>
+        <circle cx="60" cy="60" r="56" fill="url(#wax)" stroke="#3a0808" stroke-width="2"/>
+        <circle cx="60" cy="60" r="48" fill="none" stroke="#f5e6d3" stroke-width="1.5" stroke-dasharray="2 3" opacity="0.85"/>
+        <text x="60" y="56" text-anchor="middle" font-size="11">HARDENED</text>
+        <text x="60" y="72" text-anchor="middle" font-size="8" opacity="0.9">IDEA SEAL</text>
+      </svg>
+    </header>
+
+    <h2>Outcome</h2>
+    <p>
+      Yes — do a <strong>narrow</strong> refactor: Set Water Temperature from the
+      weather curve only (or 0 with no Heating Demand). Remove LADRC and ωc
+      auto-tune from the water path. Leave zone on/off in Home Assistant.
+      Continuous TRV control is out of this wave.
+    </p>
+
+    <h2>Locked decisions</h2>
+    <ul>
+      <li>SWT = <code>clamp(weather_feedforward)</code> when Plant Management on and Heating Demand; else <code>0</code>.</li>
+      <li>CH gate = existing <code>plant_management</code> / CH enabled.</li>
+      <li>App does not own TRV percent or floor on/off.</li>
+      <li>Delete LADRC/ωc from SWT path now (code + docs/ADR), not leave dormant.</li>
+      <li>Pain confirmed in logs: flat air at <code>error≈0.2</code>, rising <code>u_track</code> → <code>command</code> at max while <code>u_ff</code> stayed moderate.</li>
+    </ul>
+
+    <h2>Rejected</h2>
+    <ul class="rejected">
+      <li><strong>B</strong> — LADRC on Sonoff opening/closing-degree hack (deferred; actuator is awkward).</li>
+      <li><strong>C</strong> — keep LADRC on SWT with deadband/anti-windup.</li>
+      <li>App taking over zone actuators in this wave.</li>
+    </ul>
+
+    <h2>Surviving weak points</h2>
+    <ul>
+      <li><code>setpoint_min=40</code> still floors mild-weather water above raw feedforward.</li>
+      <li>What Critical Zone means after LADRC removal (demand vs logging).</li>
+      <li>ADR 0002 / 0003 need supersede when implementing.</li>
+    </ul>
+
+    <h2>Voices</h2>
+    <div class="voices">
+      <div class="voice">
+        <div class="icon">🏗️</div>
+        <div>
+          <strong>Winston</strong>
+          <span>System Architect — framed A as SWT-law change vs new zone-control system.</span>
+        </div>
+      </div>
+      <div class="voice">
+        <div class="icon">💻</div>
+        <div>
+          <strong>Amelia</strong>
+          <span>Senior Software Engineer — pinned log math (<code>u_ff</code> vs <code>u_track</code>) and deletion vs dormant.</span>
+        </div>
+      </div>
+      <div class="voice">
+        <div class="icon">📋</div>
+        <div>
+          <strong>John</strong>
+          <span>Product Manager — forced cold-start job: closed-loop water vs curve-only.</span>
+        </div>
+      </div>
+      <div class="voice">
+        <div class="icon">📊</div>
+        <div>
+          <strong>Mary</strong>
+          <span>Business Analyst — checked CH gate vs <code>plant_management</code>.</span>
+        </div>
+      </div>
+      <div class="voice">
+        <div class="icon">🎯</div>
+        <div>
+          <strong>Yui</strong>
+          <span>The Craftsman — pushed minimal A: water law only.</span>
+        </div>
+      </div>
+      <div class="voice">
+        <div class="icon">🚢</div>
+        <div>
+          <strong>Dana</strong>
+          <span>The Pragmatist — argued try curve+on/off before proportional TRVs.</span>
+        </div>
+      </div>
+      <div class="voice">
+        <div class="icon">😤</div>
+        <div>
+          <strong>Grumbal</strong>
+          <span>The Adversary — demanded valve/position truth before blaming TRV throttle.</span>
+        </div>
+      </div>
+      <div class="voice">
+        <div class="icon">📏</div>
+        <div>
+          <strong>Level</strong>
+          <span>Claim Checker — required evidence that continuous TRV control exists.</span>
+        </div>
+      </div>
+      <div class="voice">
+        <div class="icon">🃏</div>
+        <div>
+          <strong>Wildcard</strong>
+          <span>Option Generator — split A / B / C.</span>
+        </div>
+      </div>
+      <div class="voice">
+        <div class="icon">🪵</div>
+        <div>
+          <strong>Splinter</strong>
+          <span>Consensus Challenger — rejected keeping LADRC out of sunk-cost habit.</span>
+        </div>
+      </div>
+      <div class="voice">
+        <div class="icon">🛑</div>
+        <div>
+          <strong>Killjoy</strong>
+          <span>Loop Stopper — closed once “worth doing” was answered.</span>
+        </div>
+      </div>
+      <div class="voice">
+        <div class="icon">🔧</div>
+        <div>
+          <strong>Ira / Lev</strong>
+          <span>Hydronic outsiders — weather curve + local actuators vs windup on water.</span>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      Forged idea:
+      <code>forge-weather-curve-zone-actuators.md</code>
+      · Memlog status → complete
+    </footer>
+  </main>
+</body>
+</html>
