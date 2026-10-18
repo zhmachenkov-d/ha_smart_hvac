@@ -3,7 +3,7 @@ title: 'Compare Weather Feedforward on vs off'
 type: 'feature'
 ticket: '5'
 created: '2026-10-18'
-status: built
+status: done
 baseline_revision: '2668fd3c58253b673b20d04b6454078468b7f830'
 route: 'full'
 route_source: 'auto'
