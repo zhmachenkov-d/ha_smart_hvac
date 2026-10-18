@@ -69,3 +69,4 @@ Diagnosis, ADR decisions, `control_interval`, Weather Feedforward keep/drop impl
 - R3 control_interval candidates: `story-compare-control-interval-candidates.md` (recommend 30; evidence in `tests/test_r3_control_interval_candidates.py`)
 - R7 weather feedforward compare: `story-compare-weather-feedforward-on-vs-off.md` (cold/hot FF-on vs zero_uff; evidence in `tests/test_r7_weather_feedforward_compare.py`)
 - ADR go/no-go (R2/R3/R7): `docs/adr/0004-madrc-ff-interval-go-no-go.md` (thin see-0004 pointers in 0002/0003); stub follow-on `epic-online-b0` in initiative `tickets.toml`
+- ADR 0004: accepted 2026-10-18

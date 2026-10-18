@@ -1,5 +1,7 @@
 # MADRC, scheduling, Weather Feedforward, and control_interval go/no-go
 
+**Status:** accepted 2026-10-18 (epic Notes: `ADR 0004: accepted 2026-10-18`).
+
 This ADR is the single decision record for R2/R3/R7 go/no-go fields and named handoffs to later epics and decide-epic apply stories. Screens and unit/sim artifacts are comparison language only — they do **not** auto-decide go/no-go. Production structure, YAML apply, and refuse-path docs are **out of scope** here.
 
 ## Context (evidence cited)
