@@ -843,6 +843,34 @@ def test_cap5_demand_writes_clamp_uff_only(tmp_path: Path) -> None:
     assert "u_track=" not in joined
 
 
+def test_demand_fail_write_aborts_without_success_info(tmp_path: Path) -> None:
+    """Demand + unreadable plant setpoint: no set_value, no command= INFO."""
+    app = _tick_app(
+        tmp_path,
+        zone_temp=20.0,
+        setpoint=22.0,
+        outdoor=10.0,
+        plant_setpoint="unavailable",
+    )
+
+    app.control_tick({})
+
+    assert _set_value_writes(app) == []
+    app.call_service.assert_not_called()
+    warn_msgs = [
+        str(c.args[0])
+        for c in app.log.call_args_list
+        if c.kwargs.get("level") == "WARNING"
+    ]
+    assert any("Plant setpoint unavailable" in m for m in warn_msgs)
+    info_msgs = [
+        str(c.args[0])
+        for c in app.log.call_args_list
+        if c.kwargs.get("level") is None or c.kwargs.get("level") == "INFO"
+    ]
+    assert not any("command=" in m for m in info_msgs)
+
+
 def test_cap5_plant_on_idle_writes_zero_and_clears(tmp_path: Path) -> None:
     """CAP-5(b): Plant-on idle → write 0 + clear water-path state."""
     app = _tick_app(
