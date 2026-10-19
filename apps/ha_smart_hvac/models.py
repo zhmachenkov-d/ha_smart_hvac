@@ -54,6 +54,14 @@ class WeatherFeedforwardConfig:
     comfort_ref: float
 
 
+@dataclass(frozen=True)
+class AutoCorrectConfig:
+    outdoor_gate_delta_k: float = 12.0
+    r_expected_c_per_h: float = 0.25
+    near_setpoint_eps_k: float = 0.3
+    e_sat_c_per_h: float = 0.25
+
+
 def plant_management_enabled(switch_state: str | None) -> bool:
     return switch_state == "on"
 
@@ -67,4 +75,5 @@ class HvacConfig:
     setpoint_max: float
     control_interval: int
     weather_feedforward: WeatherFeedforwardConfig
+    auto_correct: AutoCorrectConfig
     zones: tuple[ZoneConfig, ...]

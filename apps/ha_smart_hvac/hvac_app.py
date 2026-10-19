@@ -2,11 +2,19 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import appdaemon.plugins.hass.hassapi as hass
 
 from ha_smart_hvac.config import ConfigError, parse_config
 from ha_smart_hvac.coordinator import has_heating_demand
 from ha_smart_hvac.feedforward import weather_feedforward
+from ha_smart_hvac.ff_auto_correct import (
+    STATE_FILENAME,
+    FfAutoCorrector,
+    load_ff_state,
+    save_ff_state,
+)
 from ha_smart_hvac.models import (
     HvacConfig,
     ThermostatReading,
@@ -23,6 +31,9 @@ class HvacApp(hass.Hass):
             self.log(f"HVAC config error: {exc}", level="ERROR")
             return
 
+        self._ff_auto_correct = self._build_corrector()
+        self._load_ff_overlay()
+
         self.run_every(
             self.control_tick,
             "now",
@@ -32,12 +43,16 @@ class HvacApp(hass.Hass):
 
     def control_tick(self, kwargs: dict) -> None:
         config = self._config
+        corrector = self._ensure_corrector()
+
         if not plant_management_enabled(self.get_state(config.plant_management)):
+            corrector.clear_ephemeral()
             self._hands_off("Plant Management disabled")
             return
 
         outdoor = self._read_float(config.outdoor_temperature)
         if outdoor is None:
+            corrector.clear_ephemeral()
             self._go_idle(
                 f"Outdoor temperature unavailable: {config.outdoor_temperature}"
             )
@@ -45,19 +60,71 @@ class HvacApp(hass.Hass):
 
         zones = self._read_zones(config)
         if not zones:
+            corrector.clear_ephemeral()
             self._go_idle("No zones with valid readings this tick")
             return
 
         if not has_heating_demand(zones):
+            corrector.clear_ephemeral()
             self._write_setpoint(0.0)
             self.log("No heating demand; setpoint 0")
             return
 
-        u_ff = weather_feedforward(outdoor, config.weather_feedforward)
-        command = max(config.setpoint_min, min(config.setpoint_max, u_ff))
-        if not self._write_setpoint(command):
+        result = corrector.process_demand(zones, outdoor)
+        write_ok = self._write_setpoint(result.command)
+        if result.params_changed and write_ok:
+            self._persist_ff_state()
+        if not write_ok:
             return
-        self.log(f"outdoor={outdoor:.2f} °C, u_ff={u_ff:.2f}, command={command:.2f}")
+        u_ff = weather_feedforward(outdoor, corrector.ff_config())
+        self.log(
+            f"outdoor={outdoor:.2f} °C, u_ff={u_ff:.2f}, command={result.command:.2f}"
+        )
+
+    def _build_corrector(self) -> FfAutoCorrector:
+        config = self._config
+        ff = config.weather_feedforward
+        return FfAutoCorrector(
+            auto_correct=config.auto_correct,
+            control_interval=config.control_interval,
+            base=ff.base,
+            slope=ff.slope,
+            comfort_ref=ff.comfort_ref,
+            setpoint_min=config.setpoint_min,
+            setpoint_max=config.setpoint_max,
+        )
+
+    def _ensure_corrector(self) -> FfAutoCorrector:
+        if not hasattr(self, "_ff_auto_correct"):
+            self._ff_auto_correct = self._build_corrector()
+        return self._ff_auto_correct
+
+    def _state_path(self) -> Path:
+        return Path(self.app_dir) / STATE_FILENAME
+
+    def _load_ff_overlay(self) -> None:
+        path = self._state_path()
+        loaded = load_ff_state(path)
+        if loaded is None:
+            if path.exists():
+                self.log(
+                    f"Ignoring invalid FF auto-correct state: {path}",
+                    level="WARNING",
+                )
+            else:
+                self.log(
+                    f"FF auto-correct state missing ({path}); using yaml commission",
+                    level="WARNING",
+                )
+            return
+        base, slope = loaded
+        self._ff_auto_correct.base = base
+        self._ff_auto_correct.slope = slope
+        self.log(f"Loaded FF auto-correct overlay from {path}")
+
+    def _persist_ff_state(self) -> None:
+        corrector = self._ff_auto_correct
+        save_ff_state(self._state_path(), corrector.base, corrector.slope)
 
     def _hands_off(self, message: str) -> None:
         self.log(message, level="WARNING")

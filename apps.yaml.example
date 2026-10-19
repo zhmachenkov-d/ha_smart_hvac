@@ -14,6 +14,13 @@ hvac:
     base: 25
     slope: 1.2
     comfort_ref: 20
+    # Optional auto_correct nest — omit nest = E2 defaults (auto-correct always on).
+    # Ops: delete ff_auto_correct_state.json under app_dir to restore yaml commission.
+    # auto_correct:
+    #   outdoor_gate_delta_k: 12
+    #   r_expected_c_per_h: 0.25
+    #   near_setpoint_eps_k: 0.3
+    #   e_sat_c_per_h: 0.25
   zones:
     - name: zone_one
       temperature: sensor.YOUR_ZONE_ONE_TEMPERATURE

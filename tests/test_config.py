@@ -85,3 +85,44 @@ def test_critical_zone_swt_driver_symbols_absent() -> None:
 
     assert not hasattr(coordinator, "select_critical_zone")
     assert not hasattr(models, "ControlDecision")
+
+
+def test_auto_correct_missing_nest_uses_e2_defaults() -> None:
+    config = parse_config(_minimal_args())
+    ac = config.auto_correct
+    assert ac.outdoor_gate_delta_k == pytest.approx(12.0)
+    assert ac.r_expected_c_per_h == pytest.approx(0.25)
+    assert ac.near_setpoint_eps_k == pytest.approx(0.3)
+    assert ac.e_sat_c_per_h == pytest.approx(0.25)
+
+
+def test_auto_correct_nest_overrides_defaults() -> None:
+    args = _minimal_args()
+    args["weather_feedforward"]["auto_correct"] = {
+        "outdoor_gate_delta_k": 10,
+        "r_expected_c_per_h": 0.5,
+        "near_setpoint_eps_k": 0.4,
+        "e_sat_c_per_h": 0.35,
+    }
+    config = parse_config(args)
+    ac = config.auto_correct
+    assert ac.outdoor_gate_delta_k == pytest.approx(10.0)
+    assert ac.r_expected_c_per_h == pytest.approx(0.5)
+    assert ac.near_setpoint_eps_k == pytest.approx(0.4)
+    assert ac.e_sat_c_per_h == pytest.approx(0.35)
+
+
+@pytest.mark.parametrize(
+    "key,value",
+    [
+        ("e_sat_c_per_h", 0),
+        ("e_sat_c_per_h", -0.1),
+        ("r_expected_c_per_h", 0),
+        ("r_expected_c_per_h", -0.25),
+    ],
+)
+def test_auto_correct_rejects_non_positive_rates(key: str, value: float) -> None:
+    args = _minimal_args()
+    args["weather_feedforward"]["auto_correct"] = {key: value}
+    with pytest.raises(ConfigError, match=f"{key} must be positive"):
+        parse_config(args)
