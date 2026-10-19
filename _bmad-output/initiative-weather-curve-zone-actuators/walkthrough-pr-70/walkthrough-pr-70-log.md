@@ -298,3 +298,21 @@ Session: unavailable · Timestamp: 2026-10-19T15:11:00+03:00
 - Result: In progress — commit/push/comment/auto-merge.
 - Evidence: user "Wrap-up 1-3"
 - Open: Push + CI + merge
+
+## 34 — Wrap-up — complete
+
+Session: unavailable · Timestamp: 2026-10-19T15:12:40+03:00
+
+- Action: Committed/pushed walkthrough; commented on PR #70; merged to main (auto-merge unavailable; direct merge).
+- Result: PR #70 MERGED (mergeCommit d4a2344). Walkthrough commit 1a73974. Note: some CI jobs still pending at merge time.
+- Evidence: https://github.com/zhmachenkov-d/ha_smart_hvac/pull/70 ; local commit docs(bmad): add PR #70 CAP-7 walkthrough
+- Open: none — review finished
+
+## 35 — story 1.5 marked done
+
+Session: unavailable · Timestamp: 2026-10-19T15:13:30+03:00
+
+- Action: User asked to land log ##34 and mark story 1.5 done.
+- Result: Plan status built→done; wrap-up log finalized on chore/mark-story-1-5-done.
+- Evidence: story-auto-correct-ff-from-max-error-zone-rise-rate-plan.md; PR #70 MERGED
+- Open: none

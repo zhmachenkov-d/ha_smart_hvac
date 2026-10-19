@@ -3,7 +3,7 @@ title: 'Auto-correct FF from max-error zone rise rate'
 type: 'feature'
 ticket: '5'
 created: '2026-10-19'
-status: built
+status: done
 baseline_revision: 'd3c099bbd92be0daf4ec94cdec6bd1e6c75dbd15'
 route: 'full'
 route_source: 'auto'
