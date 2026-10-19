@@ -36,7 +36,7 @@ LADRC tuned parameters (Table 6): \(b_0 = 2.8\), \(k_p = 0.053\), \(\beta_1 = 15
 Useful as **prior art that LADRC can beat PID on HVAC air-temperature loops under disturbance**. Not a drop-in blueprint:
 
 - Paper plant: AHU coil **water flow** → supply air → zone.
-- This repo: [Plant](/concepts/plant.md) commanded by OpenTherm **[Set Water Temperature](/concepts/set-water-temperature.md)** from a [Multi-Zone Coordinator](/concepts/multi-zone-coordinator.md) / [ADRC Controller](/concepts/adrc.md) stack (exact split undecided).
+- This repo: [Plant](/concepts/plant.md) OpenTherm **[Set Water Temperature](/concepts/set-water-temperature.md)** is weather-curve-only under ADR 0004 — no LADRC / ADRC Controller on water. The [Multi-Zone Coordinator](/concepts/multi-zone-coordinator.md) feeds CAP-7 only.
 
 ## Key sections (PDF)
 

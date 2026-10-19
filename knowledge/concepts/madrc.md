@@ -3,7 +3,7 @@ type: Concept
 title: MADRC
 description: Modified ADRC — delay the ESO’s command input with an inertia compensator so it stays synchronized with a high-order lag plant’s delayed output.
 tags: [control, adrc, madrc, observer]
-timestamp: 2026-07-08T15:45:00Z
+timestamp: 2026-10-19T14:41:00Z
 ---
 
 # MADRC
@@ -28,7 +28,7 @@ Wang et al. (2026) tune \(\omega_o\), \(b_0\), \(k_p\), and plant-linked \(T\), 
 
 ## Project note
 
-House thermal dynamics can look high-order / delayed relative to OpenTherm [Set Water Temperature](/concepts/set-water-temperature.md). Whether the ADRC Controller should use MADRC-style compensation or load/outdoor scheduling is **not decided**. Paper gains and SST numerics are not copy-paste settings for this Plant.
+MADRC is **not** on the live water path — **ADR 0004** (weather-curve-only SWT). House thermal dynamics may still look high-order relative to OpenTherm [Set Water Temperature](/concepts/set-water-temperature.md); this page is prior art only. Paper gains and SST numerics are not copy-paste settings for this Plant.
 
 ## Related
 

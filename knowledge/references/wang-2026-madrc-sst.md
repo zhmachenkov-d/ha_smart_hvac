@@ -42,8 +42,8 @@ Prior art for **large-inertia temperature loops** and for **adapting ADRC gains 
 | This paper | This repo |
 |------------|-----------|
 | Attemperation water valve → steam temperature | OpenTherm [Set Water Temperature](/concepts/set-water-temperature.md) → zone/plant water |
-| Cascade leading + inert zones of a superheater | Single [Plant](/concepts/plant.md) + [Zones](/concepts/zone.md); coordinator role open |
-| Schedule vs **electrical load** | Possible analogue: outdoor temp / demand level — **not decided** |
+| Cascade leading + inert zones of a superheater | Single [Plant](/concepts/plant.md) + [Zones](/concepts/zone.md); coordinator selects Critical Zone for CAP-7 only (ADR 0004) |
+| Schedule vs **electrical load** | Live water path is weather-curve FF (+ CAP-7 rise-rate), not MADRC — this paper is prior art only |
 
 Complements [/references/huang-2018-ladrc-hvac.md](/references/huang-2018-ladrc-hvac.md) (LADRC on AHU zone air; no inertia-compensation MADRC).
 

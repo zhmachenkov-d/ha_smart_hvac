@@ -3,7 +3,7 @@ type: Concept
 title: ADRC
 description: Active Disturbance Rejection Control — estimate and cancel total disturbance each sample, then apply a simple outer controller.
 tags: [control, adrc, plant]
-timestamp: 2026-07-08T15:45:00Z
+timestamp: 2026-10-19T14:41:00Z
 ---
 
 # ADRC
@@ -14,7 +14,7 @@ Original ADRC uses nonlinear ESO and nonlinear feedback; parameter tuning is awk
 
 ## In this project
 
-`CONTEXT.md` **ADRC Controller** is the App component that applies ADRC ideas to [Set Water Temperature](/concepts/set-water-temperature.md). How that shares the OpenTherm write with the [Multi-Zone Coordinator](/concepts/multi-zone-coordinator.md) is still open (no Decision filed yet).
+ADRC / LADRC on the water path is **removed** — **superseded by ADR 0004**. Live [Set Water Temperature](/concepts/set-water-temperature.md) is weather-curve-only (`clamp(u_ff)`) under Plant Management / Heating Demand; the [Multi-Zone Coordinator](/concepts/multi-zone-coordinator.md) selects [Critical Zone](/concepts/critical-zone.md) for CAP-7 rise-rate auto-correct only. This page stays as literature depth, not the live App stack.
 
 Literature:
 

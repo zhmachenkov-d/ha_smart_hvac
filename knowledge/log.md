@@ -2,6 +2,12 @@
 
 Append-only history of OKF ingest and lint passes.
 
+## 2026-10-19 — Align ADRC/LADRC/MADRC project notes with ADR 0004
+
+- **Updated:** `concepts/adrc`, `ladrc`, `madrc`; `references/huang-2018-ladrc-hvac`, `wang-2026-madrc-sst`; root `index.md`.
+- **Cleared:** initiative `deferred-work.md` B1 knowledge item (retro A5).
+- **Fact:** live SWT is weather-curve-only; ADRC literature retained as prior art, not App stack.
+
 ## 2026-07-08 — Ingest Wang et al. 2026 (adaptive MADRC SST)
 
 - **Source:** `raw/wang-2026-madrc-sst/processes-14-00308.pdf` (Wang, Tong, Wu, Zheng, Li, Jia; *Processes* 14(2):308; DOI [10.3390/pr14020308](https://doi.org/10.3390/pr14020308)). HTML/`mdpi.com` PDF endpoints 403 from this environment; full PDF fetched from `mdpi-res.com` CDN.
