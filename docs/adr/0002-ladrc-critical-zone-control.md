@@ -1,3 +1,7 @@
+---
+status: superseded by ADR-0004
+---
+
 # LADRC on Critical Zone air temperature with OpenTherm water setpoint
 
 The HVAC App splits multi-zone coordination from control: the Multi-Zone Coordinator selects the Critical Zone (largest positive Zone Error) and passes its air temperature and reference setpoint to an ADRC Controller running LADRC. The controller commands Set Water Temperature on the Plant via a Home Assistant number entity — not zone thermostat setpoints.
