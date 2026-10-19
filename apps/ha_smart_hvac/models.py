@@ -35,17 +35,6 @@ class ZoneSnapshot:
             return float("-inf")
         return max(t.setpoint - self.zone_temp for t in thermostats)
 
-    def reference_setpoint(self) -> float:
-        """Setpoint of the thermostat with the largest error in this zone."""
-        thermostats = self._eligible_thermostats()
-        if not thermostats:
-            raise ValueError("Zone has no eligible heating thermostats")
-        best = max(
-            thermostats,
-            key=lambda t: t.setpoint - self.zone_temp,
-        )
-        return best.setpoint
-
 
 @dataclass(frozen=True)
 class WeatherFeedforwardConfig:

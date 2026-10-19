@@ -9,11 +9,11 @@ description: Index of concepts in the knowledge bundle.
 | Title | Description |
 |-------|-------------|
 | [ADRC](/concepts/adrc.md) | Active Disturbance Rejection Control — estimate and cancel total disturbance each sample, then apply a simple outer controller. |
-| [Critical Zone](/concepts/critical-zone.md) | Zone with the largest Zone Error; drives Plant demand for that control step. |
+| [Critical Zone](/concepts/critical-zone.md) | Zone with the largest Zone Error among Zones with Heating Demand; CAP-7 rise-rate signal only — never drives Set Water Temperature as closed-loop air→water tracking. |
 | [Extended State Observer](/concepts/extended-state-observer.md) | Observer that estimates plant output (or state) and an extra state for total disturbance — the sensing core of ADRC/LADRC. |
 | [LADRC](/concepts/ladrc.md) | Linear Active Disturbance Rejection Control — linear ESO plus linear state feedback; practical ADRC form with fewer tuning knobs. |
 | [MADRC](/concepts/madrc.md) | Modified ADRC — delay the ESO’s command input with an inertia compensator so it stays synchronized with a high-order lag plant’s delayed output. |
-| [Multi-Zone Coordinator](/concepts/multi-zone-coordinator.md) | App logic that picks the Critical Zone and turns its need plus Outdoor Temperature into desired Plant water temperature. |
+| [Multi-Zone Coordinator](/concepts/multi-zone-coordinator.md) | App logic that computes Zone Error, Heating Demand, and Critical Zone selection for CAP-7 rise-rate auto-correct. Does not own the OpenTherm Set Water Temperature write. |
 | [Outdoor Temperature](/concepts/outdoor-temperature.md) | Measured outdoor air temperature used when calculating Set Water Temperature. |
 | [Plant](/concepts/plant.md) | Boiler and primary water circuit supplying heat to Zones, commanded via OpenTherm. |
 | [Set Water Temperature](/concepts/set-water-temperature.md) | OpenTherm boiler water setpoint the App commands on the Plant. |
