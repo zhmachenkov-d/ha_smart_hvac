@@ -190,3 +190,12 @@ Session: unavailable · Timestamp: 2026-10-19T11:56:00+03:00
 - Result: No merge/commit executed; waiting for explicit user choice.
 - Evidence: user 'Wrap-up'
 - Open: User to pick which follow-through actions to run
+
+## 22 — Wrap-up — complete
+
+Session: unavailable · Timestamp: 2026-10-19T11:57:00+03:00
+
+- Action: User chose 1+2. Committed walkthrough-pr-66 (558249f), pushed spike branch, merged PR #66 (merge commit b0cd515).
+- Result: PR #66 MERGED. Walkthrough on branch included in merge. Item 3 (start 1.3/1.5) not requested.
+- Evidence: https://github.com/zhmachenkov-d/ha_smart_hvac/pull/66
+- Open: none for wrap-up actions 1+2

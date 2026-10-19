@@ -1,7 +1,6 @@
 ---
 title: 'FF rise-rate auto-correct rule — decision'
 type: 'decision'
-ticket: 4
 covers: [CAP-7]
 created: '2026-10-19'
 status: 'accepted'
