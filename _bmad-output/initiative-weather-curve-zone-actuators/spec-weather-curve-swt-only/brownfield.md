@@ -30,7 +30,14 @@ Weather Feedforward parameters: house-commissioned (CAP-6) and **auto-corrected 
 - ADR 0002 / ADR 0003 as governing water-control decisions — **superseded by a new ADR** stating weather-curve-only SWT + FF commissioning/auto-correct.
 - CONTEXT.md / AGENTS.md language that states Critical Zone air drives LADRC for Set Water Temperature — update with the new ADR.
 
+## Reactivity (CAP-8 follow-on)
+
+- **Today:** SWT evaluation runs on periodic `control_interval` only (`run_every` in the HVAC App).
+- **Target:** Same CAP-1…CAP-3 gate law also re-runs when Plant Management, any configured thermostat `hvac_action` or setpoint, any configured zone air temperature, or Outdoor Temperature changes, without waiting solely for the next periodic tick.
+- **CAP-7:** Rise-rate window / I1 sampling advance **only** on periodic `control_interval` evaluations; event re-evaluations must not advance those samples.
+
 ## Out of this brownfield wave
 
 - Zone climate on/off and Sonoff TRVZB continuous opening remain HA / later initiatives.
 - MADRC remains undecided (unchanged).
+- Event-only (no periodic) scheduling is a non-goal unless later decided.

@@ -4,7 +4,8 @@
 
 ```mermaid
 flowchart TD
-  tick[Control tick]
+  periodic[Periodic control_interval]
+  events[Event: Plant Management / hvac_action / setpoint / zone air / outdoor]
   pm{Plant Management on?}
   hands[No SWT write; clear state]
   demand{Heating Demand any zone?}
@@ -12,12 +13,14 @@ flowchart TD
   ff[u_ff = weather_feedforward outdoor + FF params]
   clamp[Write SWT = clamp u_ff]
   ac[CAP-7 auto-correct FF params from max-error zone rise rate]
-  tick --> pm
+  periodic --> pm
+  events --> pm
   pm -->|no| hands
   pm -->|yes| demand
   demand -->|no| zero
   demand -->|yes| ff --> clamp
-  demand -->|yes| ac -.->|updates params| ff
+  periodic -->|yes demand| ac -.->|updates params| ff
+  events -.->|no CAP-7 sample advance| ac
 ```
 
 ## Explicitly removed from SWT path
