@@ -338,3 +338,232 @@ def test_write_setpoint_fail_closed_when_entity_unreadable(raw_state):
 
     assert ok is False
     app.call_service.assert_not_called()
+
+
+# --- CAP-7 rise-rate auto-correct (Hass) ---
+
+
+def _cap7_app(tmp_path: Path, **kwargs) -> HvacApp:
+    """Tick app with corrector + app_dir under tmp_path for JSON isolation."""
+    from ha_smart_hvac.ff_auto_correct import STATE_FILENAME
+
+    app = _tick_app(**kwargs)
+    app._ff_auto_correct = app._build_corrector()
+    app._state_path = lambda: tmp_path / STATE_FILENAME  # type: ignore[method-assign]
+    return app
+
+
+def test_cap7_plant_off_clears_ephemeral_json_untouched(tmp_path: Path) -> None:
+    from ha_smart_hvac.ff_auto_correct import STATE_FILENAME, save_ff_state
+
+    state = tmp_path / STATE_FILENAME
+    save_ff_state(state, 30.0, 1.5)
+    before = state.read_text()
+
+    app = _cap7_app(tmp_path, plant_management="off")
+    app._ff_auto_correct._steady = 5
+    app._ff_auto_correct._selected_zone_id = "zone_one"
+
+    app.control_tick({})
+
+    assert _set_value_writes(app) == []
+    assert app._ff_auto_correct._steady == 0
+    assert app._ff_auto_correct._selected_zone_id is None
+    assert state.read_text() == before
+
+
+def test_cap7_no_demand_clears_ephemeral_json_untouched(tmp_path: Path) -> None:
+    from ha_smart_hvac.ff_auto_correct import STATE_FILENAME, save_ff_state
+
+    state = tmp_path / STATE_FILENAME
+    save_ff_state(state, 30.0, 1.5)
+    before = state.read_text()
+
+    app = _cap7_app(tmp_path, zone_temp=22.0, setpoint=22.0)
+    app._ff_auto_correct._steady = 5
+
+    app.control_tick({})
+
+    assert _set_value_writes(app) == [0.0]
+    assert app._ff_auto_correct._steady == 0
+    assert state.read_text() == before
+
+
+def test_cap7_idle_outdoor_missing_clears_ephemeral_json_untouched(
+    tmp_path: Path,
+) -> None:
+    from ha_smart_hvac.ff_auto_correct import STATE_FILENAME, save_ff_state
+
+    state = tmp_path / STATE_FILENAME
+    save_ff_state(state, 30.0, 1.5)
+    before = state.read_text()
+
+    app = _cap7_app(tmp_path, outdoor="unavailable")
+    app._ff_auto_correct._steady = 3
+
+    app.control_tick({})
+
+    assert _set_value_writes(app) == [0.0]
+    assert app._ff_auto_correct._steady == 0
+    assert state.read_text() == before
+
+
+def test_cap7_empty_zones_clears_ephemeral_json_untouched(tmp_path: Path) -> None:
+    from ha_smart_hvac.ff_auto_correct import STATE_FILENAME, save_ff_state
+
+    state = tmp_path / STATE_FILENAME
+    save_ff_state(state, 30.0, 1.5)
+    before = state.read_text()
+
+    app = _cap7_app(tmp_path, zone_temp="unavailable")
+    app._ff_auto_correct._steady = 4
+    app._ff_auto_correct._selected_zone_id = "zone_one"
+
+    app.control_tick({})
+
+    assert _set_value_writes(app) == [0.0]
+    assert app._ff_auto_correct._steady == 0
+    assert app._ff_auto_correct._selected_zone_id is None
+    assert state.read_text() == before
+
+
+def test_cap7_write_fail_keeps_in_memory_no_json(tmp_path: Path) -> None:
+    """2C: SWT write fail → keep in-memory nudge, no JSON."""
+    from ha_smart_hvac.ff_auto_correct import STATE_FILENAME, WINDOW_SIZE
+
+    outdoor = 18.0
+    app = _cap7_app(
+        tmp_path,
+        zone_temp=20.0,
+        setpoint=22.0,
+        outdoor=outdoor,
+        plant_setpoint=45.0,
+    )
+    for _ in range(WINDOW_SIZE - 1):
+        app.control_tick({})
+        app.call_service.reset_mock()
+
+    base_before = app._ff_auto_correct.base
+    original = app.get_state.side_effect
+
+    def get_state_fail_plant(entity_id: str, attribute: str | None = None):
+        if entity_id == _PLANT_SETPOINT:
+            return "unavailable"
+        return original(entity_id, attribute)
+
+    app.get_state = MagicMock(side_effect=get_state_fail_plant)
+    app.control_tick({})
+
+    assert app._ff_auto_correct.base == pytest.approx(base_before + 0.1)
+    assert not (tmp_path / STATE_FILENAME).exists()
+    assert _set_value_writes(app) == []
+
+
+def test_cap7_adapt_swt_equals_clamp_uff_not_additive(tmp_path: Path) -> None:
+    """CAP-7: after adapt, SWT is clamp(u_ff) from post-nudge params only."""
+    from ha_smart_hvac.feedforward import weather_feedforward
+    from ha_smart_hvac.ff_auto_correct import STATE_FILENAME, WINDOW_SIZE, load_ff_state
+    from ha_smart_hvac.models import WeatherFeedforwardConfig
+
+    outdoor = 0.0  # far → slope knob
+    app = _cap7_app(
+        tmp_path,
+        zone_temp=20.0,
+        setpoint=22.0,
+        outdoor=outdoor,
+        plant_setpoint=45.0,
+    )
+    for _ in range(WINDOW_SIZE - 1):
+        app.control_tick({})
+        app.call_service.reset_mock()
+
+    slope_before = app._ff_auto_correct.slope
+    app.control_tick({})
+
+    assert app._ff_auto_correct.slope != pytest.approx(slope_before)
+    expected = max(
+        app._config.setpoint_min,
+        min(
+            app._config.setpoint_max,
+            weather_feedforward(
+                outdoor,
+                WeatherFeedforwardConfig(
+                    base=app._ff_auto_correct.base,
+                    slope=app._ff_auto_correct.slope,
+                    comfort_ref=app._config.weather_feedforward.comfort_ref,
+                ),
+            ),
+        ),
+    )
+    assert _set_value_writes(app) == [expected]
+    yaml_slope = app._config.weather_feedforward.slope
+    assert app._ff_auto_correct.slope != pytest.approx(yaml_slope)
+    assert expected != pytest.approx(_expected_ff_clamp(app._config, outdoor))
+    # Happy adapt 2C: JSON written only when params changed and SWT write ok
+    loaded = load_ff_state(tmp_path / STATE_FILENAME)
+    assert loaded == (app._ff_auto_correct.base, app._ff_auto_correct.slope)
+
+
+def test_cap7_d_cmd_blocks_raise_at_max_no_json(tmp_path: Path) -> None:
+    """D-cmd: raise blocked at setpoint_max → no mutate, no JSON."""
+    from ha_smart_hvac.ff_auto_correct import STATE_FILENAME, WINDOW_SIZE
+
+    # base high enough that u_ff sits at max for mild outdoor
+    app = _cap7_app(
+        tmp_path,
+        zone_temp=20.0,
+        setpoint=22.0,
+        outdoor=20.0,
+        plant_setpoint=55.0,
+    )
+    app._ff_auto_correct.base = 55.0
+    app._ff_auto_correct.slope = 1.0
+    for _ in range(WINDOW_SIZE):
+        app.control_tick({})
+        app.call_service.reset_mock()
+
+    assert app._ff_auto_correct.base == pytest.approx(55.0)
+    assert not (tmp_path / STATE_FILENAME).exists()
+
+
+def test_cap7_initialize_overlays_valid_json(tmp_path: Path) -> None:
+    from ha_smart_hvac.ff_auto_correct import STATE_FILENAME, save_ff_state
+
+    save_ff_state(tmp_path / STATE_FILENAME, 30.0, 1.5)
+
+    app = object.__new__(HvacApp)
+    app.args = _tick_args()
+    app.log = MagicMock()
+    app.run_every = MagicMock()
+
+    with patch.object(HvacApp, "app_dir", new_callable=PropertyMock) as mock_dir:
+        mock_dir.return_value = tmp_path
+        app.initialize()
+
+    assert app._ff_auto_correct.base == pytest.approx(30.0)
+    assert app._ff_auto_correct.slope == pytest.approx(1.5)
+    assert app._ff_auto_correct._previous is None
+    assert app._ff_auto_correct._steady == 0
+
+
+def test_cap7_initialize_corrupt_json_keeps_yaml(tmp_path: Path) -> None:
+    from ha_smart_hvac.ff_auto_correct import STATE_FILENAME
+
+    (tmp_path / STATE_FILENAME).write_text("{not json")
+
+    app = object.__new__(HvacApp)
+    app.args = _tick_args()
+    app.log = MagicMock()
+    app.run_every = MagicMock()
+
+    with patch.object(HvacApp, "app_dir", new_callable=PropertyMock) as mock_dir:
+        mock_dir.return_value = tmp_path
+        app.initialize()
+
+    ff = app._config.weather_feedforward
+    assert app._ff_auto_correct.base == pytest.approx(ff.base)
+    assert app._ff_auto_correct.slope == pytest.approx(ff.slope)
+    app.log.assert_any_call(
+        f"Ignoring invalid FF auto-correct state: {tmp_path / STATE_FILENAME}",
+        level="WARNING",
+    )

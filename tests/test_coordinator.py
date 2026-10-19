@@ -1,6 +1,6 @@
-"""Tests for Multi-Zone Coordinator — Heating Demand gate."""
+"""Tests for Multi-Zone Coordinator — Heating Demand gate and CAP-7 selection."""
 
-from ha_smart_hvac.coordinator import has_heating_demand
+from ha_smart_hvac.coordinator import has_heating_demand, select_max_error_demand_zone
 from ha_smart_hvac.models import ThermostatReading, ZoneSnapshot
 
 
@@ -55,3 +55,49 @@ def test_has_heating_demand_ignores_non_heating_even_with_large_delta():
         _zone("living_room", 21.0, [20.0], ["heating"]),
     ]
     assert has_heating_demand(zones) is False
+
+
+def test_select_max_error_picks_largest_demand_error():
+    zones = [
+        _zone("living_room", 21.0, [22.0]),  # error 1
+        _zone("bedroom", 17.0, [21.0]),  # error 4
+    ]
+    selected = select_max_error_demand_zone(zones, None)
+    assert selected is not None
+    assert selected.name == "bedroom"
+
+
+def test_select_max_error_t_hold_keeps_previous_in_tie_set():
+    zones = [
+        _zone("alpha", 20.0, [22.0]),  # error 2
+        _zone("beta", 20.0, [22.0]),  # error 2
+    ]
+    selected = select_max_error_demand_zone(zones, "beta")
+    assert selected is not None
+    assert selected.name == "beta"
+
+
+def test_select_max_error_lex_when_no_previous_in_tie():
+    zones = [
+        _zone("alpha", 20.0, [22.0]),
+        _zone("beta", 20.0, [22.0]),
+    ]
+    selected = select_max_error_demand_zone(zones, None)
+    assert selected is not None
+    assert selected.name == "alpha"
+
+
+def test_select_max_error_ignores_non_demand_pool():
+    zones = [
+        _zone("satisfied", 22.0, [20.0]),  # error -2, no demand
+        _zone("cold", 18.0, [22.0]),  # error 4
+    ]
+    selected = select_max_error_demand_zone(zones, "satisfied")
+    assert selected is not None
+    assert selected.name == "cold"
+
+
+def test_select_max_error_empty_or_no_demand():
+    assert select_max_error_demand_zone([], None) is None
+    zones = [_zone("warm", 22.0, [20.0])]
+    assert select_max_error_demand_zone(zones, None) is None
