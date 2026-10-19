@@ -3,7 +3,7 @@ title: 'Live Exclusive Session windup check'
 type: 'chore'
 ticket: '7'
 created: '2026-10-19'
-status: built
+status: done
 baseline_revision: 'e8a8437a9b0150b073e01c367febccd8c4eeb41c'
 route: 'full'
 route_source: 'auto'
