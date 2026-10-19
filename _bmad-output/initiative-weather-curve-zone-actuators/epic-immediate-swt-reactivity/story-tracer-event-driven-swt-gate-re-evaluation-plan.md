@@ -3,7 +3,7 @@ title: 'Tracer: event-driven SWT gate re-evaluation'
 type: 'feature'
 ticket: '1'
 created: '2026-10-19'
-status: 'built'
+status: done
 baseline_revision: 'aeac9876810d3ead360cf7ef7010bb979dfd1022'
 route: 'full'
 route_source: 'auto'
