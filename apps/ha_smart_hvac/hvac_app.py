@@ -34,6 +34,7 @@ class HvacApp(hass.Hass):
         self._ff_auto_correct = self._build_corrector()
         self._load_ff_overlay()
 
+        self._register_cap8_listeners()
         self.run_every(
             self.control_tick,
             "now",
@@ -41,14 +42,30 @@ class HvacApp(hass.Hass):
         )
         self.log("HVAC weather-curve app initialized")
 
-    def control_tick(self, kwargs: dict) -> None:
+    def _register_cap8_listeners(self) -> None:
+        """CAP-8: re-evaluate gate on plant / outdoor / zone air / thermostat attrs."""
+        config = self._config
+        self.listen_state(self.control_event, config.plant_management)
+        self.listen_state(self.control_event, config.outdoor_temperature)
+        for zone in config.zones:
+            self.listen_state(self.control_event, zone.temperature)
+            for entity_id in zone.thermostats:
+                self.listen_state(
+                    self.control_event, entity_id, attribute="hvac_action"
+                )
+                self.listen_state(
+                    self.control_event, entity_id, attribute="temperature"
+                )
+
+    def _gate_prelude(self) -> tuple[list[ZoneSnapshot], float] | None:
+        """Shared CAP-1…CAP-3 prelude. Returns (zones, outdoor) on demand, else None."""
         config = self._config
         corrector = self._ensure_corrector()
 
         if not plant_management_enabled(self.get_state(config.plant_management)):
             corrector.clear_ephemeral()
             self._hands_off("Plant Management disabled")
-            return
+            return None
 
         outdoor = self._read_float(config.outdoor_temperature)
         if outdoor is None:
@@ -56,19 +73,28 @@ class HvacApp(hass.Hass):
             self._go_idle(
                 f"Outdoor temperature unavailable: {config.outdoor_temperature}"
             )
-            return
+            return None
 
         zones = self._read_zones(config)
         if not zones:
             corrector.clear_ephemeral()
             self._go_idle("No zones with valid readings this tick")
-            return
+            return None
 
         if not has_heating_demand(zones):
             corrector.clear_ephemeral()
             self._write_setpoint(0.0)
             self.log("No heating demand; setpoint 0")
+            return None
+
+        return zones, outdoor
+
+    def control_tick(self, kwargs: dict) -> None:
+        outcome = self._gate_prelude()
+        if outcome is None:
             return
+        zones, outdoor = outcome
+        corrector = self._ensure_corrector()
 
         result = corrector.process_demand(zones, outdoor)
         write_ok = self._write_setpoint(result.command)
@@ -80,6 +106,28 @@ class HvacApp(hass.Hass):
         self.log(
             f"outdoor={outdoor:.2f} °C, u_ff={u_ff:.2f}, command={result.command:.2f}"
         )
+
+    def control_event(
+        self,
+        entity: str,
+        attribute: str,
+        old: object,
+        new: object,
+        kwargs: dict,
+    ) -> None:
+        """CAP-8 event entry: shared prelude; demand = clamp_uff only (no CAP-7)."""
+        # listen_state args ignored — re-read current Hass state in prelude.
+        outcome = self._gate_prelude()
+        if outcome is None:
+            return
+        _zones, outdoor = outcome
+        corrector = self._ensure_corrector()
+
+        command = corrector.clamp_uff(outdoor)
+        if not self._write_setpoint(command):
+            return
+        u_ff = weather_feedforward(outdoor, corrector.ff_config())
+        self.log(f"outdoor={outdoor:.2f} °C, u_ff={u_ff:.2f}, command={command:.2f}")
 
     def _build_corrector(self) -> FfAutoCorrector:
         config = self._config

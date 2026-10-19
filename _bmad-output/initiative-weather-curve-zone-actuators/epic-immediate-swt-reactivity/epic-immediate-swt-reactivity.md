@@ -16,7 +16,7 @@ Add event-driven re-evaluation of the existing Plant Management / Heating Demand
 
 ## Outcome
 
-Plant Management, thermostat inputs, zone air, and Outdoor Temperature changes apply CAP-1…CAP-3 writes before the next periodic tick alone would, without advancing CAP-7 samples; periodic ticks still run the full path including CAP-7 — matching the parent spec’s CAP-8 success.
+Plant Management, thermostat inputs, zone air, and Outdoor Temperature changes apply CAP-1…CAP-3 writes without waiting solely for the next periodic `control_interval`, without advancing CAP-7 samples; periodic ticks still run the full path including CAP-7 — matching the parent spec’s CAP-8 success.
 
 ## Requirements
 
@@ -24,10 +24,10 @@ Referenced numbered source: `_bmad-output/initiative-weather-curve-zone-actuator
 
 ## Done when
 
-1. Changing any CAP-8 trigger (Plant Management, thermostat `hvac_action` or setpoint, zone air temperature, Outdoor Temperature) applies the matching CAP-1 / CAP-2 / CAP-3 write behavior before the next periodic `control_interval` alone would.
+1. Changing any CAP-8 trigger (Plant Management, thermostat `hvac_action` or setpoint, zone air temperature, Outdoor Temperature) applies the matching CAP-1 / CAP-2 / CAP-3 write behavior without waiting solely for the next periodic `control_interval`.
 2. The event path does not advance CAP-7 rise-rate window or I1 sampling.
 3. Periodic `control_interval` still runs the full demand path including CAP-7.
-4. Automated tests lock (1)–(3); ADR/docs (and spec companions if updated) state the reactivity contract.
+4. Automated tests lock event write + CAP-7 untouched on the event path and (3); ADR/docs (and spec companions if updated) state the reactivity contract. Hass stubs lock callback behavior, not a live timer race.
 
 ## Boundaries
 
@@ -50,3 +50,4 @@ Touch points owned by this epic: `apps/ha_smart_hvac/hvac_app.py` (and helpers i
 - Decision: one epic owns CAP-8; CAP-7 sampling cadence stays periodic-only per spec walkthrough Q1=A (2026-10-19).
 - Waits on epic-weather-curve-swt-only because: weather-curve SWT law and CAP-7 periodic sampling must already be shipped (initiative epic 1 done).
 - Assumption: AppDaemon `listen_state` (entity state and climate attributes) is sufficient to detect the CAP-8 trigger set.
+- Decision: plan P1+S — honest stub Verify (no theatrical before-tick race); W2 dual entrypoints (forbid advance_cap7 flag); `_write_setpoint` equality skip is the write throttle, no debounce in tracer (2026-10-19).

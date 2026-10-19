@@ -95,11 +95,18 @@ def _set_value_writes(app: HvacApp) -> list[float]:
     ]
 
 
-def test_initialize_schedules_control_tick() -> None:
+def _init_app(args: dict | None = None) -> HvacApp:
+    """Hass-stubbed app ready for initialize() (run_every + listen_state)."""
     app = object.__new__(HvacApp)
-    app.args = _tick_args()
+    app.args = args if args is not None else _tick_args()
     app.log = MagicMock()
     app.run_every = MagicMock()
+    app.listen_state = MagicMock()
+    return app
+
+
+def test_initialize_schedules_control_tick() -> None:
+    app = _init_app()
 
     with patch.object(HvacApp, "app_dir", new_callable=PropertyMock) as mock_dir:
         mock_dir.return_value = Path("/tmp")
@@ -110,6 +117,7 @@ def test_initialize_schedules_control_tick() -> None:
     assert not hasattr(app, "_blow_up_latch")
     assert not hasattr(app, "_blow_up_warned")
     app.run_every.assert_called_once()
+    assert app.run_every.call_args.args[0].__func__ is HvacApp.control_tick
 
 
 def test_cap5_demand_writes_clamp_uff_only() -> None:
@@ -616,10 +624,7 @@ def test_cap7_initialize_overlays_valid_json(tmp_path: Path) -> None:
 
     save_ff_state(tmp_path / STATE_FILENAME, 30.0, 1.5)
 
-    app = object.__new__(HvacApp)
-    app.args = _tick_args()
-    app.log = MagicMock()
-    app.run_every = MagicMock()
+    app = _init_app(args=_tick_args())
 
     with patch.object(HvacApp, "app_dir", new_callable=PropertyMock) as mock_dir:
         mock_dir.return_value = tmp_path
@@ -636,10 +641,7 @@ def test_cap7_initialize_corrupt_json_keeps_yaml(tmp_path: Path) -> None:
 
     (tmp_path / STATE_FILENAME).write_text("{not json")
 
-    app = object.__new__(HvacApp)
-    app.args = _tick_args()
-    app.log = MagicMock()
-    app.run_every = MagicMock()
+    app = _init_app(args=_tick_args())
 
     with patch.object(HvacApp, "app_dir", new_callable=PropertyMock) as mock_dir:
         mock_dir.return_value = tmp_path
@@ -652,3 +654,303 @@ def test_cap7_initialize_corrupt_json_keeps_yaml(tmp_path: Path) -> None:
         f"Ignoring invalid FF auto-correct state: {tmp_path / STATE_FILENAME}",
         level="WARNING",
     )
+
+
+# --- CAP-8 event-driven gate re-evaluation ---
+
+
+def _fire_control_event(app: HvacApp) -> None:
+    """Invoke control_event with dummy listen_state callback args (stub-only)."""
+    app.control_event(_PLANT_MGMT, "state", None, "on", {})
+
+
+def _ephemeral_snapshot(corrector) -> tuple[list[float], int, object]:
+    return (list(corrector._window), corrector._steady, corrector._previous)
+
+
+def test_cap8_initialize_registers_listeners() -> None:
+    """CAP-8: listen_state for plant/outdoor/zone air/climate attrs; run_every."""
+    zone_two_temp = "sensor.zone_two_temp"
+    climate_two = "climate.zone_two"
+    args = _tick_args()
+    args["zones"] = [
+        {
+            "name": "zone_one",
+            "temperature": _ZONE_TEMP,
+            "thermostats": [_CLIMATE],
+        },
+        {
+            "name": "zone_two",
+            "temperature": zone_two_temp,
+            "thermostats": [climate_two],
+        },
+    ]
+    app = _init_app(args=args)
+
+    with patch.object(HvacApp, "app_dir", new_callable=PropertyMock) as mock_dir:
+        mock_dir.return_value = Path("/tmp")
+        app.initialize()
+
+    app.run_every.assert_called_once()
+    assert app.run_every.call_args.args[0].__func__ is HvacApp.control_tick
+
+    listens = app.listen_state.call_args_list
+    # (callback, entity) or (callback, entity, attribute=...)
+    entity_only = {
+        c.args[1] for c in listens if len(c.args) >= 2 and not c.kwargs.get("attribute")
+    }
+    attr_listens = {
+        (c.args[1], c.kwargs["attribute"]) for c in listens if c.kwargs.get("attribute")
+    }
+    assert entity_only == {_PLANT_MGMT, _OUTDOOR, _ZONE_TEMP, zone_two_temp}
+    assert attr_listens == {
+        (_CLIMATE, "hvac_action"),
+        (_CLIMATE, "temperature"),
+        (climate_two, "hvac_action"),
+        (climate_two, "temperature"),
+    }
+    assert all(c.args[0].__func__ is HvacApp.control_event for c in listens)
+
+
+def test_cap8_demand_writes_clamp_uff_no_process_demand(tmp_path: Path) -> None:
+    """CAP-8 demand: clamp_uff write; process_demand not called."""
+    outdoor = 10.0
+    app = _cap7_app(
+        tmp_path,
+        zone_temp=20.0,
+        setpoint=22.0,
+        outdoor=outdoor,
+        plant_setpoint=45.0,
+    )
+    expected = app._ff_auto_correct.clamp_uff(outdoor)
+
+    with patch.object(
+        app._ff_auto_correct,
+        "process_demand",
+        wraps=app._ff_auto_correct.process_demand,
+    ) as mock_pd:
+        _fire_control_event(app)
+        mock_pd.assert_not_called()
+
+    assert _set_value_writes(app) == [expected]
+
+
+def test_cap8_outdoor_flip_writes_new_clamp(tmp_path: Path) -> None:
+    """CAP-8 outdoor flip: new clamp_uff; CAP-7 untouched; no process_demand."""
+    outdoor = {"t": 10.0}
+    app = _cap7_app(
+        tmp_path,
+        zone_temp=20.0,
+        setpoint=22.0,
+        outdoor=10.0,
+        plant_setpoint=45.0,
+    )
+    original = app.get_state.side_effect
+
+    def get_state(entity_id: str, attribute: str | None = None):
+        if entity_id == _OUTDOOR:
+            return outdoor["t"]
+        return original(entity_id, attribute)
+
+    app.get_state = MagicMock(side_effect=get_state)
+    corrector = app._ff_auto_correct
+    corrector._window.extend([20.0, 20.1, 20.2])
+    corrector._steady = 3
+    corrector._previous = "base"
+    before = _ephemeral_snapshot(corrector)
+    clamp_before = corrector.clamp_uff(outdoor["t"])
+
+    outdoor["t"] = 0.0
+    expected = corrector.clamp_uff(outdoor["t"])
+    assert expected != pytest.approx(clamp_before)
+
+    with patch.object(
+        corrector, "process_demand", wraps=corrector.process_demand
+    ) as mock_pd:
+        _fire_control_event(app)
+        mock_pd.assert_not_called()
+
+    assert _set_value_writes(app) == [expected]
+    assert _ephemeral_snapshot(corrector) == before
+
+
+def test_cap8_plant_off_no_write_clears_ephemeral(tmp_path: Path) -> None:
+    """CAP-8 plant off: no setpoint write; ephemeral cleared."""
+    app = _cap7_app(tmp_path, plant_management="off")
+    app._ff_auto_correct._steady = 5
+    app._ff_auto_correct._selected_zone_id = "zone_one"
+
+    _fire_control_event(app)
+
+    assert _set_value_writes(app) == []
+    app.call_service.assert_not_called()
+    assert app._ff_auto_correct._steady == 0
+    assert app._ff_auto_correct._selected_zone_id is None
+
+
+def test_cap8_idle_writes_zero_json_untouched(tmp_path: Path) -> None:
+    """CAP-8 idle: write 0; ephemeral cleared; FF JSON untouched."""
+    from ha_smart_hvac.ff_auto_correct import STATE_FILENAME, save_ff_state
+
+    state = tmp_path / STATE_FILENAME
+    save_ff_state(state, 30.0, 1.5)
+    before = state.read_text()
+
+    app = _cap7_app(tmp_path, zone_temp=22.0, setpoint=22.0)
+    app._ff_auto_correct._steady = 5
+
+    _fire_control_event(app)
+
+    assert _set_value_writes(app) == [0.0]
+    assert app._ff_auto_correct._steady == 0
+    assert state.read_text() == before
+
+
+def test_cap8_outdoor_missing_writes_zero_clears(tmp_path: Path) -> None:
+    """CAP-8 outdoor missing: write 0; ephemeral cleared; JSON untouched."""
+    from ha_smart_hvac.ff_auto_correct import STATE_FILENAME, save_ff_state
+
+    state = tmp_path / STATE_FILENAME
+    save_ff_state(state, 30.0, 1.5)
+    before = state.read_text()
+
+    app = _cap7_app(tmp_path, outdoor="unavailable")
+    app._ff_auto_correct._steady = 3
+
+    _fire_control_event(app)
+
+    assert _set_value_writes(app) == [0.0]
+    assert app._ff_auto_correct._steady == 0
+    assert state.read_text() == before
+
+
+def test_cap8_no_valid_zones_writes_zero_clears(tmp_path: Path) -> None:
+    """CAP-8 no valid zones: write 0; ephemeral cleared; JSON untouched."""
+    from ha_smart_hvac.ff_auto_correct import STATE_FILENAME, save_ff_state
+
+    state = tmp_path / STATE_FILENAME
+    save_ff_state(state, 30.0, 1.5)
+    before = state.read_text()
+
+    app = _cap7_app(tmp_path, zone_temp="unavailable")
+    app._ff_auto_correct._steady = 4
+    app._ff_auto_correct._selected_zone_id = "zone_one"
+
+    _fire_control_event(app)
+
+    assert _set_value_writes(app) == [0.0]
+    assert app._ff_auto_correct._steady == 0
+    assert app._ff_auto_correct._selected_zone_id is None
+    assert state.read_text() == before
+
+
+def test_cap8_demand_does_not_advance_cap7_or_persist(tmp_path: Path) -> None:
+    """CAP-8 demand: window/steady/previous unchanged; no FF persist from event."""
+    from ha_smart_hvac.ff_auto_correct import STATE_FILENAME, save_ff_state
+
+    state = tmp_path / STATE_FILENAME
+    save_ff_state(state, 30.0, 1.5)
+    before_json = state.read_text()
+
+    outdoor = 10.0
+    app = _cap7_app(
+        tmp_path,
+        zone_temp=20.0,
+        setpoint=22.0,
+        outdoor=outdoor,
+        plant_setpoint=45.0,
+    )
+    corrector = app._ff_auto_correct
+    corrector._window.extend([19.5, 19.6, 19.7])
+    corrector._steady = 7
+    corrector._previous = "slope"
+    corrector._selected_zone_id = "zone_one"
+    before = _ephemeral_snapshot(corrector)
+    selected_before = corrector._selected_zone_id
+
+    with patch(
+        "ha_smart_hvac.hvac_app.save_ff_state", wraps=save_ff_state
+    ) as mock_save:
+        _fire_control_event(app)
+        mock_save.assert_not_called()
+
+    assert _ephemeral_snapshot(corrector) == before
+    assert corrector._selected_zone_id == selected_before
+    assert state.read_text() == before_json
+    assert _set_value_writes(app) == [corrector.clamp_uff(outdoor)]
+
+
+def test_cap8_seed_event_then_tick_advances_cap7(tmp_path: Path) -> None:
+    """Seeded window → CAP-8 event (unchanged) → control_tick advances CAP-7."""
+    outdoor = 10.0
+    app = _cap7_app(
+        tmp_path,
+        zone_temp=20.0,
+        setpoint=22.0,
+        outdoor=outdoor,
+        plant_setpoint=45.0,
+    )
+    corrector = app._ff_auto_correct
+    corrector._window.extend([19.5, 19.6, 19.7])
+    corrector._steady = 7
+    corrector._previous = "base"
+    corrector._selected_zone_id = "zone_one"
+    before = _ephemeral_snapshot(corrector)
+
+    _fire_control_event(app)
+    assert _ephemeral_snapshot(corrector) == before
+
+    app.call_service.reset_mock()
+    app.control_tick({})
+
+    assert corrector._steady == before[1] + 1
+    assert len(corrector._window) == len(before[0]) + 1
+    assert _set_value_writes(app)  # tick still writes on demand
+
+
+def test_cap8_equal_setpoint_skips_set_value(tmp_path: Path) -> None:
+    """CAP-8 equality skip: evaluation runs; no number/set_value when float equal."""
+    outdoor = 10.0
+    expected = _expected_ff_clamp(parse_config(_tick_args()), outdoor)
+    app = _cap7_app(
+        tmp_path,
+        zone_temp=20.0,
+        setpoint=22.0,
+        outdoor=outdoor,
+        plant_setpoint=expected,
+    )
+    assert app._ff_auto_correct.clamp_uff(outdoor) == pytest.approx(expected)
+
+    _fire_control_event(app)
+
+    assert _set_value_writes(app) == []
+    app.call_service.assert_not_called()
+    # Evaluation completed: demand path logged command=
+    info_msgs = [
+        str(c.args[0])
+        for c in app.log.call_args_list
+        if c.args and (c.kwargs.get("level") is None or c.kwargs.get("level") == "INFO")
+    ]
+    assert any("command=" in m for m in info_msgs)
+
+
+def test_cap8_periodic_still_runs_process_demand(tmp_path: Path) -> None:
+    """After listeners exist, control_tick on demand still runs process_demand."""
+    outdoor = 10.0
+    app = _cap7_app(
+        tmp_path,
+        zone_temp=20.0,
+        setpoint=22.0,
+        outdoor=outdoor,
+        plant_setpoint=45.0,
+    )
+
+    with patch.object(
+        app._ff_auto_correct,
+        "process_demand",
+        wraps=app._ff_auto_correct.process_demand,
+    ) as mock_pd:
+        app.control_tick({})
+        mock_pd.assert_called_once()
+
+    assert _set_value_writes(app) == [app._ff_auto_correct.clamp_uff(outdoor)]
