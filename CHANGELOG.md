@@ -2,6 +2,59 @@
 
 <!-- version list -->
 
+## v1.4.1 (2026-10-19)
+
+### Bug Fixes
+
+- **hvac**: Soft-fail atomic FF auto-correct persist
+  ([`de4e832`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/de4e832af44ffcd48f408e687b1395a8085cc857))
+
+### Chores
+
+- Refactor sweep for weather-curve SWT docs and orphan API
+  ([`304f0b9`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/304f0b9dfcf74a64c01a1e2abd0d5a85aa18cf6c))
+
+- **bmad**: Add epic weather-curve SWT retrospective
+  ([`2f94f43`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/2f94f43afac5d4fbf6b5be992955457089c171d0))
+
+- **bmad**: Close epic weather-curve SWT only
+  ([`ad0acdc`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/ad0acdcb2ce8481bb527e8331a6bfe8c8188709a))
+
+- **bmad**: Close weather-curve SWT retrospective and initiative
+  ([`00b1dc5`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/00b1dc57f74f52683dab9b4eee3c8082c7bf8b7e))
+
+- **bmad**: Mark story 1.5 CAP-7 FF auto-correct done
+  ([`0b29162`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/0b2916279fd1dc56a48aa4f58f5e505fc7778fbd))
+
+- **bmad**: Mark story 1.6 refactor sweep done
+  ([`a5a7fcc`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/a5a7fcc67060d161088f04061ba50ea39860bf22))
+
+- **bmad**: Mark story 1.7 live Exclusive Session windup check done
+  ([`247529d`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/247529d4b2d68c557bdd92256fa222d1f8ee50ba))
+
+- **bmad**: Record party-mode memlog for story 1.6 scope lock
+  ([`66fbc43`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/66fbc432cf0bb138748e84513f0b5c04d0ce2871))
+
+- **bmad**: Record story 1.7 live Exclusive Session pass
+  ([`e4c7640`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/e4c7640b0f6889513657779d8452d650c5f82362))
+
+- **bmad**: Seed story 1.7 Exclusive Session windup walkthrough
+  ([`52a5f41`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/52a5f41b911f0fc3825e0e20a2f70ee64823689b))
+
+### Documentation
+
+- **knowledge**: Align ADRC notes with weather-curve SWT (ADR 0004)
+  ([`f9919f4`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/f9919f4e39baa4387c6419db9d26f0987c1ae650))
+
+### Testing
+
+- **hvac**: Cover D-cmd block lower at setpoint_min
+  ([`1dec6f8`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/1dec6f803211b8bbef771802c697d7ec01c56462))
+
+- **hvac**: Restore intra-zone thermostat eligibility coverage
+  ([`a3d42fe`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/a3d42fef10a8601d89850ea9ec1827f3ac668c7f))
+
+
 ## v1.4.0 (2026-10-19)
 
 ### Chores
