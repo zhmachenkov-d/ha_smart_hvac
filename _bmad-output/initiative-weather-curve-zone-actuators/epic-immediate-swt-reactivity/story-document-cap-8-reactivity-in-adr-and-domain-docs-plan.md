@@ -3,7 +3,7 @@ title: 'Document CAP-8 reactivity in ADR and domain docs'
 type: 'chore'
 ticket: '2'
 created: '2026-10-19'
-status: 'built'
+status: done
 baseline_revision: '1231fa164a3747681e54b6c7720db80504480cd3'
 route: 'oneshot'
 route_source: 'auto'
