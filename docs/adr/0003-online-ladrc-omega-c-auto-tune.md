@@ -1,3 +1,7 @@
+---
+status: superseded by ADR-0004
+---
+
 # Online LADRC ωc auto-tune
 
 The HVAC App slowly adapts LADRC **Controller Bandwidth (ωc)** during normal heating when Plant Management is on. **Observer Bandwidth (ωo)** and plant gain **b₀** stay fixed at config time; Weather Feedforward stays manual.

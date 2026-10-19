@@ -37,11 +37,11 @@ The OpenTherm boiler water setpoint the App commands on the Plant (the boiler's 
 _Avoid_: Room setpoint, climate temperature (those are Zone air targets), mixer setpoint
 
 **Plant Management**:
-When enabled, the App may command Set Water Temperature on the Plant. When disabled, the App does not write the Plant setpoint and clears controller state.
+When enabled, the App may command Set Water Temperature on the Plant. When disabled, the App does not write the Plant setpoint and clears ephemeral / water-path state (rise-rate window, steady count, I1 previous, selected-zone id). Persisted FF auto-correct JSON is left untouched.
 _Avoid_: CH override (integration-specific), boiler on (plant state)
 
 **Zone Error**:
-Per thermostat: setpoint minus zone sensor temperature. Zone-level error is the maximum across thermostats in that Zone whose `hvac_action` is `heating`; thermostats with idle, off, cooling, or unavailable action do not contribute. A Zone with no such thermostats has no eligible Zone Error and cannot become the Critical Zone. The Zone with the largest positive Zone Error is the Critical Zone.
+Per thermostat: setpoint minus zone sensor temperature. Zone-level error is the maximum across thermostats in that Zone whose `hvac_action` is `heating`; thermostats with idle, off, cooling, or unavailable action do not contribute. A Zone with no such thermostats has no eligible Zone Error. Eligible Zone Errors feed Heating Demand and Critical Zone selection for CAP-7 rise-rate auto-correct only.
 _Avoid_: Demand (use Heating Demand for the boolean need), delta (ambiguous)
 
 **Heating Demand**:
@@ -49,7 +49,7 @@ A Zone (or the house) needs heat when its Zone Error is positive — the Zone ai
 _Avoid_: Call for heat (informal), boiler on (plant state, not zone need)
 
 **Critical Zone**:
-The Zone currently selected as having the largest Zone Error among Zones with Heating Demand; its air temperature and reference setpoint drive the LADRC loop for that control step.
+The Zone with the largest Zone Error among Zones with Heating Demand. Its air temperature rise rate is the signal for Weather Feedforward rise-rate auto-correct (CAP-7) only — it never drives Set Water Temperature as a closed-loop air→water tracking term.
 _Avoid_: Master zone, primary room
 
 **Outdoor Temperature**:
@@ -57,40 +57,12 @@ The measured outdoor air temperature used when calculating an appropriate Set Wa
 _Avoid_: Weather, forecast (unless forecast is explicitly in scope)
 
 **Weather Feedforward**:
-An outdoor-temperature baseline added to the LADRC tracking term when computing Set Water Temperature (linear: base plus slope times comfort reference minus outdoor temperature).
+The outdoor-temperature baseline that **is** Set Water Temperature under Plant Management and Heating Demand gates: `u_ff = base + slope × (comfort_ref − T_out)`, then `clamp(u_ff)`. Not an add-on to a tracking term.
 _Avoid_: Weather compensation (related idea, may differ in formula), curve (unless referring to the configured parameters)
 
 **Multi-Zone Coordinator**:
-The part of the HVAC App that computes Zone Error per Zone, selects the Critical Zone, and passes its readings and reference setpoint to the ADRC Controller. It does not own the OpenTherm write.
+The part of the HVAC App that computes Zone Error per Zone, Heating Demand, and Critical Zone selection for CAP-7 rise-rate auto-correct. It does not own the OpenTherm Set Water Temperature write.
 _Avoid_: Thermostat, scheduler (unless that is all it does)
-
-**ADRC Controller**:
-The part of the HVAC App that runs LADRC on Critical Zone air temperature and commands Set Water Temperature (feedforward plus tracking, clamped or zero when idle).
-_Avoid_: PID (unless explicitly choosing PID instead), weather compensation (related idea, different algorithm)
-
-**LADRC**:
-Linear Active Disturbance Rejection Control — linear ESO plus linear outer loop; the ADRC Controller implementation in this project. Depth: `knowledge/concepts/ladrc.md`.
-_Avoid_: PID (related baseline, different algorithm), nonlinear ADRC (related parent idea)
-
-**MADRC**:
-Modified Active Disturbance Rejection Control — ADRC/LADRC with an inertia compensator delaying the ESO’s command input so it stays synchronized with a high-order lag plant (not yet decided for this project). Depth: `knowledge/concepts/madrc.md`.
-_Avoid_: Smith predictor (related delay idea, different structure), plain LADRC (no command-path compensator)
-
-**Extended State Observer**:
-The ADRC/LADRC observer that estimates the measured output and an extra state for total disturbance. Depth: `knowledge/concepts/extended-state-observer.md`.
-_Avoid_: Kalman filter (different observer family unless explicitly choosing it)
-
-**Controller Bandwidth (ωc)**:
-The LADRC outer-loop bandwidth; maps to `kp`. Online auto-tune adjusts this.
-_Avoid_: Proportional gain (informal; use Controller Bandwidth when discussing ωc)
-
-**Observer Bandwidth (ωo)**:
-The ESO bandwidth; maps to `beta2 = ωo²`. Fixed at config time.
-_Avoid_: Observer gain (informal unless referring to discrete `g1`/`g2`)
-
-**LADRC Auto-Tune**:
-Slow online adjustment of ωc from sustained Critical Zone tracking error (`reference − z₁`), with conservative guards (steady-zone, deadband, rate limit, bounds, freeze on Critical Zone switch).
-_Avoid_: Relay tuning, commissioning step tests (out of scope for online auto-tune)
 
 ## Example dialogue
 
@@ -101,8 +73,8 @@ _Avoid_: Relay tuning, commissioning step tests (out of scope for online auto-tu
 > **Dev:** Can I start AppDaemon in the Dev Container while the Production Add-on is still running?
 > **Expert:** No. That isn't an Exclusive Session — both would drive the same entities. Stop the add-on first, then run locally.
 > **Dev:** Two Zones want heat; which one moves the boiler?
-> **Expert:** The Critical Zone — the one with the largest Zone Error. The Multi-Zone Coordinator picks it and passes its air temperature and setpoint to the ADRC Controller. The ADRC Controller owns the OpenTherm write: feedforward from Outdoor Temperature plus LADRC tracking, or zero when no Zone has Heating Demand.
+> **Expert:** Neither zone's air error drives water closed-loop. The HVAC App writes `clamp(u_ff)` from Weather Feedforward whenever any Zone has Heating Demand (and Plant Management is on), or writes `0` when idle. The Multi-Zone Coordinator still picks the Critical Zone — largest Zone Error among demand zones — but only as the rise-rate source when discussing FF auto-correct.
 > **Dev:** Is Set Water Temperature the same as a Zone thermostat setpoint?
 > **Expert:** No. Zone thermostats set air temperature targets. Set Water Temperature is the OpenTherm boiler water setpoint.
 > **Dev:** A Zone has Heating Demand but Plant Management is off — does the App still write zero?
-> **Expert:** No. Plant Management off means hands off entirely: no setpoint write, controller state cleared. Heating Demand only matters when Plant Management is on.
+> **Expert:** No. Plant Management off means hands off entirely: no setpoint write, ephemeral / water-path state cleared. Heating Demand only matters when Plant Management is on.

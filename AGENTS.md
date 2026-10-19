@@ -15,7 +15,7 @@ AppDaemon Apps that control multi-zone OpenTherm HVAC through Home Assistant. Py
 ## Where things are
 
 - Domain terms and avoid-list: `CONTEXT.md`
-- Architecture decisions: `docs/adr/` (0001 Exclusive Session, 0002 LADRC Critical Zone, 0003 ωc auto-tune)
+- Architecture decisions: `docs/adr/` (0001 Exclusive Session, 0004 weather-curve SWT)
 - App package: `apps/ha_smart_hvac/`; entity wiring: `apps/apps.yaml` (gitignored; start from `apps.yaml.example` at repo root)
 - Algorithm depth / citations: `knowledge/`
 - In-flight planning artifacts: `_bmad-output/`
@@ -29,8 +29,7 @@ AppDaemon Apps that control multi-zone OpenTherm HVAC through Home Assistant. Py
 
 ## Conventions that differ from defaults
 
-- Plant Management off means no Set Water Temperature write and cleared controller state — not “write 0”.
-- Heating Demand idle writes 0 and clears LADRC; that path is only when Plant Management is on.
-- Online auto-tune adjusts ωc only; do not treat MADRC, b₀, or ωo adaptation as decided.
+- Plant Management off means no Set Water Temperature write and cleared ephemeral / water-path state — not “write 0”. Persisted `ff_auto_correct_state.json` is left untouched.
+- Heating Demand idle writes 0 and clears ephemeral / water-path state; that path is only when Plant Management is on.
 
 <!-- /bmad:context -->
