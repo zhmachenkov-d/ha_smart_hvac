@@ -3,7 +3,7 @@ title: 'FF rise-rate auto-correct rule (spike)'
 type: 'feature'
 ticket: 4
 created: '2026-10-19'
-status: 'built'
+status: done
 baseline_revision: '134ba74c3109268c141a9d7c75f8613df86bab3e'
 route: 'full'
 route_source: 'auto'

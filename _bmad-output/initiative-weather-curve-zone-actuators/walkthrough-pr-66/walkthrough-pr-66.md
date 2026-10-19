@@ -2,7 +2,7 @@
 
 Target: [PR #66](https://github.com/zhmachenkov-d/ha_smart_hvac/pull/66) (`spike/1-4-ff-rise-rate-auto-correct-rule` → `main`).
 
-Current block: **Wrap-up** (awaiting follow-through choice — all review blocks done)
+Current block: **Wrap-up** (done — review finished)
 
 ## Blocks
 
