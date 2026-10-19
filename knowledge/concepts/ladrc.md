@@ -3,7 +3,7 @@ type: Concept
 title: LADRC
 description: Linear Active Disturbance Rejection Control — linear ESO plus linear state feedback; practical ADRC form with fewer tuning knobs.
 tags: [control, adrc, ladrc]
-timestamp: 2026-07-08T15:45:00Z
+timestamp: 2026-10-19T14:41:00Z
 ---
 
 # LADRC
@@ -27,7 +27,7 @@ u_0 = k_p(T_r - z_1),\quad u = (u_0 - z_2)/b_0
 
 ## Project note
 
-This project’s [ADRC Controller](/concepts/adrc.md) **is** [LADRC](/concepts/ladrc.md) on Critical Zone air temperature, commanding OpenTherm [Set Water Temperature](/concepts/set-water-temperature.md). Huang’s plant (coil water **flow**) and gains are literature starting points — see [ADR 0002](/docs/adr/0002-ladrc-critical-zone-control.md).
+LADRC-on-Critical-Zone water control is **removed** — **superseded by ADR 0004** (ADR 0002 is historical). Live SWT is weather-curve-only; Huang’s plant (coil water **flow**) and gains remain literature only, not the App path.
 
 ## Related
 

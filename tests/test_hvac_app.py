@@ -459,6 +459,45 @@ def test_cap7_write_fail_keeps_in_memory_no_json(tmp_path: Path) -> None:
     assert _set_value_writes(app) == []
 
 
+def test_cap7_persist_fail_still_logs_command(tmp_path: Path, monkeypatch) -> None:
+    """Persist OSError after SWT write: tick still logs; in-memory nudge kept."""
+    from ha_smart_hvac.ff_auto_correct import WINDOW_SIZE
+
+    outdoor = 18.0
+    app = _cap7_app(
+        tmp_path,
+        zone_temp=20.0,
+        setpoint=22.0,
+        outdoor=outdoor,
+        plant_setpoint=45.0,
+    )
+    for _ in range(WINDOW_SIZE - 1):
+        app.control_tick({})
+        app.call_service.reset_mock()
+        app.log.reset_mock()
+
+    monkeypatch.setattr(
+        "ha_smart_hvac.hvac_app.save_ff_state",
+        lambda *args, **kwargs: False,
+    )
+    base_before = app._ff_auto_correct.base
+    app.control_tick({})
+
+    assert app._ff_auto_correct.base == pytest.approx(base_before + 0.1)
+    assert _set_value_writes(app)
+    warn = [
+        c
+        for c in app.log.call_args_list
+        if c.kwargs.get("level") == "WARNING"
+        and "Failed to persist FF auto-correct state" in c.args[0]
+    ]
+    assert warn
+    info = [
+        c.args[0] for c in app.log.call_args_list if c.args and "command=" in c.args[0]
+    ]
+    assert info
+
+
 def test_cap7_adapt_swt_equals_clamp_uff_not_additive(tmp_path: Path) -> None:
     """CAP-7: after adapt, SWT is clamp(u_ff) from post-nudge params only."""
     from ha_smart_hvac.feedforward import weather_feedforward
@@ -523,6 +562,52 @@ def test_cap7_d_cmd_blocks_raise_at_max_no_json(tmp_path: Path) -> None:
         app.call_service.reset_mock()
 
     assert app._ff_auto_correct.base == pytest.approx(55.0)
+    assert not (tmp_path / STATE_FILENAME).exists()
+
+
+def test_cap7_d_cmd_blocks_lower_at_min_no_json(tmp_path: Path) -> None:
+    """D-cmd: lower blocked at setpoint_min → no mutate, no JSON."""
+    from ha_smart_hvac.ff_auto_correct import STATE_FILENAME, WINDOW_SIZE
+
+    # base at min so u_ff = base at outdoor=comfort_ref; fast rise wants −base
+    outdoor = 20.0
+    temps = [20.0 + (0.1 * i / (WINDOW_SIZE - 1)) for i in range(WINDOW_SIZE)]
+    zone_temp = {"t": temps[0]}
+    app = _cap7_app(
+        tmp_path,
+        zone_temp=temps[0],
+        setpoint=22.0,
+        outdoor=outdoor,
+        plant_setpoint=_SETPOINT_MIN,
+    )
+    app._ff_auto_correct.base = _SETPOINT_MIN
+    app._ff_auto_correct.slope = 1.0
+
+    def get_state(entity_id: str, attribute: str | None = None):
+        if entity_id == _PLANT_MGMT:
+            return "on"
+        if entity_id == _OUTDOOR:
+            return outdoor
+        if entity_id == _ZONE_TEMP:
+            return zone_temp["t"]
+        if entity_id == _PLANT_SETPOINT:
+            return _SETPOINT_MIN
+        if entity_id == _CLIMATE:
+            if attribute == "temperature":
+                return 22.0
+            if attribute == "hvac_action":
+                return "heating"
+            return "heat"
+        return None
+
+    app.get_state = MagicMock(side_effect=get_state)
+    base0 = app._ff_auto_correct.base
+    for temp in temps:
+        zone_temp["t"] = temp
+        app.control_tick({})
+        app.call_service.reset_mock()
+
+    assert app._ff_auto_correct.base == pytest.approx(base0)
     assert not (tmp_path / STATE_FILENAME).exists()
 
 
