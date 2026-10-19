@@ -41,11 +41,11 @@ When enabled, the App may command Set Water Temperature on the Plant. When disab
 _Avoid_: CH override (integration-specific), boiler on (plant state)
 
 **Zone Error**:
-Per thermostat: setpoint minus zone sensor temperature. Zone-level error is the maximum across thermostats in that Zone whose `hvac_action` is `heating`; thermostats with idle, off, cooling, or unavailable action do not contribute. A Zone with no such thermostats has no eligible Zone Error. Eligible Zone Errors feed Heating Demand and Critical Zone selection for CAP-7 rise-rate auto-correct only.
+Per thermostat: setpoint minus zone sensor temperature. Zone-level error is the maximum across thermostats in that Zone whose `hvac_action` is `heating`; thermostats with idle, off, cooling, or unavailable action do not contribute. A Zone with no such thermostats has no eligible Zone Error. Among Zones with Heating Demand, Zone Error ranks Critical Zone selection for CAP-7 rise-rate auto-correct only (error may be ≤ 0).
 _Avoid_: Demand (use Heating Demand for the boolean need), delta (ambiguous)
 
 **Heating Demand**:
-A Zone (or the house) needs heat when its Zone Error is positive — the Zone air is colder than its thermostat setpoint.
+A Zone (or the house) needs heat when any of its thermostats reports `hvac_action` of `heating`. Idle, off, cooling, or unavailable action do not demand — Zone Error sign does not gate demand.
 _Avoid_: Call for heat (informal), boiler on (plant state, not zone need)
 
 **Critical Zone**:
@@ -73,7 +73,7 @@ _Avoid_: Thermostat, scheduler (unless that is all it does)
 > **Dev:** Can I start AppDaemon in the Dev Container while the Production Add-on is still running?
 > **Expert:** No. That isn't an Exclusive Session — both would drive the same entities. Stop the add-on first, then run locally.
 > **Dev:** Two Zones want heat; which one moves the boiler?
-> **Expert:** Neither zone's air error drives water closed-loop. The HVAC App writes `clamp(u_ff)` from Weather Feedforward whenever any Zone has Heating Demand (and Plant Management is on), or writes `0` when idle. The Multi-Zone Coordinator still picks the Critical Zone — largest Zone Error among demand zones — but only as the rise-rate source when discussing FF auto-correct.
+> **Expert:** Neither zone's air error drives water closed-loop. The HVAC App writes `clamp(u_ff)` from Weather Feedforward whenever any Zone has Heating Demand — any thermostat with `hvac_action` of `heating` — and Plant Management is on, or writes `0` when idle. The Multi-Zone Coordinator still picks the Critical Zone — largest Zone Error among demand zones — but only as the rise-rate source when discussing FF auto-correct.
 > **Dev:** Is Set Water Temperature the same as a Zone thermostat setpoint?
 > **Expert:** No. Zone thermostats set air temperature targets. Set Water Temperature is the OpenTherm boiler water setpoint.
 > **Dev:** A Zone has Heating Demand but Plant Management is off — does the App still write zero?
