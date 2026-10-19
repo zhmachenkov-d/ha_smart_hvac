@@ -289,6 +289,29 @@ def test_d_cmd_allows_relieving_from_max() -> None:
     assert corrector.base < 40.0
 
 
+def test_d_cmd_blocks_lower_at_min() -> None:
+    corrector = _corrector(base=20.0, slope=1.0, setpoint_min=20.0, setpoint_max=40.0)
+    # outdoor=20 → u_ff=20 at min; fast rise wants −base
+    outdoor = 20.0
+    base0 = corrector.base
+    result = None
+    for temp in _rise_temps(20.0, 0.1):
+        result = corrector.process_demand(
+            [_zone("zone_a", temp, setpoint=22.0)], outdoor
+        )
+    assert result is not None
+    assert result.params_changed is False
+    assert corrector.base == pytest.approx(base0)
+    assert corrector.clamp_uff(outdoor) == pytest.approx(20.0)
+
+
+def test_d_cmd_allows_relieving_from_min() -> None:
+    corrector = _corrector(base=20.0, slope=1.0, setpoint_min=20.0, setpoint_max=40.0)
+    outdoor = 20.0  # at min; slow rise wants +base (relieving)
+    _run_window(corrector, outdoor, _flat_temps(20.0), setpoint=22.0)
+    assert corrector.base > 20.0
+
+
 def test_bounds_noop_no_params_changed() -> None:
     corrector = _corrector(base=BASE_MAX)
     outdoor = 18.0  # base knob; slow rise wants + but already at max
