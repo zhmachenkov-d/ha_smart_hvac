@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import json
 import math
+import os
 from collections import deque
+from contextlib import suppress
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
@@ -70,10 +72,18 @@ def load_ff_state(path: Path) -> tuple[float, float] | None:
     return base, slope
 
 
-def save_ff_state(path: Path, base: float, slope: float) -> None:
-    path.write_text(
-        json.dumps({"base": base, "slope": slope, "version": 1}, indent=2) + "\n"
-    )
+def save_ff_state(path: Path, base: float, slope: float) -> bool:
+    """Atomically write B1 JSON. Return True on success, False on OSError."""
+    payload = json.dumps({"base": base, "slope": slope, "version": 1}, indent=2) + "\n"
+    tmp = path.with_name(path.name + ".tmp")
+    try:
+        tmp.write_text(payload)
+        os.replace(tmp, path)
+        return True
+    except OSError:
+        with suppress(OSError):
+            tmp.unlink(missing_ok=True)
+        return False
 
 
 class FfAutoCorrector:

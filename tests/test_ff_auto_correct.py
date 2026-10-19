@@ -305,8 +305,19 @@ def test_bounds_noop_no_params_changed() -> None:
 
 def test_load_valid_json(tmp_path: Path) -> None:
     path = tmp_path / "ff_auto_correct_state.json"
-    save_ff_state(path, 30.0, 1.5)
+    assert save_ff_state(path, 30.0, 1.5) is True
     assert load_ff_state(path) == (30.0, 1.5)
+    assert not path.with_name(path.name + ".tmp").exists()
+
+
+def test_save_ff_state_oserror_returns_false(tmp_path: Path) -> None:
+    path = tmp_path / "ff_auto_correct_state.json"
+    tmp_path.chmod(0o555)
+    try:
+        assert save_ff_state(path, 30.0, 1.5) is False
+        assert not path.exists()
+    finally:
+        tmp_path.chmod(0o755)
 
 
 def test_load_missing_returns_none(tmp_path: Path) -> None:

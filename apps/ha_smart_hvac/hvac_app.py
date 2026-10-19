@@ -124,7 +124,12 @@ class HvacApp(hass.Hass):
 
     def _persist_ff_state(self) -> None:
         corrector = self._ff_auto_correct
-        save_ff_state(self._state_path(), corrector.base, corrector.slope)
+        path = self._state_path()
+        if not save_ff_state(path, corrector.base, corrector.slope):
+            self.log(
+                f"Failed to persist FF auto-correct state: {path}",
+                level="WARNING",
+            )
 
     def _hands_off(self, message: str) -> None:
         self.log(message, level="WARNING")
