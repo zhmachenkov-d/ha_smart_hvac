@@ -89,7 +89,7 @@ context:
 **Execution:**
 - [x] `_bmad-output/.../spike-ff-rise-rate-auto-correct-rule-decision.md` -- Signal / Law / Guards / Persistence / Non-goals encoding frozen Decisions + G1 smoke table -- CAP-7 contract for 1.3/1.5.
 - [x] `_bmad-output/.../epic-weather-curve-swt-only.md` -- **replace** the “Unknown: exact rise-rate…” Notes line with a **draft** Decision pointer (summary, path, Denys; not `accepted`) -- supersedes Unknown; pending HITL.
-- [ ] HITL finalize (Denys) -- after explicit accept, set epic Notes line to `… accepted` -- unblocks 1.5; not agent-self-accept.
+- [x] HITL finalize (Denys) -- after explicit accept, set epic Notes line to `… accepted` -- unblocks 1.5; not agent-self-accept.
 
 **Acceptance Criteria:**
 - Given locked max-error Heating Demand zone rule, when the decision note is written, then Signal defines **1B+1A** rolling W15 (append rule, `r_obs`, denom), **4A**/M2/Z1/T-hold, selection pool = demand zones only, and flush paths clear ephemeral.

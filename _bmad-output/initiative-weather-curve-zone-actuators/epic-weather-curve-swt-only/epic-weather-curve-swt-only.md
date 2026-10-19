@@ -51,4 +51,4 @@ The `apps/ha_smart_hvac` SWT control path, its tests, AppDaemon yaml/example, pe
 - Decision: CAP-6 stays yaml-only — no new HA entities for FF params (2026-10-18).
 - Decision: entry 3 (ADR/docs) waits on spike 4 so CAP-7 formula/persistence land in the ADR (2026-10-18).
 - Decision: tracer bullet is entry 1; entries 2∥4 after 1; 3 and 5 after 2+4; refactor sweep 6; live Exclusive Session check 7 last (2026-10-18).
-- Decision (draft, 2026-10-19, Denys): CAP-7 rise-rate auto-correct — Signal W15/1A+1B, Law I1/CS-base/N2+G25, Guards N-both+2B/2C/3A, Persistence B1 (`ff_auto_correct_state.json`); full contract in `spike-ff-rise-rate-auto-correct-rule-decision.md`. Pending Denys accept before 1.5; supersedes prior Unknown rise-rate line.
+- Decision (2026-10-19, Denys): CAP-7 rise-rate auto-correct — Signal W15/1A+1B, Law I1/CS-base/N2+G25, Guards N-both+2B/2C/3A, Persistence B1 (`ff_auto_correct_state.json`); full contract in `spike-ff-rise-rate-auto-correct-rule-decision.md` — accepted.

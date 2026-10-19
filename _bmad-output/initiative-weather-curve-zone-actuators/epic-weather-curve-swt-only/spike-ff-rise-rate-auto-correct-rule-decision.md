@@ -4,7 +4,7 @@ type: 'decision'
 ticket: 4
 covers: [CAP-7]
 created: '2026-10-19'
-status: 'draft'  # pending Denys HITL accept before 1.5
+status: 'accepted'
 source_plan: 'spike-ff-rise-rate-auto-correct-rule-plan.md'
 ---
 
@@ -12,7 +12,7 @@ source_plan: 'spike-ff-rise-rate-auto-correct-rule-plan.md'
 
 Contract for stories **1.3** (ADR/docs) and **1.5** (implementation). Encode only the locked spike decisions; do not invent thresholds, formulas, or persistence shapes beyond this note.
 
-**Operator:** Denys. Epic Notes carry a **draft** Decision pointer until Denys explicitly accepts; chat-only agreement without Notes finalize ≠ accept for 1.5.
+**Operator:** Denys. Accepted 2026-10-19 — epic Notes finalized; story 1.5 may start from this contract.
 
 ---
 
