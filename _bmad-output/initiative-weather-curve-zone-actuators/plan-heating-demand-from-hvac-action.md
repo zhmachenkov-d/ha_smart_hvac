@@ -3,7 +3,7 @@ title: 'Heating Demand from hvac_action'
 type: 'feature'
 ticket: ''
 created: '2026-10-19'
-status: 'built'
+status: done
 baseline_revision: 'd42bfab20f1d5abb53a7a14c8a581d84dfd4d0fa'
 route: 'full'
 route_source: 'auto'
