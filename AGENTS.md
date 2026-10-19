@@ -31,5 +31,6 @@ AppDaemon Apps that control multi-zone OpenTherm HVAC through Home Assistant. Py
 
 - Plant Management off means no Set Water Temperature write and cleared ephemeral / water-path state — not “write 0”. Persisted `ff_auto_correct_state.json` is left untouched.
 - Heating Demand idle writes 0 and clears ephemeral / water-path state; that path is only when Plant Management is on.
+- Omitting `weather_feedforward.auto_correct` means CAP-7 rise-rate auto-correct is on (E2 defaults); there is no `enabled` switch.
 
 <!-- /bmad:context -->

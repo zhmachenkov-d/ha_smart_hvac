@@ -34,6 +34,8 @@ Default `r_expected = 0.25` °C/h.
 
 **Knobs.** Adapt `base` and `slope` only; `comfort_ref` stays commission-only. One knob per tick (I1) at summary level — full hysteresis / outdoor-gate rules are in the spike.
 
+**Commission nest.** Optional yaml `weather_feedforward.auto_correct` (E2 knobs). Missing nest → code defaults; CAP-7 stays on. There is no `enabled` switch — omit means on.
+
 **Persistence (B1).** Store adapted params in `ff_auto_correct_state.json` under the AppDaemon app directory, shape `{"base","slope"}` (+ optional `version`). Load: yaml commission → JSON overlay of `base`/`slope` when valid. Persist only when params actually changed **and** the SWT write succeeded; write is atomic, and I/O failure soft-fails (log warning; do not abort the tick after SWT already wrote). Ephemeral state (rise-rate window, steady count, I1 `previous`, selected-zone id) is not persisted. Ops delete the JSON file to restore yaml commission. Idle / plant-off never clears the file.
 
 “Clear” on plant-on idle and plant-off means clear that ephemeral / water-path state only — not the persisted JSON.

@@ -1,7 +1,8 @@
 ---
 epic: epic-weather-curve-swt-only
 date: 2026-10-19T14:19:40Z
-verdict: accepted-with-open-items
+closed: 2026-10-19T14:47:00Z
+verdict: accepted
 criteria: declared
 headless: false
 ---
@@ -57,7 +58,7 @@ Production churn highlights (non-merge `files` sums): `hvac_app.py` net −231 a
 ### Aggregate — spec-to-implementation
 
 - **F-S1 — Done when 1–4 and 6 met with evidence.** Demand clamp path (`hvac_app.py:73-74`); idle/off (`:48-51,:67-71`); ADR 0004 + superseded 0002/0003; CAP-5 tests (`test_hvac_app.py:115-273`); live 1.7 pass 4A (`walkthrough-story-1-7.md:5,114-123`). **Disposition:** accept as-is.
-- **F-S2 — Done when 5 / CAP-7: code+pytest live; mid-window adapt not shown in 1.7.** Overlay absent; near-setpoint shape freezes adapt (`ff_auto_correct.py:169-170`, eps default 0.3). Walkthrough marks N/A (`walkthrough-story-1-7.md:105,120`). **Disposition:** accept as-is (DW5 satisfied by automated CAP-7 locks + code on path; live adapt is a separate HITL scenario). **Process:** if a future epic needs live CAP-7 proof, schedule a non-freeze demand shape — do not overload the windup Exclusive Session.
+- **F-S2 — Done when 5 / CAP-7: code+pytest live; mid-window adapt not shown in 1.7.** Overlay absent; near-setpoint shape freezes adapt (`ff_auto_correct.py:169-170`, eps default 0.3). Walkthrough marks N/A (`walkthrough-story-1-7.md:105,120`). **Disposition:** accept as-is (DW5 satisfied by automated CAP-7 locks + code on path; A6 HITL skipped at close). **Process:** if a future epic needs live CAP-7 proof, schedule a non-freeze demand shape — do not overload the windup Exclusive Session.
 - **F-S3 — Knowledge ADRC/LADRC/MADRC/Huang notes deferred by Story 1.6 B1.** **Disposition:** defer → **done** (A5): project notes aligned to ADR 0004; `deferred-work.md` cleared.
 - **F-S4 — Extras not in CAP prose (brownfield):** outdoor/empty-zones → idle write 0 (`hvac_app.py:53-65`); write-on-change skip (`:209-210`); auto_correct nest defaults on (`config.py:45-46`, `apps.yaml.example:17`). **Disposition:** accept as-is (document if a later reader confuses them with CAP-2 / opt-in).
 
@@ -65,9 +66,9 @@ Production churn highlights (non-merge `files` sums): `hvac_app.py` net −231 a
 
 - **F-R1 — W15 `hours` uses `WINDOW_SIZE` intervals, not sample-span.** `ff_auto_correct.py:224`: `hours = WINDOW_SIZE * control_interval / 3600.0` with 15 samples → ~6.7% vs wall span of 14 intervals. **Disposition:** accept as-is (2026-10-19 party + human). Spike already locks this: physical span ~14×dt, **denominator stays 15×dt** (`spike-ff-rise-rate-auto-correct-rule-decision.md:38`). Code/ADR match the contract; retro adversarial mis-flagged it as a bug.
 - **F-R2 — `save_ff_state` unguarded / non-atomic** (`ff_auto_correct.py` was `:73-76`). **Disposition:** fix now → **done** (A2): atomic `os.replace`, returns `bool`; `_persist_ff_state` logs WARNING on False.
-- **F-R3 — Near-setpoint / freeze ticks still append W15** (`ff_auto_correct.py:158-170`). Flat samples enter the window before freeze return. **Disposition:** defer (law as spike 1A; changing append-before-freeze is a CAP-7 contract change). **Process:** if overshoot after leaving freeze is observed live, revisit.
+- **F-R3 — Near-setpoint / freeze ticks still append W15** (`ff_auto_correct.py:158-170`). Flat samples enter the window before freeze return. **Disposition:** accept as-is (2026-10-19 close: keep spike 1A). **Process:** revisit only if live overshoot after leaving freeze is observed.
 - **F-R4 — Yaml commission base/slope not bounded like B1 JSON** (`config.py` weather_ff parse vs `params_in_bounds`). **Disposition:** defer.
-- **F-R5 — No CAP-7 `enabled` off switch** (nest omitted → E2 on). **Disposition:** accept as-is (epic Decision CAP-7 stays live 1A); optional future opt-out. **Process:** document in ADR/AGENTS that omit means on.
+- **F-R5 — No CAP-7 `enabled` off switch** (nest omitted → E2 on). **Disposition:** accept as-is (2026-10-19 close: omit → on; no `enabled` switch). **Process:** documented in ADR 0004 + AGENTS.
 - **F-R6 — Superseded ADR 0002/0003 keep full normative bodies.** Frontmatter superseded; risk of reimplementation from archive text. **Disposition:** defer (stub/archive).
 - **F-R7 — Mutate-before-write / persist on equality-skip** (adversarial). Memory can nudge before plant write; persist can fire when `_write_setpoint` no-ops on equal float. Partially intentional (spike 2C on write fail). **Disposition:** defer (needs product call on atomicity). Re-check before treating as defect: spike decision owns 2C.
 
@@ -108,23 +109,24 @@ No previous retrospective file in this initiative (single epic). Prior-initiativ
 | A3 | Add D-cmd lower@min pure + Hass regression (mirror raise@max) | Denys | **done** (2026-10-19): pure + Hass + relieving-from-min |
 | A4 | Restore intra-zone thermostat eligibility tests removed from `test_coordinator.py` | Denys | **done** (2026-10-19): multi-thermostat / idle / None / idle-cannot-win |
 | A5 | Align ADRC/LADRC/MADRC/Huang knowledge notes with ADR 0004 | Denys | **done** (2026-10-19): project notes + refs + deferred-work cleared |
-| A6 | Optional later HITL: CAP-7 adapt under non-near-setpoint demand (not a windup re-run) | Denys | process / defer |
+| A6 | ~~Optional later HITL: CAP-7 adapt under non-near-setpoint demand~~ | — | **skipped** (2026-10-19 close): not scheduled; F-S2 gap stays accepted as-is |
 
-**Queue (human, one-by-one):** A6 (A1 dropped; A2–A5 done).
+**Queue (human):** empty (A1 dropped; A2–A5 done; A6 skipped).
 
 ## Acceptance verdict
 
-**accepted-with-open-items** — criteria **declared** (epic Done when).
+**accepted** — criteria **declared** (epic Done when). Closed 2026-10-19 after resolving open questions.
 
 - All tickets finished (`pending_tickets` empty).
 - Done when 1–4 and 6 demonstrably met (tests + ADR + live 1.7 pass 4A).
-- Done when 5 met for CAP-6 and for CAP-7 as code+pytest on the demand path; live mid-window adapt not shown (accepted gap, tracked as F-S2 / A6).
-- Named open items: A2–A4 (fix-now proposed), A5 (deferred-work), A6 (HITL defer); A1 dropped (F-R1 accept); plus deferred findings F-R3/4/6/7, F-E2/3, F-V2/4.
-
-Machine verdict is not **rejected** (no unfinished tickets; criteria not failed). Open remediations keep the human-facing spelling at **accepted-with-open-items**.
+- Done when 5 met for CAP-6 and for CAP-7 as code+pytest on the demand path; live mid-window adapt not shown (accepted gap F-S2; A6 skipped).
+- Remediations A2–A5 done; A1 dropped; A6 skipped. Deferred findings F-R4/6/7, F-E2/3, F-V2/4 remain recorded, not queued.
+- Parent initiative closed (`status: done`).
 
 ## Open questions
 
-1. Should CAP-7 stay always-on when the `auto_correct` nest is omitted, or should yaml grow an explicit `enabled` switch (F-R5)?
-2. Is append-before-freeze (1A) still desired after live observation, or should near-setpoint ticks skip W15 append (F-R3)?
-3. Close the parent initiative now that its only epic is done and this retro is filed?
+Closed 2026-10-19 (Denys):
+
+1. **CAP-7 omit nest** — omit → on (E2 defaults); no `enabled` switch. Documented ADR 0004 + AGENTS (F-R5).
+2. **Append-before-freeze** — keep spike 1A (F-R3 accept as-is).
+3. **Parent initiative** — closed (`initiative-weather-curve-zone-actuators` `status: done`).
