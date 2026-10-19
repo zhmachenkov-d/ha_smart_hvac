@@ -149,6 +149,23 @@ def test_cap5_demand_writes_clamp_uff_only() -> None:
     assert "u_track=" not in joined
 
 
+def test_cap5_heating_at_setpoint_still_writes_clamp_uff() -> None:
+    """Heating Demand follows hvac_action: error ≤ 0 still takes demand path."""
+    outdoor = 10.0
+    app = _tick_app(
+        zone_temp=22.0,
+        setpoint=22.0,
+        outdoor=outdoor,
+        plant_setpoint=45.0,
+        hvac_action="heating",
+    )
+    expected = _expected_ff_clamp(app._config, outdoor)
+
+    app.control_tick({})
+
+    assert _set_value_writes(app) == [expected]
+
+
 def test_demand_fail_write_aborts_without_success_info() -> None:
     """Demand + unreadable plant setpoint: no set_value, no command= INFO."""
     app = _tick_app(
@@ -178,7 +195,7 @@ def test_demand_fail_write_aborts_without_success_info() -> None:
 
 def test_cap5_plant_on_idle_writes_zero() -> None:
     """CAP-5(b): Plant-on idle → write 0; no water-path LADRC attrs."""
-    app = _tick_app(zone_temp=22.0, setpoint=22.0)
+    app = _tick_app(zone_temp=22.0, setpoint=22.0, hvac_action="idle")
 
     app.control_tick({})
 
@@ -387,7 +404,7 @@ def test_cap7_no_demand_clears_ephemeral_json_untouched(tmp_path: Path) -> None:
     save_ff_state(state, 30.0, 1.5)
     before = state.read_text()
 
-    app = _cap7_app(tmp_path, zone_temp=22.0, setpoint=22.0)
+    app = _cap7_app(tmp_path, zone_temp=22.0, setpoint=22.0, hvac_action="idle")
     app._ff_auto_correct._steady = 5
 
     app.control_tick({})
@@ -796,7 +813,7 @@ def test_cap8_idle_writes_zero_json_untouched(tmp_path: Path) -> None:
     save_ff_state(state, 30.0, 1.5)
     before = state.read_text()
 
-    app = _cap7_app(tmp_path, zone_temp=22.0, setpoint=22.0)
+    app = _cap7_app(tmp_path, zone_temp=22.0, setpoint=22.0, hvac_action="idle")
     app._ff_auto_correct._steady = 5
 
     _fire_control_event(app)

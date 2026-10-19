@@ -22,20 +22,20 @@ def _zone(
     return ZoneSnapshot(name=name, zone_temp=temp, thermostats=thermostats)
 
 
-def test_has_heating_demand_when_any_zone_positive_error():
+def test_has_heating_demand_when_any_zone_heating():
     zones = [
-        _zone("living_room", 21.0, [20.0]),
-        _zone("bedroom", 17.0, [21.0]),
+        _zone("living_room", 21.0, [20.0]),  # heating, error -1
+        _zone("bedroom", 17.0, [21.0]),  # heating, error 4
     ]
     assert has_heating_demand(zones) is True
 
 
-def test_has_heating_demand_false_when_all_errors_non_positive():
+def test_has_heating_demand_true_when_heating_with_non_positive_error():
     zones = [
-        _zone("living_room", 21.0, [20.0]),
-        _zone("bedroom", 20.5, [20.0]),
+        _zone("living_room", 21.0, [20.0]),  # heating, error -1
+        _zone("bedroom", 20.5, [20.0]),  # heating, error -0.5
     ]
-    assert has_heating_demand(zones) is False
+    assert has_heating_demand(zones) is True
 
 
 def test_has_heating_demand_empty_zones():
@@ -52,7 +52,7 @@ def test_all_idle_zone_has_no_demand_via_has_heating_demand():
 def test_has_heating_demand_ignores_non_heating_even_with_large_delta():
     zones = [
         _zone("bedroom", 10.0, [22.0], ["idle"]),
-        _zone("living_room", 21.0, [20.0], ["heating"]),
+        _zone("living_room", 10.0, [20.0], ["off"]),
     ]
     assert has_heating_demand(zones) is False
 
@@ -61,6 +61,7 @@ def test_multi_thermostat_zone_uses_max_error():
     """Intra-zone: zone_error is max over heating thermostats only."""
     zone = _zone("living_room", 19.0, [20.0, 22.0])
     assert zone.zone_error == 3.0
+    assert zone.has_heating_eligible is True
     assert has_heating_demand([zone]) is True
 
 
@@ -79,6 +80,13 @@ def test_unavailable_hvac_action_is_excluded():
     zone = _zone("living_room", 18.0, [22.0, 24.0], ["heating", None])
     assert zone.zone_error == 4.0
     assert has_heating_demand([zone]) is True
+
+
+def test_unavailable_only_is_not_demand():
+    zone = _zone("living_room", 18.0, [22.0], [None])
+    assert zone.has_heating_eligible is False
+    assert has_heating_demand([zone]) is False
+    assert select_max_error_demand_zone([zone], None) is None
 
 
 def test_zone_with_only_idle_thermostats_cannot_win_contention():
@@ -103,6 +111,19 @@ def test_select_max_error_picks_largest_demand_error():
     assert selected.name == "bedroom"
 
 
+def test_select_max_error_among_heating_including_non_positive():
+    """CAP-7 pool is heating-eligible; max error may be ≤ 0."""
+    zones = [
+        _zone("overshoot", 23.0, [22.0]),  # heating, error -1
+        _zone("at_setpoint", 22.0, [22.0]),  # heating, error 0
+    ]
+    assert has_heating_demand(zones) is True
+    selected = select_max_error_demand_zone(zones, None)
+    assert selected is not None
+    assert selected.name == "at_setpoint"
+    assert selected.zone_error == 0.0
+
+
 def test_select_max_error_t_hold_keeps_previous_in_tie_set():
     zones = [
         _zone("alpha", 20.0, [22.0]),  # error 2
@@ -125,8 +146,8 @@ def test_select_max_error_lex_when_no_previous_in_tie():
 
 def test_select_max_error_ignores_non_demand_pool():
     zones = [
-        _zone("satisfied", 22.0, [20.0]),  # error -2, no demand
-        _zone("cold", 18.0, [22.0]),  # error 4
+        _zone("satisfied", 22.0, [20.0], ["idle"]),  # non-heating
+        _zone("cold", 18.0, [22.0]),  # heating, error 4
     ]
     selected = select_max_error_demand_zone(zones, "satisfied")
     assert selected is not None
@@ -135,5 +156,24 @@ def test_select_max_error_ignores_non_demand_pool():
 
 def test_select_max_error_empty_or_no_demand():
     assert select_max_error_demand_zone([], None) is None
-    zones = [_zone("warm", 22.0, [20.0])]
+    zones = [_zone("warm", 22.0, [20.0], ["idle"])]
     assert select_max_error_demand_zone(zones, None) is None
+
+
+def test_select_max_error_heating_nan_still_returns_zone():
+    """Non-finite zone_error stays in demand pool so CAP-7 M2 can flush."""
+    zones = [_zone("zone_a", float("nan"), [22.0])]
+    assert has_heating_demand(zones) is True
+    selected = select_max_error_demand_zone(zones, "zone_a")
+    assert selected is not None
+    assert selected.name == "zone_a"
+
+
+def test_select_max_error_prefers_finite_over_nan():
+    zones = [
+        _zone("nan_zone", float("nan"), [22.0]),
+        _zone("cold", 18.0, [22.0]),  # error 4
+    ]
+    selected = select_max_error_demand_zone(zones, None)
+    assert selected is not None
+    assert selected.name == "cold"

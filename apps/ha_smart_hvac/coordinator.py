@@ -2,17 +2,18 @@
 
 from __future__ import annotations
 
+import math
+
 from ha_smart_hvac.models import ZoneSnapshot
 
 
 def has_heating_demand(zones: list[ZoneSnapshot]) -> bool:
-    """True when any zone has positive Zone Error among heating-eligible thermostats.
+    """True when any zone has a thermostat with hvac_action == heating.
 
-    Same eligibility as ZoneSnapshot.zone_error: -inf only when a zone has no
-    heating-eligible thermostats; heating with non-positive error is finite and
-    does not demand.
+    Same eligibility as ZoneSnapshot.has_heating_eligible / zone_error
+    contributors. Zone Error sign does not gate demand.
     """
-    return any(z.zone_error > 0 for z in zones)
+    return any(z.has_heating_eligible for z in zones)
 
 
 def select_max_error_demand_zone(
@@ -20,15 +21,21 @@ def select_max_error_demand_zone(
 ) -> ZoneSnapshot | None:
     """Select the max Zone Error demand zone for CAP-7 rise-rate (FF params only).
 
-    Among zones with Heating Demand (`zone_error > 0`), pick the largest error.
-    T-hold: keep ``previous_name`` while it remains in the max-error tie set;
-    otherwise break ties by lexicographic ``name``.
+    Among zones with Heating Demand (has_heating_eligible), pick the largest
+    finite error (may be ≤ 0). Non-finite errors rank below any finite; if all
+    demand errors are non-finite, still return a zone from that pool (CAP-7 M2
+    flush). T-hold: keep ``previous_name`` while it remains in the max-error
+    tie set; otherwise break ties by lexicographic ``name``.
     """
-    demand = [z for z in zones if z.zone_error > 0]
+    demand = [z for z in zones if z.has_heating_eligible]
     if not demand:
         return None
-    max_error = max(z.zone_error for z in demand)
-    tie_set = [z for z in demand if z.zone_error == max_error]
+    finite = [z for z in demand if math.isfinite(z.zone_error)]
+    if finite:
+        max_error = max(z.zone_error for z in finite)
+        tie_set = [z for z in finite if z.zone_error == max_error]
+    else:
+        tie_set = demand
     if previous_name is not None:
         for zone in tie_set:
             if zone.name == previous_name:

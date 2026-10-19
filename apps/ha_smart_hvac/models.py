@@ -29,6 +29,10 @@ class ZoneSnapshot:
         return tuple(t for t in self.thermostats if t.hvac_action == "heating")
 
     @property
+    def has_heating_eligible(self) -> bool:
+        return bool(self._eligible_thermostats())
+
+    @property
     def zone_error(self) -> float:
         thermostats = self._eligible_thermostats()
         if not thermostats:
