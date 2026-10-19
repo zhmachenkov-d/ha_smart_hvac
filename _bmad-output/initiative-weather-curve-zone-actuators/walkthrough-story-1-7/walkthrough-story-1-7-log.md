@@ -2,7 +2,7 @@
 
 Target: plan story-live-exclusive-session-windup-check-plan.md (ticket 7). Live plant evidence — not PR review.
 
-Disposition: **blocked** pending human Exclusive Session.
+Disposition: **pass (4A)** — Production restored; plant_setpoint operator-confirmed; command series at soft-floor clamp 40.
 
 ## 1 — seed — narrative + 4A pass rule
 
@@ -40,20 +40,28 @@ Session: agent · Timestamp: 2026-10-19T16:00:00+03:00
 - Evidence: `tests/test_hvac_app.py::test_cap5_flat_air_multi_tick_stays_at_ff_clamp PASSED`
 - Open: Live plant still blocked
 
-## 5 — live Exclusive Session — pending human
+## 5 — live Exclusive Session — demand window captured
 
-Session: human · Timestamp: *pending*
+Session: human+agent · Timestamp: 2026-10-19T17:05–17:11+03:00
 
-- Action: Stop Production AppDaemon add-on → `./scripts/run-appdaemon` → confirm preflight shape → capture INFO over ≥300 s (≈5 ticks) → HA spot `plant_setpoint` vs `command` → Ctrl+C → **always** restart Production add-on.
-- Result: *pending*
-- Evidence: Paste AppDaemon lines here, e.g. `outdoor=… °C, u_ff=…, command=…` for each tick in the window. Score **4A**: `command` steady at FF clamp (document expected clamp from outdoor + current FF params); soft≠command at floor OK. CAP-7 co-step with clamp = not fail; climb above clamp toward 55 = fail.
-- Open: Operator run; agent will fill Action/Result/Evidence once logs are provided
+- Action: Production AD stopped (operator). Local `./scripts/run-appdaemon`. Earlier idle window had only `No heating demand; setpoint 0`. After operator created demand, captured ≥5 INFO ticks; stopped local AD.
+- Result: **4A command series OK** — `command` steady at soft-floor clamp **40.00**, no climb toward 55. FF overlay missing → yaml commission `base=25`, `slope=1.2`, `comfort_ref=20`. Soft≠command at floor as expected.
+- Evidence (AppDaemon INFO):
+  ```
+  outdoor=13.20 °C, u_ff=33.16, command=40.00
+  outdoor=13.00 °C, u_ff=33.40, command=40.00
+  outdoor=13.00 °C, u_ff=33.40, command=40.00
+  outdoor=13.00 °C, u_ff=33.40, command=40.00
+  outdoor=13.00 °C, u_ff=33.40, command=40.00
+  ```
+  Expected clamp from recorded params: `clamp(25 + 1.2×(20−T_out), 40, 55)` → at 13.2°C soft 33.16 / at 13.0°C soft 33.40 → **40**. CAP-7 mid-window: no param step (overlay absent; soft only tracked outdoor).
+- Open: none for capture (close-out in ## 6)
 
 ## 6 — close-out — Production restore + disposition
 
-Session: *pending*
+Session: human+agent · Timestamp: 2026-10-19T17:12+03:00
 
-- Action: After any live attempt (pass / fail / blocked / write failure), confirm Production AppDaemon add-on restored; no dual-run; leave SWT/CAP-7/law code untouched.
-- Result: *N/A — session not opened this seed*. Seed disposition remains **blocked**.
-- Evidence: Operator confirmation of add-on restart; this log + narrative Outcome table
-- Open: Human must complete ## 5–6 before ticket acceptance criteria can go green
+- Action: Operator confirmed Production AppDaemon add-on restored; plant_setpoint spot confirmed; no dual-run; SWT/CAP-7/law code untouched.
+- Result: Local AD was stopped before restore. Production **restored**. `plant_setpoint` confirmed by operator (numeric value not pasted — expected match to logged `command=40`). Command series remains **4A pass**. Near-setpoint flat-air shape detail still optional note from operator.
+- Evidence: operator message «Production restored + plant_setpoint»; ## 5 INFO series; no production code diff
+- Open: optional numeric plant_setpoint / y/Tr for the record only

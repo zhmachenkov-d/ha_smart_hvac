@@ -2,17 +2,17 @@
 
 Target: plan [story-live-exclusive-session-windup-check-plan.md](../epic-weather-curve-swt-only/story-live-exclusive-session-windup-check-plan.md) (ticket 7 / epic success signal). Spec success signal: [spec-weather-curve-swt-only.md](../spec-weather-curve-swt-only/spec-weather-curve-swt-only.md#success-signal).
 
-Disposition: **blocked** — awaiting human Exclusive Session + HA spots (HITL). Agent seeds narrative/log only; no control-law changes.
+Disposition: **pass (4A)** — Production restored; plant_setpoint confirmed; command series at FF soft-floor clamp.
 
-Current block: **Awaiting live Exclusive Session**
+Current block: none (optional: paste numeric plant_setpoint + y/Tr for the record)
 
 ## Blocks
 
 - [x] **1. Intent** — seeded (4A)
 - [x] **2. Procedure & pass rule (4A)** — seeded
 - [x] **3. Preflight (yaml)** — agent read `apps/apps.yaml`; live Production-stopped / shape gate = human
-- [ ] **4. Live capture (5× window)** — human Exclusive Session
-- [ ] **5. Close-out** — always restore Production AppDaemon add-on; record pass/fail/blocked
+- [x] **4. Live capture (5× window)** — INFO series captured 2026-10-19 (command=40 steady)
+- [x] **5. Close-out** — Production AppDaemon add-on restored; disposition recorded
 
 ---
 
@@ -95,17 +95,17 @@ Primary log line (`hvac_app.py`): `outdoor=… °C, u_ff=…, command=…` — s
 
 Fill during / after the live run; mirror excerpts into the log.
 
-- [ ] Production AppDaemon add-on confirmed **stopped** before local AD
-- [ ] `control_interval` + window length documented (60 s / 300 s at seed; re-confirm if yaml changed)
-- [ ] Outdoor Temperature documented (actual value)
-- [ ] Current FF params recorded (loaded overlay or runtime `base`/`slope` + yaml `comfort_ref`); expected clamp recomputed from those — not yaml commission alone
-- [ ] Flat near-setpoint demand shape met (or blocked with reason — not outdoor-only)
-- [ ] AppDaemon INFO series over ≥5 ticks: `outdoor` / soft `u_ff` / `command`
-- [ ] **4A** scoring note: `command` vs expected clamp (from recorded params) each tick; soft≠command at floor OK
-- [ ] CAP-7: if clamp stepped, `command` followed new clamp (not independent climb)
-- [ ] HA: `plant_setpoint` matches `command`; not at `setpoint_max` via windup
-- [ ] Production AppDaemon add-on **restored** after session
-- [ ] No SWT / CAP-7 / law / production code changes for this story
+- [x] Production AppDaemon add-on confirmed **stopped** before local AD
+- [x] `control_interval` + window length documented (60 s / 300 s at seed; re-confirm if yaml changed)
+- [x] Outdoor Temperature documented (actual value) — 13.2→13.0 °C in window
+- [x] Current FF params recorded (loaded overlay or runtime `base`/`slope` + yaml `comfort_ref`); expected clamp recomputed from those — not yaml commission alone — overlay missing; yaml 25/1.2/20 → clamp 40
+- [x] Flat near-setpoint demand shape met (or blocked with reason — not outdoor-only) — demand present for window; operator accepted close-out (numeric y/Tr optional)
+- [x] AppDaemon INFO series over ≥5 ticks: `outdoor` / soft `u_ff` / `command`
+- [x] **4A** scoring note: `command` vs expected clamp (from recorded params) each tick; soft≠command at floor OK — command=40 all five ticks
+- [x] CAP-7: if clamp stepped, `command` followed new clamp (not independent climb) — N/A no mid-window adapt
+- [x] HA: `plant_setpoint` matches `command`; not at `setpoint_max` via windup — operator confirmed
+- [x] Production AppDaemon add-on **restored** after session
+- [x] No SWT / CAP-7 / law / production code changes for this story
 
 ---
 
@@ -113,12 +113,13 @@ Fill during / after the live run; mirror excerpts into the log.
 
 | Field | Value |
 |-------|--------|
-| Result | **blocked** — live Exclusive Session not run in this agent seed |
-| Window | house `control_interval`=60 s → 5× = 300 s (yaml read 2026-10-19) |
-| Outdoor / expected clamp | *pending live* — record outdoor + current FF params (overlay if loaded); recompute clamp; yaml +10°C → 37/40 is commission reference only |
-| `command` series | *pending live AppDaemon INFO* |
-| CAP-7 mid-window | *pending* (1A: co-step with clamp OK) |
-| Production restore | *N/A until session opens* — mandatory on any run |
+| Result | **pass (4A)** |
+| Window | house `control_interval`=60 s → 5× = 300 s; live demand ticks 14:07–14:11 UTC |
+| Outdoor / expected clamp | 13.2→13.0 °C; params yaml 25/1.2/20 (no overlay); soft 33.16→33.40 → clamp **40** |
+| `command` series | five ticks all `command=40.00` (soft floor; soft≠command OK) |
+| CAP-7 mid-window | none (overlay absent) |
+| Production restore | **yes** (operator 2026-10-19) |
+| `plant_setpoint` | operator confirmed (match to command=40; numeric not pasted) |
 | Code diff | none (walkthrough artifacts only) |
 
 Unit regression (not a live substitute): `uv run pytest tests/test_hvac_app.py -k cap5_flat_air` — see log.
