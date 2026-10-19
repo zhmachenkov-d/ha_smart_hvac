@@ -23,7 +23,7 @@ This project ships as a **HACS AppDaemon** app (custom repository only — not i
 
    [apps.yaml.example](https://raw.githubusercontent.com/zhmachenkov-d/ha_smart_hvac/main/apps.yaml.example)
 
-   Use `module: ha_smart_hvac` and `class: HvacApp` as in the example. After wiring, calibrate feedforward and LADRC gains for the house: [docs/house-calibration.md](docs/house-calibration.md).
+   Use `module: ha_smart_hvac` and `class: HvacApp` as in the example. After wiring, calibrate feedforward and rise-rate auto-correct for the house: [docs/house-calibration.md](docs/house-calibration.md).
 
 ## Layout
 
@@ -33,7 +33,7 @@ This project ships as a **HACS AppDaemon** app (custom repository only — not i
 | `apps/apps.yaml` | Local house entity wiring (**gitignored** — copy from example) |
 | `apps.yaml.example` | Placeholder entity IDs only (repo root — not under `apps/`) |
 | `appdaemon/` | Exclusive Session AppDaemon config (`appdaemon.yaml`, secrets) |
-| `docs/house-calibration.md` | How to calibrate wiring, feedforward, and LADRC for a house |
+| `docs/house-calibration.md` | How to calibrate wiring, feedforward, and rise-rate auto-correct for a house |
 
 Canonical Python lives at repo-root `apps/ha_smart_hvac/`. Exclusive Session config stays under `appdaemon/` and loads that tree via `app_dir: ../apps` (no symlink).
 
