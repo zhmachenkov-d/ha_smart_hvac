@@ -2,6 +2,30 @@
 
 <!-- version list -->
 
+## v1.5.1 (2026-10-19)
+
+### Bug Fixes
+
+- **coordinator**: Gate Heating Demand on hvac_action
+  ([`d34483c`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/d34483caa963a812141ffdfb489aaf380e81441e))
+
+### Chores
+
+- **bmad**: Mark heating-demand-from-hvac-action plan done
+  ([`0039285`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/00392858ff21a4d14ef172e86d76e3b3ce6447ba))
+
+- **bmad**: Mark story 2.1 CAP-8 tracer done
+  ([`459cf4e`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/459cf4eb22f10e03ac9321d663d964a67f37fef3))
+
+- **bmad**: Mark story 2.2 CAP-8 docs done
+  ([`ad66023`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/ad66023a12bde7ed851a19114c9b4cb9c175374f))
+
+### Documentation
+
+- **cap-8**: Document event reactivity in ADR and domain docs
+  ([`4b6771c`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/4b6771c7b4d82c23e2ca7b0dc3bce12623ce3bc4))
+
+
 ## v1.5.0 (2026-10-19)
 
 ### Chores
