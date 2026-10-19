@@ -12,6 +12,15 @@ When Plant Management is on and Heating Demand is present, the HVAC App writes `
 
 The HVAC App owns the OpenTherm Set Water Temperature write. The Multi-Zone Coordinator computes Zone Errors, Heating Demand, and Critical Zone selection for CAP-7 only — it does not own the plant write. There is no ADRC Controller term on this path.
 
+## CAP-8 reactivity
+
+The same Plant Management / Heating Demand / SWT gate law runs on two schedules:
+
+- **Periodic `control_interval`** (`control_tick`): full path, including CAP-7 rise-rate window and I1 sampling when there is Heating Demand.
+- **Event path** (`listen_state` → `control_event`): re-evaluates on change of Plant Management, Outdoor Temperature, any configured zone air temperature, or any configured thermostat’s `hvac_action` or setpoint (`temperature` attribute). On demand the event path writes `clamp(u_ff)` only — it must not advance CAP-7 samples or persist FF JSON.
+
+Periodic cadence remains; replacing it with an event-only loop is a non-goal.
+
 ## Feedforward law and CAP-6 commission
 
 ```

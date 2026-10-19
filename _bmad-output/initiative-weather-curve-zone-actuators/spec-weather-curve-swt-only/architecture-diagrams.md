@@ -4,8 +4,8 @@
 
 ```mermaid
 flowchart TD
-  periodic[Periodic control_interval]
-  events[Event: Plant Management / hvac_action / setpoint / zone air / outdoor]
+  periodic["Periodic control_interval (control_tick)"]
+  events["Event path (control_event): Plant Management / hvac_action / setpoint / zone air / outdoor"]
   pm{Plant Management on?}
   hands[No SWT write; clear state]
   demand{Heating Demand any zone?}

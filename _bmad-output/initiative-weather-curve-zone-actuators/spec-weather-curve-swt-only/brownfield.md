@@ -30,11 +30,11 @@ Weather Feedforward parameters: house-commissioned (CAP-6) and **auto-corrected 
 - ADR 0002 / ADR 0003 as governing water-control decisions — **superseded by a new ADR** stating weather-curve-only SWT + FF commissioning/auto-correct.
 - CONTEXT.md / AGENTS.md language that states Critical Zone air drives LADRC for Set Water Temperature — update with the new ADR.
 
-## Reactivity (CAP-8 follow-on)
+## Reactivity (CAP-8)
 
-- **Today:** SWT evaluation runs on periodic `control_interval` only (`run_every` in the HVAC App).
-- **Target:** Same CAP-1…CAP-3 gate law also re-runs when Plant Management, any configured thermostat `hvac_action` or setpoint, any configured zone air temperature, or Outdoor Temperature changes, without waiting solely for the next periodic tick.
-- **CAP-7:** Rise-rate window / I1 sampling advance **only** on periodic `control_interval` evaluations; event re-evaluations must not advance those samples.
+- **Periodic:** `run_every` → `control_tick` still runs the full CAP-1…CAP-3 path and is the only schedule that advances CAP-7 rise-rate window / I1 sampling.
+- **Event:** Same gate law also re-runs via `listen_state` → `control_event` when Plant Management, any configured thermostat `hvac_action` or setpoint, any configured zone air temperature, or Outdoor Temperature changes, without waiting solely for the next periodic tick.
+- **CAP-7:** Event re-evaluations must not advance rise-rate window / I1 samples; on demand they write `clamp(u_ff)` only.
 
 ## Out of this brownfield wave
 
