@@ -2,6 +2,54 @@
 
 <!-- version list -->
 
+## v1.4.0 (2026-10-19)
+
+### Chores
+
+- **bmad**: Clear superseded CZ purge deferred entry
+  ([`40249e8`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/40249e8c3b9bbb78ee3d2a8b9bbe8f3b14ef8866))
+
+- **bmad**: Mark spike 1.4 CAP-7 decision done
+  ([`bffded2`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/bffded2a96bb10846314810afd4c81cfc56350de))
+
+- **bmad**: Mark story 1.2 CAP-4 LADRC removal done
+  ([`988b8c9`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/988b8c992b396e936679a45bb0c6595bd24e9bf4))
+
+- **bmad**: Mark story 1.3 weather-curve ADR docs done
+  ([`6f7e54c`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/6f7e54c6dcdd99ecc280c0bbb26bce2fcf85b267))
+
+- **bmad**: Record party-mode memlog for story 1.3 plan review
+  ([`4e3ca5b`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/4e3ca5b73bc853b1388b0b4782af14ad9107dc04))
+
+- **bmad**: Record party-mode memlog for story 1.5 plan review
+  ([`b5fdc60`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/b5fdc60e926a7a5e4e449fea3833c5ea516272a6))
+
+- **bmad**: Record spike 1.4 party-mode planning memlog
+  ([`cce8c86`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/cce8c8605dec7127b4d1fff9b4fda223959d9066))
+
+### Documentation
+
+- Add ADR 0004 and align domain docs for weather-curve SWT
+  ([`687d422`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/687d42273b6f78dccfef05c929b82c50a525a526))
+
+- **bmad**: Accept CAP-7 FF rise-rate auto-correct decision
+  ([`9acb211`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/9acb211d334907db9a04ac658138b1d7718f013a))
+
+- **bmad**: Add PR #66 CAP-7 spike walkthrough
+  ([`558249f`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/558249fb6113445769803e6f8a8698a7179bd45e))
+
+- **bmad**: Add PR #70 CAP-7 walkthrough
+  ([`1a73974`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/1a73974c9a7b9865f4774b3ca529222b8d13c3ff))
+
+- **bmad**: Lock CAP-7 FF rise-rate auto-correct decision (spike 1.4)
+  ([`d60765c`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/d60765c5824fe4980b7a8b46cb95b8de90af4486))
+
+### Features
+
+- Auto-correct FF from max-error zone rise rate
+  ([`03877c7`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/03877c745049d446e0955028ad2273ccebf90076))
+
+
 ## v1.3.0 (2026-10-18)
 
 ### Chores
