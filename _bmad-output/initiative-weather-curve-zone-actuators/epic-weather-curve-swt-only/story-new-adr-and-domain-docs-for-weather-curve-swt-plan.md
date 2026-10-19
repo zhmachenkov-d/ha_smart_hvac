@@ -3,7 +3,7 @@ title: 'New ADR and domain docs for weather-curve SWT'
 type: 'feature'
 ticket: '3'
 created: '2026-10-19'
-status: built
+status: done
 baseline_revision: '7bed334b308bcf2c949f0de52eff2d505801518a'
 route: 'full'
 route_source: 'auto'
