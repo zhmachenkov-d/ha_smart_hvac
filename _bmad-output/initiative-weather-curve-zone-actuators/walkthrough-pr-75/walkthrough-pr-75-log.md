@@ -217,3 +217,12 @@ Session: 01d9c37a-9b5a-458b-98f1-b2ac33ead5f4 · Timestamp: 2026-10-19T22:37:30+
 - Evidence: walkthrough-pr-75.md; PR #75.
 - Open: commit walkthrough-pr-75/? merge PR #75? story 2 docs?
 
+## 24 — Wrap-up — commit + merge
+
+Session: 01d9c37a-9b5a-458b-98f1-b2ac33ead5f4 · Timestamp: 2026-10-19T22:40:00+03:00
+
+- Action: User chose follow-through 1+2; committed walkthrough and merged PR #75.
+- Result: Commit 8992391 on feat branch; PR #75 MERGED (merge a0468b0). Story 2 not started.
+- Evidence: https://github.com/zhmachenkov-d/ha_smart_hvac/pull/75
+- Open: story 2 docs optional next.
+
