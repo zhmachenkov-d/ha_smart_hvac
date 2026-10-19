@@ -1,0 +1,24 @@
+# Epic breakdown — leaf build order. `id` is stable; table order is build order.
+
+[[entry]]
+id = 1
+type = "story"
+title = "Tracer: event-driven SWT gate re-evaluation"
+description = "Wires AppDaemon listeners for Plant Management, Outdoor Temperature, configured zone air temperatures, and each configured thermostat hvac_action and setpoint, and re-applies CAP-1..3 gate writes on those changes without advancing CAP-7 rise-rate or I1 sampling; periodic control_interval still runs the full demand path including CAP-7."
+verify = "Tests show a CAP-8 trigger change produces the matching CAP-1/2/3 write before a scheduled periodic tick would, CAP-7 window/I1 state is unchanged by that event path, and a periodic control_interval tick still runs the full demand path including CAP-7."
+covers = ["CAP-8"]
+after = ["epic-weather-curve-swt-only"]
+hitl = false
+risk = "medium"
+notes = ["Prerequisite: epic 1 periodic control tick and CAP-7 path (initiative epic 1 done)."]
+
+[[entry]]
+id = 2
+type = "story"
+title = "Document CAP-8 reactivity in ADR and domain docs"
+description = "Documents the event reactivity shipped in entry 1 by updating ADR 0004, CONTEXT/AGENTS as needed, and spec companions brownfield.md and architecture-diagrams.md so immediate gate re-evaluation on the CAP-8 trigger set and periodic-only CAP-7 sampling are the documented contract."
+verify = "ADR 0004, companions, and CONTEXT/AGENTS if touched state CAP-8 triggers, that event evaluations do not advance CAP-7 samples, and that periodic control_interval still runs CAP-7."
+covers = ["CAP-8"]
+after = [1]
+hitl = false
+risk = "low"
