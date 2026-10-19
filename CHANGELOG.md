@@ -2,6 +2,25 @@
 
 <!-- version list -->
 
+## v1.5.0 (2026-10-19)
+
+### Chores
+
+- **bmad**: Add CAP-8 reactivity spec and epic
+  ([#74](https://github.com/zhmachenkov-d/ha_smart_hvac/pull/74),
+  [`aeac987`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/aeac9876810d3ead360cf7ef7010bb979dfd1022))
+
+### Documentation
+
+- **bmad**: Add walkthrough for PR #75 CAP-8 tracer
+  ([`8992391`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/8992391547cfd21a339066df2fa771622430ef10))
+
+### Features
+
+- **hvac**: Add event-driven SWT gate re-evaluation
+  ([`b862db4`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/b862db468493e88a102574ad23bc922cee9a9556))
+
+
 ## v1.4.1 (2026-10-19)
 
 ### Bug Fixes
