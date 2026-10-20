@@ -32,6 +32,7 @@ AppDaemon Apps that control multi-zone OpenTherm HVAC through Home Assistant. Py
 - Plant Management off means no Set Water Temperature write and cleared ephemeral / water-path state — not “write 0”. Persisted `ff_auto_correct_state.json` is left untouched.
 - Heating Demand idle writes 0 and clears ephemeral / water-path state; that path is only when Plant Management is on.
 - Omitting `weather_feedforward.auto_correct` means CAP-7 rise-rate auto-correct is on (E2 defaults); there is no `enabled` switch.
-- CAP-8: Plant Management, thermostat `hvac_action` / setpoint, zone air, and Outdoor Temperature re-evaluate CAP-1…CAP-3 gates immediately (`control_event`); those evaluations must not advance CAP-7 samples — only periodic `control_interval` (`control_tick`) does.
+- CAP-8: Plant Management, thermostat `hvac_action` / setpoint, zone air, and Outdoor Temperature re-evaluate CAP-1…CAP-3 gates immediately (`control_event`); on demand that path writes `clamp(u_ff)` only and must not advance CAP-7 samples or persist FF JSON — only periodic `control_interval` (`control_tick`) does. Fail/idle clears on events are the same as on the tick. No debounce; equal-float skip is the write throttle. Changing Heating Demand inputs must update CAP-8 listeners and the ADR 0004 trigger list in the same change.
+- Do not mark an initiative `done` until every epic in its `tickets.toml` is done.
 
 <!-- /bmad:context -->

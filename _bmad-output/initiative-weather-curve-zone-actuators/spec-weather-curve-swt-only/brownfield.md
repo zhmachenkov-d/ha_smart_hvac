@@ -34,7 +34,7 @@ Weather Feedforward parameters: house-commissioned (CAP-6) and **auto-corrected 
 
 - **Periodic:** `run_every` → `control_tick` still runs the full CAP-1…CAP-3 path and is the only schedule that advances CAP-7 rise-rate window / I1 sampling.
 - **Event:** Same gate law also re-runs via `listen_state` → `control_event` when Plant Management, any configured thermostat `hvac_action` or setpoint, any configured zone air temperature, or Outdoor Temperature changes, without waiting solely for the next periodic tick.
-- **CAP-7:** Event re-evaluations must not advance rise-rate window / I1 samples; on demand they write `clamp(u_ff)` only.
+- **CAP-7:** Event re-evaluations must not advance rise-rate window / I1 samples or persist FF JSON; on demand they write `clamp(u_ff)` only. Fail/idle clears still run on events (same as tick). No debounce — equal-float skip throttles writes only.
 
 ## Out of this brownfield wave
 

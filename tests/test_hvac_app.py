@@ -951,6 +951,40 @@ def test_cap8_equal_setpoint_skips_set_value(tmp_path: Path) -> None:
     assert any("command=" in m for m in info_msgs)
 
 
+def test_cap8_demand_fail_write_aborts_without_success_info(tmp_path: Path) -> None:
+    """CAP-8 demand + unreadable plant setpoint: no set_value, no command= INFO."""
+    app = _cap7_app(
+        tmp_path,
+        zone_temp=20.0,
+        setpoint=22.0,
+        outdoor=10.0,
+        plant_setpoint="unavailable",
+    )
+
+    with patch.object(
+        app._ff_auto_correct,
+        "process_demand",
+        wraps=app._ff_auto_correct.process_demand,
+    ) as mock_pd:
+        _fire_control_event(app)
+        mock_pd.assert_not_called()
+
+    assert _set_value_writes(app) == []
+    app.call_service.assert_not_called()
+    warn_msgs = [
+        str(c.args[0])
+        for c in app.log.call_args_list
+        if c.kwargs.get("level") == "WARNING"
+    ]
+    assert any("Plant setpoint unavailable" in m for m in warn_msgs)
+    info_msgs = [
+        str(c.args[0])
+        for c in app.log.call_args_list
+        if c.args and (c.kwargs.get("level") is None or c.kwargs.get("level") == "INFO")
+    ]
+    assert not any("command=" in m for m in info_msgs)
+
+
 def test_cap8_periodic_still_runs_process_demand(tmp_path: Path) -> None:
     """After listeners exist, control_tick on demand still runs process_demand."""
     outdoor = 10.0

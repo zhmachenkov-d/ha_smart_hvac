@@ -78,5 +78,5 @@ _Avoid_: Thermostat, scheduler (unless that is all it does)
 > **Expert:** No. Zone thermostats set air temperature targets. Set Water Temperature is the OpenTherm boiler water setpoint.
 > **Dev:** A Zone has Heating Demand but Plant Management is off — does the App still write zero?
 > **Expert:** No. Plant Management off means hands off entirely: no setpoint write, ephemeral / water-path state cleared. Heating Demand only matters when Plant Management is on.
-> **Dev:** If Outdoor Temperature or a thermostat `hvac_action` changes, do we wait for the next control tick?
-> **Expert:** No. CAP-8 re-applies the same gates on that change. The event path does not advance CAP-7 rise-rate samples — those stay on the periodic `control_interval` only.
+> **Dev:** If Plant Management, Outdoor Temperature, zone air, or a thermostat `hvac_action` / setpoint changes, do we wait for the next control tick?
+> **Expert:** No. CAP-8 re-applies the same gates on that change via `control_event`. On demand it writes `clamp(u_ff)` only — it does not advance CAP-7 rise-rate samples or persist FF JSON; those stay on the periodic `control_interval` (`control_tick`). Fail and idle paths still clear ephemeral state on events, same as on the tick.
