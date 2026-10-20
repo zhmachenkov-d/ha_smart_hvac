@@ -6,7 +6,7 @@ covers: [CAP-1, CAP-2, CAP-3, CAP-4, CAP-5, CAP-6, CAP-7, CAP-8]
 after: []
 assignee: ""
 risk: medium
-status: in-progress
+status: done
 ---
 
 # Weather-curve SWT only
@@ -54,3 +54,4 @@ Capability boundary: the AppDaemon `ha_smart_hvac` Set Water Temperature path an
 - Parked: zone on/off / TRV proportional control — forge rejected for this wave; not covered by any epic.
 - Closed 2026-10-19: epic `epic-weather-curve-swt-only` done; retrospective accepted; zone actuators remain out of scope.
 - Decision: reopen initiative for CAP-8 follow-on as epic `epic-immediate-swt-reactivity` (2026-10-19).
+- Closed: both epics done; Done when 1–6 verified (epic retros + closure check); user approved (2026-10-20). Zone actuators remain parked / out of scope.

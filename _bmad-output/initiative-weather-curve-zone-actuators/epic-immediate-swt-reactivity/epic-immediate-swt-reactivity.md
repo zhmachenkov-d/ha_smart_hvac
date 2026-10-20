@@ -6,6 +6,7 @@ covers: [CAP-8]
 after: []
 assignee: ""
 risk: medium
+status: done
 ---
 
 # Immediate SWT gate reactivity
@@ -51,3 +52,4 @@ Touch points owned by this epic: `apps/ha_smart_hvac/hvac_app.py` (and helpers i
 - Waits on epic-weather-curve-swt-only because: weather-curve SWT law and CAP-7 periodic sampling must already be shipped (initiative epic 1 done).
 - Assumption: AppDaemon `listen_state` (entity state and climate attributes) is sufficient to detect the CAP-8 trigger set.
 - Decision: plan P1+S — honest stub Verify (no theatrical before-tick race); W2 dual entrypoints (forbid advance_cap7 flag); `_write_setpoint` equality skip is the write throttle, no debounce in tracer (2026-10-19).
+- Closed: Done when verified against implementation (code, CAP-8 tests, ADR 0004, companions); user approved (2026-10-20).
