@@ -37,7 +37,7 @@ class HvacApp(hass.Hass):
         self.log("HVAC fixed-gain PID app initialized")
 
     def _register_control_listeners(self) -> None:
-        """Re-evaluate gate on plant / zone air / thermostat attrs (not outdoor)."""
+        """Re-evaluate gate on plant / zone air / thermostat attrs."""
         config = self._config
         self.listen_state(self.control_event, config.plant_management)
         for zone in config.zones:

@@ -5,8 +5,11 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from ha_smart_hvac.ff_auto_correct import clamp
 from ha_smart_hvac.models import ZoneSnapshot
+
+
+def clamp(value: float, lo: float, hi: float) -> float:
+    return max(lo, min(hi, value))
 
 
 @dataclass(frozen=True)

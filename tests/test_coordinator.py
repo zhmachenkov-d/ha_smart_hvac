@@ -1,4 +1,4 @@
-"""Tests for Multi-Zone Coordinator — Heating Demand gate and CAP-7 selection."""
+"""Tests for Multi-Zone Coordinator — Heating Demand and Critical Zone selection."""
 
 from ha_smart_hvac.coordinator import has_heating_demand, select_max_error_demand_zone
 from ha_smart_hvac.models import ThermostatReading, ZoneSnapshot
@@ -112,7 +112,7 @@ def test_select_max_error_picks_largest_demand_error():
 
 
 def test_select_max_error_among_heating_including_non_positive():
-    """CAP-7 pool is heating-eligible; max error may be ≤ 0."""
+    """Critical Zone pool is heating-eligible; max error may be ≤ 0."""
     zones = [
         _zone("overshoot", 23.0, [22.0]),  # heating, error -1
         _zone("at_setpoint", 22.0, [22.0]),  # heating, error 0
@@ -161,7 +161,7 @@ def test_select_max_error_empty_or_no_demand():
 
 
 def test_select_max_error_heating_nan_still_returns_zone():
-    """Non-finite zone_error stays in demand pool so CAP-7 M2 can flush."""
+    """Non-finite zone_error stays in the Critical Zone demand pool."""
     zones = [_zone("zone_a", float("nan"), [22.0])]
     assert has_heating_demand(zones) is True
     selected = select_max_error_demand_zone(zones, "zone_a")

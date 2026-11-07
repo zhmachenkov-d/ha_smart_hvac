@@ -1,4 +1,4 @@
-"""Config parse smoke: PID commission args; weather_feedforward kept until entry 3."""
+"""Config parse smoke: PID commission args; no outdoor / weather feedforward."""
 
 from __future__ import annotations
 
@@ -15,7 +15,6 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def _minimal_args() -> dict:
     return {
-        "outdoor_temperature": "sensor.outdoor",
         "plant_management": "switch.pm",
         "plant_setpoint": "number.setpoint",
         "setpoint_min": 40,
@@ -27,11 +26,6 @@ def _minimal_args() -> dict:
                 "thermostats": ["climate.thermostat"],
             }
         ],
-        "weather_feedforward": {
-            "base": 25,
-            "slope": 1.2,
-            "comfort_ref": 20,
-        },
     }
 
 
@@ -41,9 +35,6 @@ def test_parse_config_without_ladrc_or_tune_keys() -> None:
     assert not hasattr(config, "tune_state_path")
     assert config.setpoint_min == 40.0
     assert config.setpoint_max == 55.0
-    assert config.weather_feedforward.base == pytest.approx(25.0)
-    assert config.weather_feedforward.slope == pytest.approx(1.2)
-    assert config.weather_feedforward.comfort_ref == pytest.approx(20.0)
     assert len(config.zones) == 1
     assert config.zones[0].name == "living_room"
 
@@ -89,6 +80,8 @@ def test_parse_apps_yaml_example() -> None:
     args.pop("class", None)
     assert "ladrc" not in args
     assert "tune_state_path" not in args
+    assert "outdoor_temperature" not in args
+    assert "weather_feedforward" not in args
     config = parse_config(args)
     assert not hasattr(config, "ladrc")
     assert not hasattr(config, "tune_state_path")
@@ -97,7 +90,6 @@ def test_parse_apps_yaml_example() -> None:
     assert config.base_water_temp == pytest.approx(40.0)
     assert config.pid.kp == pytest.approx(1.0)
     assert config.zones[0].weight == pytest.approx(1.0)
-    assert config.weather_feedforward.base == pytest.approx(25.0)
 
 
 def test_parse_rejects_setpoint_min_not_less_than_max() -> None:
@@ -144,42 +136,35 @@ def test_critical_zone_swt_driver_symbols_absent() -> None:
     assert not hasattr(models, "ControlDecision")
 
 
-def test_auto_correct_missing_nest_uses_e2_defaults() -> None:
+@pytest.mark.parametrize(
+    "module", ["ha_smart_hvac.feedforward", "ha_smart_hvac.ff_auto_correct"]
+)
+def test_weather_feedforward_modules_absent(module: str) -> None:
+    with pytest.raises(ModuleNotFoundError):
+        importlib.import_module(module)
+
+
+def test_config_has_no_outdoor_or_feedforward_fields() -> None:
+    import ha_smart_hvac.models as models
+
     config = parse_config(_minimal_args())
-    ac = config.auto_correct
-    assert ac.outdoor_gate_delta_k == pytest.approx(12.0)
-    assert ac.r_expected_c_per_h == pytest.approx(0.25)
-    assert ac.near_setpoint_eps_k == pytest.approx(0.3)
-    assert ac.e_sat_c_per_h == pytest.approx(0.25)
+    assert not hasattr(config, "outdoor_temperature")
+    assert not hasattr(config, "weather_feedforward")
+    assert not hasattr(config, "auto_correct")
+    assert not hasattr(models, "WeatherFeedforwardConfig")
+    assert not hasattr(models, "AutoCorrectConfig")
 
 
-def test_auto_correct_nest_overrides_defaults() -> None:
+def test_legacy_outdoor_and_feedforward_keys_ignored() -> None:
+    """Stale commissioning keys parse as unknown args, not as control inputs."""
     args = _minimal_args()
-    args["weather_feedforward"]["auto_correct"] = {
-        "outdoor_gate_delta_k": 10,
-        "r_expected_c_per_h": 0.5,
-        "near_setpoint_eps_k": 0.4,
-        "e_sat_c_per_h": 0.35,
+    args["outdoor_temperature"] = "sensor.outdoor"
+    args["weather_feedforward"] = {
+        "base": 25,
+        "slope": 1.2,
+        "comfort_ref": 20,
+        "auto_correct": {"e_sat_c_per_h": 0},
     }
     config = parse_config(args)
-    ac = config.auto_correct
-    assert ac.outdoor_gate_delta_k == pytest.approx(10.0)
-    assert ac.r_expected_c_per_h == pytest.approx(0.5)
-    assert ac.near_setpoint_eps_k == pytest.approx(0.4)
-    assert ac.e_sat_c_per_h == pytest.approx(0.35)
-
-
-@pytest.mark.parametrize(
-    "key,value",
-    [
-        ("e_sat_c_per_h", 0),
-        ("e_sat_c_per_h", -0.1),
-        ("r_expected_c_per_h", 0),
-        ("r_expected_c_per_h", -0.25),
-    ],
-)
-def test_auto_correct_rejects_non_positive_rates(key: str, value: float) -> None:
-    args = _minimal_args()
-    args["weather_feedforward"]["auto_correct"] = {key: value}
-    with pytest.raises(ConfigError, match=f"{key} must be positive"):
-        parse_config(args)
+    assert not hasattr(config, "outdoor_temperature")
+    assert not hasattr(config, "weather_feedforward")
