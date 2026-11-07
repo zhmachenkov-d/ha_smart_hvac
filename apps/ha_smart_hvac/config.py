@@ -38,7 +38,15 @@ def _parse_zone(raw: Any) -> ZoneConfig:
     for entity_id in thermostats:
         if not isinstance(entity_id, str) or not entity_id:
             raise ConfigError(f"Zone {name!r}: invalid thermostat entity id")
-    weight = float(raw.get("weight", 1.0))
+    if "weight" in raw:
+        try:
+            weight = float(raw["weight"])
+        except (TypeError, ValueError) as exc:
+            raise ConfigError(f"Zone {name!r}: weight must be a number") from exc
+        if weight < 0:
+            raise ConfigError(f"Zone {name!r}: weight must be >= 0")
+    else:
+        weight = 1.0
     return ZoneConfig(
         name=name,
         temperature=temperature,
@@ -96,11 +104,15 @@ def _parse_pid(raw: Any) -> PidConfig:
     if not isinstance(raw, dict):
         raise ConfigError("pid must be a mapping")
     defaults = PidConfig()
+    integral_min = float(raw.get("integral_min", defaults.integral_min))
+    integral_max = float(raw.get("integral_max", defaults.integral_max))
+    if integral_min >= integral_max:
+        raise ConfigError("pid.integral_min must be less than integral_max")
     return PidConfig(
         kp=float(raw.get("kp", defaults.kp)),
         ki=float(raw.get("ki", defaults.ki)),
-        integral_min=float(raw.get("integral_min", defaults.integral_min)),
-        integral_max=float(raw.get("integral_max", defaults.integral_max)),
+        integral_min=integral_min,
+        integral_max=integral_max,
     )
 
 

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import math
+
 import appdaemon.plugins.hass.hassapi as hass
 
 from ha_smart_hvac.config import ConfigError, parse_config
@@ -117,16 +119,17 @@ class HvacApp(hass.Hass):
             self.log("Demand zone weights unusable; setpoint 0", level="WARNING")
             return
 
-        if advance_integral:
-            self._integral = result.integral
-
         critical = select_max_error_demand_zone(zones, None)
         if self._last_commanded is not None and result.command == self._last_commanded:
+            if advance_integral:
+                self._integral = result.integral
             self._log_demand_success(result, critical)
             return
 
         if not self._write_setpoint(result.command):
             return
+        if advance_integral:
+            self._integral = result.integral
         self._last_commanded = result.command
         self._log_demand_success(result, critical)
 
@@ -196,18 +199,20 @@ class HvacApp(hass.Hass):
         if state in (None, "unavailable", "unknown"):
             return None
         try:
-            return float(state)
+            value = float(state)
         except (TypeError, ValueError):
             return None
+        return value if math.isfinite(value) else None
 
     def _read_setpoint(self, entity_id: str) -> float | None:
         value = self.get_state(entity_id, attribute="temperature")
         if value in (None, "unavailable", "unknown"):
             return None
         try:
-            return float(value)
+            parsed = float(value)
         except (TypeError, ValueError):
             return None
+        return parsed if math.isfinite(parsed) else None
 
     def _read_hvac_action(self, entity_id: str) -> str | None:
         value = self.get_state(entity_id, attribute="hvac_action")

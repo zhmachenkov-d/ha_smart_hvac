@@ -202,7 +202,7 @@ def test_demand_tick_writes_pid_command_and_advances_integral() -> None:
     app.control_tick({})
 
     assert _set_value_writes(app) == [expected]
-    # e=2, dt=300 → ∫ = clamp(600, ±50) = 50
+    # e=2, dt=300 → ∫ = clamp(600, ±50) = 50 (rail; dt wiring locked below)
     assert app._integral == pytest.approx(50.0)
     assert app._last_commanded == pytest.approx(expected)
     joined = " ".join(_info_msgs(app))
@@ -212,6 +212,18 @@ def test_demand_tick_writes_pid_command_and_advances_integral() -> None:
     assert "critical_zone=zone_one" in joined
     assert "u_ff=" not in joined
     assert "outdoor=" not in joined
+
+
+def test_demand_tick_integral_uses_control_interval_as_dt() -> None:
+    """In-range e·dt must equal control_interval (not legacy 60)."""
+    app = _tick_app(zone_temp=21.9, setpoint=22.0, plant_setpoint=45.0)
+    expected = _expected_command(zone_temp=21.9, setpoint=22.0)
+
+    app.control_tick({})
+
+    assert _set_value_writes(app) == [expected]
+    # e=0.1, dt=300 → ∫ = 30 (inside ±50); dt=60 would yield 6
+    assert app._integral == pytest.approx(0.1 * _CONTROL_INTERVAL)
 
 
 def test_demand_event_writes_without_advancing_integral() -> None:
@@ -393,6 +405,61 @@ def test_partial_zone_skip_uses_successful_snapshots_only() -> None:
     assert any("Zone zone_two: temperature unavailable" in m for m in _warn_msgs(app))
 
 
+def test_partial_zone_skip_unavailable_thermostat_setpoint() -> None:
+    zone_two_temp = "sensor.zone_two_temp"
+    climate_two = "climate.zone_two"
+    args = _tick_args()
+    args["zones"] = [
+        {
+            "name": "zone_one",
+            "temperature": _ZONE_TEMP,
+            "thermostats": [_CLIMATE],
+        },
+        {
+            "name": "zone_two",
+            "temperature": zone_two_temp,
+            "thermostats": [climate_two],
+        },
+    ]
+    app = object.__new__(HvacApp)
+    app._config = parse_config(args)
+    app._integral = 0.0
+    app._last_commanded = None
+    app.call_service = MagicMock()
+    app.log = MagicMock()
+
+    def get_state(entity_id: str, attribute: str | None = None):
+        if entity_id == _PLANT_MGMT:
+            return "on"
+        if entity_id == _ZONE_TEMP:
+            return 20.0
+        if entity_id == zone_two_temp:
+            return 19.0
+        if entity_id == _PLANT_SETPOINT:
+            return 45.0
+        if entity_id == _CLIMATE:
+            if attribute == "temperature":
+                return 22.0
+            if attribute == "hvac_action":
+                return "heating"
+            return "heat"
+        if entity_id == climate_two:
+            if attribute == "temperature":
+                return "unavailable"
+            if attribute == "hvac_action":
+                return "heating"
+            return "heat"
+        return None
+
+    app.get_state = MagicMock(side_effect=get_state)
+    expected = _expected_command(zone_temp=20.0, setpoint=22.0)
+
+    app.control_tick({})
+
+    assert _set_value_writes(app) == [expected]
+    assert any("thermostat unavailable" in m for m in _warn_msgs(app))
+
+
 def test_outdoor_missing_still_runs_demand() -> None:
     app = _tick_app(
         zone_temp=20.0,
@@ -421,6 +488,9 @@ def test_equal_rounded_skip_no_set_value() -> None:
     assert _set_value_writes(app) == []
     app.call_service.assert_not_called()
     assert any("command=" in m for m in _info_msgs(app))
+    # equal skip still advances ∫ on tick (command treated as applied)
+    assert app._integral == pytest.approx(50.0)
+    assert app._last_commanded == pytest.approx(expected)
 
 
 def test_plant_on_idle_writes_zero_and_clears() -> None:
@@ -490,6 +560,9 @@ def test_demand_fail_write_aborts_without_success_info() -> None:
     assert _set_value_writes(app) == []
     assert not any("command=" in m for m in _info_msgs(app))
     assert any("Plant setpoint unavailable" in m for m in _warn_msgs(app))
+    # decision A: ∫ advances only after successful write
+    assert app._integral == pytest.approx(0.0)
+    assert app._last_commanded is None
 
 
 def test_zero_weight_sum_goes_idle() -> None:
@@ -577,7 +650,7 @@ def test_write_setpoint_calls_set_value_when_entity_float_differs():
 
 @pytest.mark.parametrize(
     "raw_state",
-    [None, "unavailable", "unknown", "not-a-float", object()],
+    [None, "unavailable", "unknown", "not-a-float", object(), "nan", float("nan")],
 )
 def test_write_setpoint_fail_closed_when_entity_unreadable(raw_state):
     app = _write_stub(raw_state)
@@ -586,3 +659,15 @@ def test_write_setpoint_fail_closed_when_entity_unreadable(raw_state):
 
     assert ok is False
     app.call_service.assert_not_called()
+
+
+def test_non_finite_zone_temp_skips_zone_like_unavailable() -> None:
+    app = _tick_app(zone_temp=float("nan"), plant_setpoint=45.0)
+    app._integral = 5.0
+    app._last_commanded = 41.0
+
+    app.control_tick({})
+
+    assert _set_value_writes(app) == [0.0]
+    assert app._integral == 0.0
+    assert app._last_commanded is None

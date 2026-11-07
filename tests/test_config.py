@@ -108,6 +108,27 @@ def test_parse_rejects_setpoint_min_not_less_than_max() -> None:
         parse_config(args)
 
 
+def test_parse_rejects_integral_min_not_less_than_max() -> None:
+    args = _minimal_args()
+    args["pid"] = {"integral_min": 10, "integral_max": -10}
+    with pytest.raises(ConfigError, match="integral_min must be less than"):
+        parse_config(args)
+
+
+def test_parse_rejects_negative_zone_weight() -> None:
+    args = _minimal_args()
+    args["zones"][0]["weight"] = -1
+    with pytest.raises(ConfigError, match="weight must be >= 0"):
+        parse_config(args)
+
+
+def test_parse_rejects_non_numeric_zone_weight() -> None:
+    args = _minimal_args()
+    args["zones"][0]["weight"] = None
+    with pytest.raises(ConfigError, match="weight must be a number"):
+        parse_config(args)
+
+
 @pytest.mark.parametrize("module", ["ha_smart_hvac.ladrc", "ha_smart_hvac.ladrc_tuner"])
 def test_ladrc_modules_absent(module: str) -> None:
     with pytest.raises(ModuleNotFoundError):

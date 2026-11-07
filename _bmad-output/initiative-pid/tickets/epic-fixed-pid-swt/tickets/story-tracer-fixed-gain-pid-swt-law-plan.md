@@ -144,3 +144,30 @@ context: []
 **Commands:**
 - `uv run pytest` -- expected: all tests green
 - `uv run ruff check apps tests` -- expected: clean
+
+## Code Review
+
+### 2026-11-07
+**Code review complete.** 0 `decision-needed`, 8 `patch`, 1 `defer`, 10 rejected. (F1+F5 resolved → A → patch)
+
+- [x] [Review][Patch] Demand-path integral advances only after successful write (decision A) [apps/ha_smart_hvac/hvac_app.py:120] — equal-rounded skip still advances ∫
+- [x] [Review][Patch] Demand write-fail test pins ∫ unchanged and `_last_commanded is None` (decision A) [tests/test_hvac_app.py:481]
+- [x] [Review][Patch] Non-finite zone readings can permanently NaN-poison PI state [apps/ha_smart_hvac/hvac_app.py:194]
+- [x] [Review][Patch] Zone weight and PID integral bounds lack commission guards [apps/ha_smart_hvac/config.py:41]
+- [x] [Review][Patch] Equal-rounded skip test does not assert tick integral advance [tests/test_hvac_app.py:410]
+- [x] [Review][Patch] Happy-path tick ∫ assert is clamp-rail and misses control_interval→dt [tests/test_hvac_app.py:198]
+- [x] [Review][Patch] select_max_error_demand_zone still documented as CAP-7 FF selector [apps/ha_smart_hvac/coordinator.py:19]
+- [x] [Review][Patch] App-level partial-zone coverage omits thermostat-skip trigger [tests/test_hvac_app.py:341]
+- [x] [Review][Defer] Plan Tasks checkboxes still open despite status built [story-tracer-fixed-gain-pid-swt-law-plan.md] — deferred: fix edits the plan/ticket artifact, not runtime code
+
+#### Rejected
+- R1 false — 0.0 is the correct cleared integral; AC “to None” over-applies the last-commanded arrow.
+- R4 low — rarely visible; fix is plan-log edit with no runtime effect.
+- R5 low — fix would edit plan intent/AC section.
+- R7 false — name is the zone id in this model.
+- R9 false — no reachable FfAutoCorrector call path remains to lock.
+- R11 low — cosmetic docstring; rename adds little vs entry-3 CAP cleanup.
+- R12 low — memlog/helper noise; cleaning adds churn without fixing SWT.
+- R15 false — intentional two-layer skip per plan.
+- R22 false — name fulfills Floor identity.
+- R23 false — descriptive Rs vs Verify surface split; implementation matches interim Verify.
