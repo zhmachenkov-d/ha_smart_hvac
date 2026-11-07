@@ -1,4 +1,4 @@
-"""Offline tests for the HACS release train — config, workflow shape, matrix rows."""
+"""Offline tests for the release train — config, workflow shape, matrix rows."""
 
 from __future__ import annotations
 

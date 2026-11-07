@@ -1,5 +1,5 @@
 # Copy to apps/apps.yaml (Exclusive Session) or beside ha_smart_hvac/ under AppDaemon
-# app_dir (HACS/Production). Replace YOUR_* placeholders with house entity IDs.
+# app_dir (Production). Replace YOUR_* placeholders with house entity IDs.
 # apps/apps.yaml is gitignored — do not commit live entity IDs.
 hvac:
   module: ha_smart_hvac
