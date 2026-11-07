@@ -78,3 +78,29 @@ Oneshot (~40–90 LOC): flip `control_event` demand branch to return after prelu
 **Commands:**
 - `uv run pytest` -- expected: all tests green
 - `uv run ruff check apps tests` -- expected: clean
+
+## Code Review
+
+### 2026-11-07
+
+**Code review complete.** 0 `decision-needed`, 3 `patch`, 1 `defer`, 15 rejected. (Edge Case Hunter returned no findings.)
+
+- [x] [Review][Patch] 1.2 deferred-work entry misfiled under the 1.1 heading and off-format [_bmad-output/initiative-pid/deferred-work.md:5]
+- [x] [Review][Patch] Event idle write-fail test lacks the "Plant setpoint unavailable" warning assertion its tick twin has [tests/test_hvac_app.py:609]
+- [x] [Review][Patch] `test_event_path_does_not_advance_integral` names an event path that no longer calls `evaluate_demand` [tests/test_pid.py:112]
+- [x] [Review][Defer] AGENTS.md / ADR 0004 / CONTEXT.md still describe CAP-8 event demand writes of `clamp(u_ff)` and Outdoor as a listener [AGENTS.md] — deferred: pre-existing since 1.1; agent-context/ADR edits owned by epic 2 (R4 docs)
+
+**Rejected**
+- No ticket pointer in deferred entry — false: "epic 2" is `epic-pid-domain-docs` in initiative `tickets.toml`.
+- Empty Plan Change Log — false: no post-approval plan changes occurred.
+- Triage headline understates mediums — false: 2 patched + 1 deferred group matches the table.
+- `review_loop_iteration: 0` — maybe-false, at most low.
+- High risk with quick review — false: `review: quick` is pinned.
+- Outdoor-not-listened not locked — false: `test_initialize_outdoor_not_among_listeners` covers it.
+- Event under weight-unusable demand not locked — low: event demand branch is structurally a no-op, already locked by `test_demand_event_no_write_no_integral_change`.
+- No explicit return/comment in `control_event` — false: docstring states demand is tick-owned.
+- `control_tick` lacks docstring — low, pre-existing, cosmetic.
+- 1.1 plan interim contract not marked superseded — false: 1.1 plan is that story's historical record.
+- Verification lists only pytest/ruff — false: behavior is locked by tests.
+- `control_interval` default 300 not in diff — false: shipped in 1.1 (`config.py:136`).
+- Listener set preserved, not re-exercised — false: existing tests cover it.

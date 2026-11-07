@@ -621,6 +621,7 @@ def test_event_idle_write_fail_still_clears() -> None:
     assert _set_value_writes(app) == []
     assert app._integral == 0.0
     assert app._last_commanded is None
+    assert any("Plant setpoint unavailable" in m for m in _warn_msgs(app))
 
 
 def test_event_no_valid_zones_writes_zero_and_clears() -> None:

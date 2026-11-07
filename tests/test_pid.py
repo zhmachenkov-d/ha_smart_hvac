@@ -109,7 +109,7 @@ def test_unsaturated_tick_advances_integral_then_clamps() -> None:
     assert result.integral == pytest.approx(50.0)
 
 
-def test_event_path_does_not_advance_integral() -> None:
+def test_no_advance_keeps_integral() -> None:
     zones = [_zone("a", 20.0, [22.0])]
     result = _eval(zones, integral=5.0, advance=False, dt=300.0)
     assert result is not None
