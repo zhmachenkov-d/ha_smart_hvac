@@ -70,3 +70,4 @@ Owns the AppDaemon `ha_smart_hvac` SWT runtime path and yaml commission for base
 - Decision: Drop Outdoor Temperature from control listeners; keep Plant Management, zone air, thermostat `hvac_action` / setpoint (2026-11-07).
 - Decision: Parser default `control_interval` when omitted is 300s, matching example yaml (2026-11-07).
 - Decision: Anti-windup beyond yaml integral clamps, and module layout (e.g. new `pid.py`), left to stories (2026-11-07).
+- Decision: Tracer bullet is entry 1 (fixed-gain PID SWT law); least-certain next is entry 2 (tick-owned advance / event clear-only); then remove Outdoor/FF/CAP-7 (3); refactor sweep (4). No live Exclusive Session HITL, no opening refactor, Critical Zone folded into tracer; verify via automated tests (2026-11-07).

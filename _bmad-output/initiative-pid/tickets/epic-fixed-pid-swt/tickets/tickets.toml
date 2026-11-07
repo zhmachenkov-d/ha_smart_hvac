@@ -1,0 +1,46 @@
+# Epic 1 breakdown — leaf build order. `id` is stable; table order is build order.
+
+[[entry]]
+id = 1
+type = "story"
+title = "Tracer: fixed-gain PID SWT law"
+description = "Replaces the demand water-path command with round-to-0.1(clamp(base_water_temp + u_pid)) using weighted demand-zone averages (e = Tset_w − Tair_w, Kd = 0), yaml base/gains/weights and control_interval default 300, Plant Management / Heating Demand gates (idle 0+clear; plant-off no write+clear), equal-rounded skip via last commanded SWT, and Critical Zone logged for diagnostics only."
+verify = "Automated tests show demand→round(clamp(base+u_pid)) with weighted averages; idle→write 0 and clear integral/last command; plant-off→no write+clear; equal rounded SWT skips the plant call; Critical Zone selection does not change the SWT command; example yaml commissions base/PID/weights/interval 300 without driving SWT from max Zone Error."
+covers = ["R1", "R2", "R3", "R7", "R8", "R9"]
+after = []
+hitl = false
+risk = "high"
+notes = ["Interim: feedforward/ff_auto_correct modules and outdoor entity may remain until entries 2–3; this entry does not claim R4/R5/R6."]
+
+[[entry]]
+id = 2
+type = "story"
+title = "Tick-owned PID advance and event clear-only"
+description = "On the PID path from entry 1: makes control_interval the only schedule that advances PID state and writes demand SWT; event listeners clear on idle/plant-off/fail without demand write or PID advance; drops Outdoor Temperature from control listeners while keeping Plant Management, zone air, and thermostat hvac_action/setpoint."
+verify = "Tests show a demand-path plant write and integral advance only from the periodic tick; an event under demand does not write a new SWT or change the integral; Outdoor is not registered as a listener; plant-off/idle/fail events still clear ephemeral state."
+covers = ["R5", "R6"]
+after = [1]
+hitl = false
+risk = "high"
+
+[[entry]]
+id = 3
+type = "story"
+title = "Remove Outdoor, Weather Feedforward, and CAP-7 from the App"
+description = "After entry 2 dropped Outdoor from listeners: deletes Outdoor Temperature, Weather Feedforward, CAP-7 rise-rate auto-correct, and ff_auto_correct_state.json from the App package, config models, example commissioning yaml, and related tests so they are not dormant on the water path."
+verify = "Package and apps.yaml.example have no outdoor_temperature / weather_feedforward / CAP-7 / ff_auto_correct_state wiring; tests asserting those paths are gone or rewritten as absence checks; pytest still green."
+covers = ["R4"]
+after = [2]
+hitl = false
+risk = "medium"
+
+[[entry]]
+id = 4
+type = "story"
+title = "Refactor sweep"
+description = "Cleans deferred review findings and orphans left by the fixed-PID SWT change; no new scope."
+verify = "uv run pytest and uv run ruff clean; no unused FF/CAP-7 leftovers called out in this epic's deferred notes."
+covers = []
+after = [3]
+hitl = false
+risk = "low"
