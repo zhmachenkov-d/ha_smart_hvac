@@ -8,7 +8,7 @@ Session: unavailable · Timestamp: 2026-10-16T15:30:00+03:00
 
 - Action: Identified target PR #22 (fix/1-1-continuous-form-eso → main); read PR body and story plan Intent
 - Result: Target is continuous-form ESO replacement in LadrcState.advance; CAP-5 tracer; not epic Success claim
-- Evidence: PR #22; _bmad-output/initiative-fix-ladrc-blow-up/epic-fix-ladrc-blow-up/story-continuous-form-eso-in-ladrcstate-plan.md Intent
+- Evidence: PR #22; _bmad-output/initiative-fix-ladrc-blow-up/tickets/epic-fix-ladrc-blow-up/tickets/story-continuous-form-eso-in-ladrcstate-plan.md Intent
 - Open: Await user confirmation of target intent before drafting full narrative blocks
 
 ## 2 — orientation — user confirmed

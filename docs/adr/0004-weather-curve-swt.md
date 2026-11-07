@@ -4,7 +4,7 @@ status: accepted
 
 # Weather-curve-only Set Water Temperature
 
-The HVAC App commands Set Water Temperature from Weather Feedforward alone under Plant Management and Heating Demand gates. This supersedes ADR 0002 (LADRC on Critical Zone air) and ADR 0003 (online ωc auto-tune on water). The full CAP-7 rise-rate auto-correct contract lives in `_bmad-output/initiative-weather-curve-zone-actuators/epic-weather-curve-swt-only/spike-ff-rise-rate-auto-correct-rule-decision.md` — cite that for Signal/Law/Guards edge tables; do not treat this ADR as a dump of those tables.
+The HVAC App commands Set Water Temperature from Weather Feedforward alone under Plant Management and Heating Demand gates. This supersedes ADR 0002 (LADRC on Critical Zone air) and ADR 0003 (online ωc auto-tune on water). The full CAP-7 rise-rate auto-correct contract lives in `_bmad-output/initiative-weather-curve-zone-actuators/tickets/epic-weather-curve-swt-only/tickets/spike-ff-rise-rate-auto-correct-rule-decision.md` — cite that for Signal/Law/Guards edge tables; do not treat this ADR as a dump of those tables.
 
 ## SWT gates
 
