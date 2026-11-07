@@ -80,7 +80,7 @@ class HvacApp(hass.Hass):
         zones = self._gate_prelude()
         if zones is None:
             return
-        self._run_demand(zones, advance_integral=True)
+        self._run_demand(zones)
 
     def control_event(
         self,
@@ -90,14 +90,11 @@ class HvacApp(hass.Hass):
         new: object,
         kwargs: dict,
     ) -> None:
-        """Event entry: shared prelude; demand may write PID command (∫ unchanged)."""
+        """Event entry: shared prelude clears; demand is tick-owned (no write / ∫)."""
         # listen_state args ignored — re-read current Hass state in prelude.
-        zones = self._gate_prelude()
-        if zones is None:
-            return
-        self._run_demand(zones, advance_integral=False)
+        self._gate_prelude()
 
-    def _run_demand(self, zones: list[ZoneSnapshot], *, advance_integral: bool) -> None:
+    def _run_demand(self, zones: list[ZoneSnapshot]) -> None:
         config = self._config
         pid = config.pid
         result = evaluate_demand(
@@ -111,7 +108,7 @@ class HvacApp(hass.Hass):
             integral_min=pid.integral_min,
             integral_max=pid.integral_max,
             dt=float(config.control_interval),
-            advance_integral=advance_integral,
+            advance_integral=True,
         )
         if result is None:
             self._write_setpoint(0.0)
@@ -121,15 +118,13 @@ class HvacApp(hass.Hass):
 
         critical = select_max_error_demand_zone(zones, None)
         if self._last_commanded is not None and result.command == self._last_commanded:
-            if advance_integral:
-                self._integral = result.integral
+            self._integral = result.integral
             self._log_demand_success(result, critical)
             return
 
         if not self._write_setpoint(result.command):
             return
-        if advance_integral:
-            self._integral = result.integral
+        self._integral = result.integral
         self._last_commanded = result.command
         self._log_demand_success(result, critical)
 

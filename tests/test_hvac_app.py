@@ -226,37 +226,31 @@ def test_demand_tick_integral_uses_control_interval_as_dt() -> None:
     assert app._integral == pytest.approx(0.1 * _CONTROL_INTERVAL)
 
 
-def test_demand_event_writes_without_advancing_integral() -> None:
+def test_demand_event_no_write_no_integral_change() -> None:
     app = _tick_app(zone_temp=20.0, setpoint=22.0, plant_setpoint=45.0)
-    expected = _expected_command(zone_temp=20.0, setpoint=22.0)
 
     _fire_control_event(app)
 
-    assert _set_value_writes(app) == [expected]
+    assert _set_value_writes(app) == []
     assert app._integral == pytest.approx(0.0)
+    assert app._last_commanded is None
 
 
-def test_tick_then_event_integral_only_on_tick() -> None:
+def test_tick_then_demand_event_leaves_integral_and_last() -> None:
     app = _tick_app(zone_temp=20.0, setpoint=22.0, plant_setpoint=45.0)
 
     app.control_tick({})
     integral_after_tick = app._integral
+    last_after_tick = app._last_commanded
     assert integral_after_tick == pytest.approx(50.0)
+    assert last_after_tick is not None
 
     app.call_service.reset_mock()
-    # plant entity now equals last command so layer-2 may skip; integral must stay
-    app._last_commanded = None
-    original = app.get_state.side_effect
-
-    def get_state(entity_id: str, attribute: str | None = None):
-        if entity_id == _PLANT_SETPOINT:
-            return 45.0
-        return original(entity_id, attribute)
-
-    app.get_state = MagicMock(side_effect=get_state)
     _fire_control_event(app)
 
+    assert _set_value_writes(app) == []
     assert app._integral == pytest.approx(integral_after_tick)
+    assert app._last_commanded == last_after_tick
 
 
 def test_saturation_freeze_on_tick() -> None:
@@ -604,6 +598,36 @@ def test_event_idle_writes_zero_clears() -> None:
     app = _tick_app(zone_temp=22.0, setpoint=22.0, hvac_action="idle")
     app._integral = 5.0
     app._last_commanded = 42.0
+
+    _fire_control_event(app)
+
+    assert _set_value_writes(app) == [0.0]
+    assert app._integral == 0.0
+    assert app._last_commanded is None
+
+
+def test_event_idle_write_fail_still_clears() -> None:
+    app = _tick_app(
+        zone_temp=22.0,
+        setpoint=22.0,
+        hvac_action="idle",
+        plant_setpoint="unavailable",
+    )
+    app._integral = 5.0
+    app._last_commanded = 42.0
+
+    _fire_control_event(app)
+
+    assert _set_value_writes(app) == []
+    assert app._integral == 0.0
+    assert app._last_commanded is None
+    assert any("Plant setpoint unavailable" in m for m in _warn_msgs(app))
+
+
+def test_event_no_valid_zones_writes_zero_and_clears() -> None:
+    app = _tick_app(zone_temp="unavailable")
+    app._integral = 5.0
+    app._last_commanded = 41.0
 
     _fire_control_event(app)
 
