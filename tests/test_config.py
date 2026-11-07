@@ -1,4 +1,4 @@
-"""Config parse smoke: weather-curve args without ladrc/tune keys."""
+"""Config parse smoke: PID commission args; weather_feedforward kept until entry 3."""
 
 from __future__ import annotations
 
@@ -48,8 +48,40 @@ def test_parse_config_without_ladrc_or_tune_keys() -> None:
     assert config.zones[0].name == "living_room"
 
 
+def test_parse_omitted_pid_defaults() -> None:
+    config = parse_config(_minimal_args())
+    assert config.control_interval == 300
+    assert config.base_water_temp == pytest.approx(40.0)
+    assert config.pid.kp == pytest.approx(1.0)
+    assert config.pid.ki == pytest.approx(0.1)
+    assert config.pid.integral_min == pytest.approx(-50.0)
+    assert config.pid.integral_max == pytest.approx(50.0)
+    assert config.zones[0].weight == pytest.approx(1.0)
+
+
+def test_parse_pid_and_weight_overrides() -> None:
+    args = _minimal_args()
+    args["control_interval"] = 120
+    args["base_water_temp"] = 42
+    args["pid"] = {
+        "kp": 2.0,
+        "ki": 0.2,
+        "integral_min": -10,
+        "integral_max": 10,
+    }
+    args["zones"][0]["weight"] = 3.0
+    config = parse_config(args)
+    assert config.control_interval == 120
+    assert config.base_water_temp == pytest.approx(42.0)
+    assert config.pid.kp == pytest.approx(2.0)
+    assert config.pid.ki == pytest.approx(0.2)
+    assert config.pid.integral_min == pytest.approx(-10.0)
+    assert config.pid.integral_max == pytest.approx(10.0)
+    assert config.zones[0].weight == pytest.approx(3.0)
+
+
 def test_parse_apps_yaml_example() -> None:
-    """Real example file parses with no ladrc/tune fields."""
+    """Real example file parses with PID commission defaults."""
     raw = yaml.safe_load((ROOT / "apps.yaml.example").read_text())
     assert isinstance(raw, dict) and "hvac" in raw
     args = dict(raw["hvac"])
@@ -61,6 +93,10 @@ def test_parse_apps_yaml_example() -> None:
     assert not hasattr(config, "ladrc")
     assert not hasattr(config, "tune_state_path")
     assert config.setpoint_min == 40.0
+    assert config.control_interval == 300
+    assert config.base_water_temp == pytest.approx(40.0)
+    assert config.pid.kp == pytest.approx(1.0)
+    assert config.zones[0].weight == pytest.approx(1.0)
     assert config.weather_feedforward.base == pytest.approx(25.0)
 
 

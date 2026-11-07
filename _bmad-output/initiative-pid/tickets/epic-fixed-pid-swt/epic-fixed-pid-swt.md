@@ -38,7 +38,7 @@ The house holds zone comfort on a 300s control tick via `clamp(base + fixed u_pi
 1. **C1 (parent C1):** SWT clamp uses existing `setpoint_min` / `setpoint_max` only.
 2. **C2 (parent C2):** Implementation stays inside the AppDaemon `ha_smart_hvac` App writing the existing HA plant entity — no direct OpenTherm daemon or numpy process from the example.
 3. **C3 (parent C3):** Fixed PID ships before RLS; they are not one mixed delivery (RLS is epic 3).
-4. **C4 (parent C4):** Derivative gain stays 0 for this thermal plant; zone weights are yaml-commissioned, not invented at runtime outside config. Default commission gains: `kp=1.0`, `ki=0.1`, `integral_min=-50`, `integral_max=50`; anti-windup is those integral clamps only unless a later Decision adds SWT-saturation freeze.
+4. **C4 (parent C4):** Derivative gain stays 0 for this thermal plant; zone weights are yaml-commissioned, not invented at runtime outside config. Default commission gains: `kp=1.0`, `ki=0.1`, `integral_min=-50`, `integral_max=50` (starting defaults, not house-proven). Anti-windup: those integral clamps **plus** SWT-saturation freeze on tick when `raw = base + u_pid` is outside `[setpoint_min, setpoint_max]` and `e` has the same sign (Decision 2026-11-07).
 
 ## Done when
 
@@ -69,5 +69,5 @@ Owns the AppDaemon `ha_smart_hvac` SWT runtime path and yaml commission for base
 - Decision: Clear inventory — ephemeral integral + last commanded SWT; no persisted PID/FF JSON in this epic (2026-11-07).
 - Decision: Drop Outdoor Temperature from control listeners; keep Plant Management, zone air, thermostat `hvac_action` / setpoint (2026-11-07).
 - Decision: Parser default `control_interval` when omitted is 300s, matching example yaml (2026-11-07).
-- Decision: Anti-windup beyond yaml integral clamps, and module layout (e.g. new `pid.py`), left to stories (2026-11-07).
-- Decision: Tracer bullet is entry 1 (fixed-gain PID SWT law); least-certain next is entry 2 (tick-owned advance / event clear-only); then remove Outdoor/FF/CAP-7 (3); refactor sweep (4). No live Exclusive Session HITL, no opening refactor, Critical Zone folded into tracer; verify via automated tests (2026-11-07).
+- Decision: Module layout (e.g. new `pid.py`) left to stories; anti-windup = integral clamps + SWT saturation freeze (same-sign e) locked in entry 1 (2026-11-07).
+- Decision: Tracer bullet is entry 1 (fixed-gain PID SWT law; Outdoor listener dropped here; interim demand event writes with tick-only integral; sat. freeze; A1 partial-zone skip; D1 demand INFO Floor); least-certain next is entry 2 (tick-owned demand write / event clear-only); then remove Outdoor/FF/CAP-7 (3); refactor sweep (4). No live Exclusive Session HITL as epic-1 AC (operator note before epic 2); no opening refactor, Critical Zone folded into tracer; verify via automated tests (2026-11-07).
