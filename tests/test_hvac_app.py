@@ -446,6 +446,19 @@ def test_partial_zone_skip_unavailable_thermostat_setpoint() -> None:
     assert any("thermostat unavailable" in m for m in _warn_msgs(app))
 
 
+def test_stale_outdoor_key_unavailable_still_runs_demand() -> None:
+    app = _tick_app(zone_temp=20.0, setpoint=22.0, plant_setpoint=45.0)
+    args = _tick_args()
+    args["outdoor_temperature"] = _OUTDOOR
+    app._config = parse_config(args)
+    expected = _expected_command(zone_temp=20.0, setpoint=22.0)
+
+    app.control_tick({})
+
+    assert _set_value_writes(app) == [expected]
+    assert all(c.args[0] != _OUTDOOR for c in app.get_state.call_args_list)
+
+
 def test_equal_rounded_skip_no_set_value() -> None:
     expected = _expected_command(zone_temp=20.0, setpoint=22.0)
     app = _tick_app(

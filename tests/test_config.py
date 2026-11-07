@@ -168,3 +168,4 @@ def test_legacy_outdoor_and_feedforward_keys_ignored() -> None:
     config = parse_config(args)
     assert not hasattr(config, "outdoor_temperature")
     assert not hasattr(config, "weather_feedforward")
+    assert config == parse_config(_minimal_args())

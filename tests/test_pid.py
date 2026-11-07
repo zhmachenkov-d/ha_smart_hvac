@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from ha_smart_hvac.models import ThermostatReading, ZoneSnapshot
-from ha_smart_hvac.pid import evaluate_demand, weighted_error
+from ha_smart_hvac.pid import clamp, evaluate_demand, weighted_error
 
 
 def _zone(
@@ -53,6 +53,14 @@ def _eval(
         dt=dt,
         advance_integral=advance,
     )
+
+
+@pytest.mark.parametrize(
+    "value,expected",
+    [(39.9, 40.0), (40.0, 40.0), (47.5, 47.5), (55.0, 55.0), (55.1, 55.0)],
+)
+def test_clamp_bounds(value: float, expected: float) -> None:
+    assert clamp(value, 40.0, 55.0) == expected
 
 
 def test_weighted_error_single_demand_zone() -> None:

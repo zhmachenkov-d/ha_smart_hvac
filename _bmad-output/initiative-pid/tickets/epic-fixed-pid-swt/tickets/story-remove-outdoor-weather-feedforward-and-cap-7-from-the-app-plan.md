@@ -56,3 +56,24 @@ Done:
 - `uv run pytest` -- expected: all tests green
 - `uv run ruff check apps tests` -- expected: clean
 - `rg -in "outdoor|weather_feedforward|feedforward|auto_correct|ff_auto|cap-?7|u_ff" apps/ha_smart_hvac apps.yaml.example` -- expected: no matches
+
+## Code Review
+
+### 2026-11-07
+
+**Code review complete.** 3 `decision-needed`, 4 `patch`, 0 `defer`, 5 rejected.
+
+- [x] [Review][Decision] Docs still describe removed outdoor/FF/CAP-7; README and house-calibration have no owning ticket — README.md:14,26 and docs/house-calibration.md (wire `outdoor_temperature`, commission FF, manage `ff_auto_correct_state.json`) are wrong after 1.3; epic 2's description names only ADR/CONTEXT/AGENTS. Options: (1) add README.md and docs/house-calibration.md to epic 2's description in tickets.toml; (2) update both docs in 1.3 now. Recommended: 1 — matches the frozen intent (docs out of scope) and gives the operator docs an owner. **Resolved: option 2 → patched** (README.md, docs/house-calibration.md rewritten for PID).
+- [x] [Review][Decision] No operator signal for legacy keys and orphaned `ff_auto_correct_state.json` — stale `outdoor_temperature` / `weather_feedforward` in a live apps.yaml are silently ignored; the JSON has no reader. Options: (1) cover in the docs update (keys ignored, JSON safe to delete); (2) log one WARNING in initialize when legacy keys are present; (3) accept as is. Recommended: 1 — no new code. **Resolved: option 1 → patched** (house-calibration "Upgrading from Weather Feedforward").
+- [x] [Review][Defer] `select_max_error_demand_zone` keeps dead CAP-7 sticky tie-break — only caller (hvac_app.py:119) passes `None`; `previous_name` branch came from CAP-7 (03877c7). Options: (1) remove `previous_name` and adjust 3 sticky tests; (2) keep and leave to 1.4 refactor sweep. Recommended: 2 — plan kept it deliberately; harmless; 1.4 is the refactor sweep. — deferred: user chose keep; 1.4 refactor sweep.
+- [x] [Review][Patch] deferred-work.md 1.3 entry misfiled under the 1.2 heading, YAML-ish, cites AGENTS.md line numbers [_bmad-output/initiative-pid/deferred-work.md:9]
+- [x] [Review][Patch] "outdoor unavailable still demands" (1.1 verify) lost its test — rewrite as stale outdoor key + unavailable outdoor entity, tick still writes [tests/test_hvac_app.py]
+- [x] [Review][Patch] Legacy-keys test does not prove keys have no effect — assert equality with `parse_config(_minimal_args())` [tests/test_config.py:157]
+- [x] [Review][Patch] `clamp` has no direct unit test [apps/ha_smart_hvac/pid.py:11]
+
+**Rejected**
+- false — ADR 0004 trigger-list rule: Outdoor is not a Heating Demand input and its listener was dropped in 1.1; ADR staleness already deferred.
+- false — absence tests "pass for wrong reason": test_config.py imports the package at top, so ModuleNotFoundError can only come from the target module.
+- false — plan metadata: `ticket: '3'` matches tickets.toml ids; rg `ff_auto` already matches `ff_auto_correct_state`.
+- false — listener test weak: exact equality on entity and attribute listener sets already excludes `_OUTDOOR`.
+- low — CAP-7 / ff_auto_correct_state absence only in rg gate: a pytest string-grep would duplicate the plan's rg check.
