@@ -55,11 +55,12 @@ The house holds zone comfort via `clamp(base_water_temp + u_pid)` on a 300s cont
 
 ## Boundaries
 
-Capability boundary: AppDaemon `ha_smart_hvac` Set Water Temperature path, zone weighting for PID averages, docs/ADR language. Not zone TRV percent, not MADRC/LADRC return, not direct OT hardware stacks, not RLS in the first closed-loop ship. Tracer path: epic fixed PID + FF removal → epic docs/ADR/CONTEXT → epic RLS retune.
+Capability boundary: AppDaemon `ha_smart_hvac` Set Water Temperature path, zone weighting for PID averages, docs/ADR language. Not zone TRV percent, not MADRC/LADRC return, not direct OT hardware stacks, not RLS in the first closed-loop ship. Tracer path: epic-fixed-pid-swt → epic-pid-domain-docs → epic-rls-pid-retune (sequential).
 
-- Touch point: `apps/ha_smart_hvac/` SWT path — replace FF with PID; owner: epic-fixed-pid-swt (name at slice)
-- Touch point: `apps/apps.yaml` / `apps.yaml.example` — `base_water_temp`, PID gains, zone weights, `control_interval` default 300; remove weather_feedforward nest; owner: same
-- Touch point: `docs/adr/`, `CONTEXT.md`, `AGENTS.md` — supersede ADR 0004; owner: docs epic at slice
+- Touch point: `apps/ha_smart_hvac/` SWT path — replace FF with PID; owner: epic-fixed-pid-swt
+- Touch point: `apps/apps.yaml` / `apps.yaml.example` — `base_water_temp`, PID gains, zone weights, `control_interval` default 300; remove weather_feedforward nest; owner: epic-fixed-pid-swt
+- Touch point: `docs/adr/`, `CONTEXT.md`, `AGENTS.md` — supersede ADR 0004; owner: epic-pid-domain-docs
+- Operator note: do not commission live Exclusive Session on the new PID yaml until epic-pid-domain-docs closes (CONTEXT/ADR match the App).
 - Must not change: Exclusive Session (ADR 0001); Heating Demand definition via thermostat `hvac_action`
 
 ## References
@@ -75,3 +76,6 @@ Capability boundary: AppDaemon `ha_smart_hvac` Set Water Temperature path, zone 
 - Decision: Q1 closed — default fixed PID `kp=1.0`, `ki=0.1`, `integral_min=-50`, `integral_max=50` in yaml; Kd=0 (2026-11-07).
 - Decision: Q2 closed — Critical Zone kept for diagnostics/logging only; not an SWT driver (2026-11-07).
 - Decision: D1–D14 recorded in `.memlog.md` (session with Sofia).
+- Decision: Slice approved — three epics in order: (1) fixed-PID SWT runtime / FF-kill, (2) ADR/CONTEXT/AGENTS, (3) RLS retune; no separate platform-baseline; epic 1 Done when excludes docs; R4 path owned by epic 1, R4 docs by epic 2 (2026-11-07).
+- Decision: Operator HITL/note between epic 1 and 2 — do not live-commission Exclusive Session until epic 2 closes; not an epic-1 acceptance check (2026-11-07).
+- Decision: Declined fold of docs into epic 1; sequential ship kept (party 2026-11-07).

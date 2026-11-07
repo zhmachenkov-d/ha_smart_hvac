@@ -1,0 +1,24 @@
+# Multi-zone PID SWT — epics in build order (approved 2026-11-07)
+
+[[epic]]
+id = 1
+slug = "epic-fixed-pid-swt"
+title = "Fixed-gain PID Set Water Temperature"
+description = "R4 path/commissioning only: on Heating Demand with Plant Management on, SWT is round-to-0.1(clamp(base_water_temp + fixed u_pid)) with weighted demand-zone averages; idle writes 0+clear; plant-off no write+clear; Outdoor/FF/CAP-7 and ff_auto_correct_state.json are gone from the water path; demand SWT and PID advance only on control_interval (default 300s); equal rounded SWT skips the plant call; Critical Zone is diagnostics-only. (ADR/CONTEXT/AGENTS → epic 2.)"
+covers = ["R1", "R2", "R3", "R4", "R5", "R6", "R7", "R8", "R10"]
+
+[[epic]]
+id = 2
+slug = "epic-pid-domain-docs"
+title = "PID domain language and ADR"
+description = "R4 docs only: a new ADR supersedes ADR 0004; CONTEXT and AGENTS describe clamp(base + u_pid), CAP-8-style tick/event split without weather/CAP-7, and Critical Zone as diagnostics-only — matching the shipped App."
+covers = ["R4"]
+after = [{ epic = 1, needs = "live SWT path is clamp(base + fixed u_pid) with Outdoor/FF/CAP-7 and ff JSON removed" }]
+
+[[epic]]
+id = 3
+slug = "epic-rls-pid-retune"
+title = "RLS retune of PID gains"
+description = "Kp/Ki (and agreed RLS state) adapt online from plant/zone signals without restoring Weather Feedforward or CAP-7; fixed-gain yaml remains the fallback commission."
+covers = ["R9"]
+after = [{ epic = 1, needs = "fixed PID module, yaml gains/weights, and tick-owned advance exist to retune" }]
