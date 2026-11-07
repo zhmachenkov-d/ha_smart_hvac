@@ -1,4 +1,10 @@
-"""Fixed-gain PI Set Water Temperature law (weighted demand zones)."""
+"""Fixed-gain PI Set Water Temperature law (weighted demand zones).
+
+Units: e in °C of air; ∫ in °C·h (e integrated over hours); ``kp`` in °C water
+per °C air; ``ki`` in 1/h, so the I-term ``ki·∫`` is °C of water. The I-term is
+bounded by ``i_term_min`` / ``i_term_max`` (°C water), so changing the control
+interval does not rescale the effective Ki.
+"""
 
 from __future__ import annotations
 
@@ -63,14 +69,16 @@ def evaluate_demand(
     base_water_temp: float,
     setpoint_min: float,
     setpoint_max: float,
-    integral_min: float,
-    integral_max: float,
-    dt: float,
+    i_term_min: float,
+    i_term_max: float,
+    dt_hours: float,
 ) -> PidResult | None:
     """Compute PI command and step ∫ (tick-owned; saturation freeze applies).
 
-    The command uses ``integral`` as passed in (before this step); the returned
-    ``integral`` is the stepped value. Call only from the periodic control tick:
+    The command uses ``integral`` (°C·h) as passed in (before this step); the
+    returned ``integral`` is the stepped value: ``∫ + e·dt_hours`` with the
+    I-term ``ki·∫`` clamped to ``[i_term_min, i_term_max]`` °C water. With
+    ``ki == 0`` the returned ∫ is 0. Call only from the periodic control tick:
     event paths must not call this, since every call advances ∫.
 
     Returns None when there are no demand contributions or weight sum ≤ 0
@@ -88,7 +96,11 @@ def evaluate_demand(
     saturated_high = raw > setpoint_max and e > 0
     saturated_low = raw < setpoint_min and e < 0
     if not (saturated_high or saturated_low):
-        new_integral = clamp(integral + e * dt, integral_min, integral_max)
+        candidate = integral + e * dt_hours
+        if ki == 0:
+            new_integral = 0.0
+        else:
+            new_integral = clamp(ki * candidate, i_term_min, i_term_max) / ki
 
     return PidResult(
         e=e,

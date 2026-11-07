@@ -19,3 +19,7 @@
 ## Deferred from: code review of story-refactor-sweep-plan (2026-11-07)
 
 - AGENTS.md conventions, ADR 0004, CONTEXT.md, and `knowledge/` still describe Weather Feedforward / CAP-7 / CAP-8 (demand events writing `clamp(u_ff)`, `ff_auto_correct_state.json`, `weather_feedforward.auto_correct`) while runtime is tick-only fixed PID with event clear-only; pre-existing from 1.2/1.3, agent-context/ADR edits owned by epic 2 (`epic-pid-domain-docs`).
+
+## Deferred from: party review of story-pid-integral-units-and-r7-skip-hardening-plan (2026-11-07)
+
+- House `apps/apps.yaml` sets no `base_water_temp` (default 40) while `setpoint_min` is 42: with D15 `ki 1.0/h` the I-term must climb ~(2 − kp·e) °C before the command leaves the minimum — about 3 h at e = 0.5 °C. Commission `base_water_temp ≥ setpoint_min` (or accept the lag) in entry 6 (hitl house yaml); not a code defect, out of scope for entry 5.

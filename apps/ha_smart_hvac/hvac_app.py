@@ -105,9 +105,9 @@ class HvacApp(hass.Hass):
             base_water_temp=config.base_water_temp,
             setpoint_min=config.setpoint_min,
             setpoint_max=config.setpoint_max,
-            integral_min=pid.integral_min,
-            integral_max=pid.integral_max,
-            dt=float(config.control_interval),
+            i_term_min=pid.i_term_min,
+            i_term_max=pid.i_term_max,
+            dt_hours=config.control_interval / 3600.0,
         )
         if result is None:
             self._write_setpoint(0.0)
@@ -116,11 +116,8 @@ class HvacApp(hass.Hass):
             return
 
         critical = select_max_error_demand_zone(zones)
-        if self._last_commanded is not None and result.command == self._last_commanded:
-            self._integral = result.integral
-            self._log_demand_success(result, critical)
-            return
-
+        # R7: skip the plant call only when the plant already reads the command
+        # (_write_setpoint); ∫ advances only when the plant entity is readable.
         if not self._write_setpoint(result.command):
             return
         self._integral = result.integral

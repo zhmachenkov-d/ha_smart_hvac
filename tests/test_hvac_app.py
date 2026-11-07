@@ -14,7 +14,8 @@ _SETPOINT_MAX = 55.0
 _CONTROL_INTERVAL = 300
 _BASE = 40.0
 _KP = 1.0
-_KI = 0.1
+_KI = 1.0
+_DT_HOURS = _CONTROL_INTERVAL / 3600.0
 
 _OUTDOOR = "sensor.outdoor"
 _PLANT_MGMT = "switch.pm"
@@ -35,8 +36,8 @@ def _tick_args() -> dict:
         "pid": {
             "kp": _KP,
             "ki": _KI,
-            "integral_min": -50,
-            "integral_max": 50,
+            "i_term_min": -10,
+            "i_term_max": 15,
         },
         "zones": [
             {
@@ -194,8 +195,8 @@ def test_demand_tick_writes_pid_command_and_advances_integral() -> None:
     app.control_tick({})
 
     assert _set_value_writes(app) == [expected]
-    # e=2, dt=300 → ∫ = clamp(600, ±50) = 50 (rail; dt wiring locked below)
-    assert app._integral == pytest.approx(50.0)
+    # e=2, dt_hours=300/3600 → ∫ = 1/6 °C·h
+    assert app._integral == pytest.approx(2.0 * _DT_HOURS)
     assert app._last_commanded == pytest.approx(expected)
     joined = " ".join(_info_msgs(app))
     assert "e=" in joined
@@ -206,16 +207,16 @@ def test_demand_tick_writes_pid_command_and_advances_integral() -> None:
     assert "outdoor=" not in joined
 
 
-def test_demand_tick_integral_uses_control_interval_as_dt() -> None:
-    """In-range e·dt must equal control_interval (not legacy 60)."""
+def test_demand_tick_integral_uses_control_interval_in_hours() -> None:
+    """∫ step is e·control_interval/3600 (°C·h), not e·seconds."""
     app = _tick_app(zone_temp=21.9, setpoint=22.0, plant_setpoint=45.0)
     expected = _expected_command(zone_temp=21.9, setpoint=22.0)
 
     app.control_tick({})
 
     assert _set_value_writes(app) == [expected]
-    # e=0.1, dt=300 → ∫ = 30 (inside ±50); dt=60 would yield 6
-    assert app._integral == pytest.approx(0.1 * _CONTROL_INTERVAL)
+    # e=0.1, dt_hours=300/3600 → ∫ = 0.1/12 °C·h
+    assert app._integral == pytest.approx(0.1 * _DT_HOURS)
 
 
 def test_demand_event_no_write_no_integral_change() -> None:
@@ -234,7 +235,7 @@ def test_tick_then_demand_event_leaves_integral_and_last() -> None:
     app.control_tick({})
     integral_after_tick = app._integral
     last_after_tick = app._last_commanded
-    assert integral_after_tick == pytest.approx(50.0)
+    assert integral_after_tick == pytest.approx(2.0 * _DT_HOURS)
     assert last_after_tick is not None
 
     app.call_service.reset_mock()
@@ -460,22 +461,105 @@ def test_stale_outdoor_key_unavailable_still_runs_demand() -> None:
 
 
 def test_equal_rounded_skip_no_set_value() -> None:
-    expected = _expected_command(zone_temp=20.0, setpoint=22.0)
-    app = _tick_app(
-        zone_temp=20.0,
-        setpoint=22.0,
-        plant_setpoint=45.0,
-    )
+    """Off-grid raw 41.96 rounds to 42.0; plant already reads 42.0 → no call."""
+    app = _tick_app(zone_temp=20.04, setpoint=22.0, plant_setpoint=42.0)
+    assert app._last_commanded is None
+
+    app.control_tick({})
+
+    assert _set_value_writes(app) == []
+    app.call_service.assert_not_called()
+    assert any("command=42.0" in m for m in _info_msgs(app))
+    # plant readable and at the command → ∫ advances
+    assert app._integral == pytest.approx(1.96 * _DT_HOURS)
+    assert app._last_commanded == pytest.approx(42.0)
+
+
+def test_plant_drift_rewrites_command_despite_last_commanded() -> None:
+    """R7: plant drifted to 50 after we commanded 42.0 → write 42.0 again."""
+    app = _tick_app(zone_temp=20.0, setpoint=22.0, plant_setpoint=50.0)
+    app._last_commanded = 42.0
+
+    app.control_tick({})
+
+    assert _set_value_writes(app) == [42.0]
+    assert app._integral == pytest.approx(2.0 * _DT_HOURS)
+    assert app._last_commanded == pytest.approx(42.0)
+
+
+def test_plant_unavailable_equal_last_commanded_no_integral_step() -> None:
+    """Plant unreadable: no write and ∫ held even if command == _last_commanded."""
+    app = _tick_app(zone_temp=20.0, setpoint=22.0, plant_setpoint="unavailable")
+    app._integral = 0.5
+    expected = _expected_command(zone_temp=20.0, setpoint=22.0, integral=0.5)
     app._last_commanded = expected
 
     app.control_tick({})
 
     assert _set_value_writes(app) == []
     app.call_service.assert_not_called()
-    assert any("command=" in m for m in _info_msgs(app))
-    # equal skip still advances ∫ on tick (command treated as applied)
-    assert app._integral == pytest.approx(50.0)
+    assert app._integral == pytest.approx(0.5)
     assert app._last_commanded == pytest.approx(expected)
+    assert any("Plant setpoint unavailable" in m for m in _warn_msgs(app))
+    assert not any("command=" in m for m in _info_msgs(app))
+
+
+def _echo_plant(app: HvacApp, initial: float) -> dict:
+    """Plant entity reads back whatever number/set_value last wrote."""
+    plant = {"value": initial}
+    base_get_state = app.get_state.side_effect
+
+    def get_state(entity_id: str, attribute: str | None = None):
+        if entity_id == _PLANT_SETPOINT:
+            return plant["value"]
+        return base_get_state(entity_id, attribute)
+
+    def call_service(service: str, **kwargs):
+        if service == "number/set_value" and kwargs["entity_id"] == _PLANT_SETPOINT:
+            plant["value"] = kwargs["value"]
+
+    app.get_state.side_effect = get_state
+    app.call_service.side_effect = call_service
+    return plant
+
+
+def test_integral_from_tick_one_appears_in_tick_two_command() -> None:
+    app = _tick_app(zone_temp=20.0, setpoint=22.0, plant_setpoint=45.0)
+    plant = _echo_plant(app, 45.0)
+
+    app.control_tick({})
+
+    assert _set_value_writes(app) == [42.0]
+    assert plant["value"] == 42.0
+    integral_after_one = app._integral
+    assert integral_after_one == pytest.approx(2.0 * _DT_HOURS)
+
+    app.control_tick({})
+
+    expected_two = _expected_command(
+        zone_temp=20.0, setpoint=22.0, integral=integral_after_one
+    )
+    assert expected_two == pytest.approx(42.2)
+    assert _set_value_writes(app) == [42.0, expected_two]
+    assert app._integral == pytest.approx(4.0 * _DT_HOURS)
+
+
+def test_constant_error_ramps_about_one_twelfth_per_tick() -> None:
+    """C4 defaults, e = 1 at 300 s: SWT ramps ~1/12 °C per tick, no rail jump."""
+    app = _tick_app(zone_temp=21.0, setpoint=22.0, plant_setpoint=45.0)
+    plant = _echo_plant(app, 45.0)
+
+    readings = []
+    for _ in range(12):
+        app.control_tick({})
+        readings.append(plant["value"])
+
+    assert readings[0] == pytest.approx(41.0)
+    max_step = _KI * 1.0 * _DT_HOURS + 0.1 + 1e-9
+    for prev, cur in zip(readings, readings[1:], strict=False):
+        assert 0.0 <= cur - prev <= max_step
+    assert app._integral == pytest.approx(1.0)
+    assert readings[-1] == pytest.approx(round(41.0 + 11.0 / 12.0, 1))
 
 
 def test_plant_on_idle_writes_zero_and_clears() -> None:

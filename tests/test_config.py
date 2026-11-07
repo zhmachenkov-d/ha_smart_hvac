@@ -9,6 +9,7 @@ import pytest
 import yaml
 
 from ha_smart_hvac.config import ConfigError, parse_config
+from ha_smart_hvac.models import PidConfig
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -44,9 +45,9 @@ def test_parse_omitted_pid_defaults() -> None:
     assert config.control_interval == 300
     assert config.base_water_temp == pytest.approx(40.0)
     assert config.pid.kp == pytest.approx(1.0)
-    assert config.pid.ki == pytest.approx(0.1)
-    assert config.pid.integral_min == pytest.approx(-50.0)
-    assert config.pid.integral_max == pytest.approx(50.0)
+    assert config.pid.ki == pytest.approx(1.0)
+    assert config.pid.i_term_min == pytest.approx(-10.0)
+    assert config.pid.i_term_max == pytest.approx(15.0)
     assert config.zones[0].weight == pytest.approx(1.0)
 
 
@@ -57,8 +58,8 @@ def test_parse_pid_and_weight_overrides() -> None:
     args["pid"] = {
         "kp": 2.0,
         "ki": 0.2,
-        "integral_min": -10,
-        "integral_max": 10,
+        "i_term_min": -5,
+        "i_term_max": 10,
     }
     args["zones"][0]["weight"] = 3.0
     config = parse_config(args)
@@ -66,8 +67,8 @@ def test_parse_pid_and_weight_overrides() -> None:
     assert config.base_water_temp == pytest.approx(42.0)
     assert config.pid.kp == pytest.approx(2.0)
     assert config.pid.ki == pytest.approx(0.2)
-    assert config.pid.integral_min == pytest.approx(-10.0)
-    assert config.pid.integral_max == pytest.approx(10.0)
+    assert config.pid.i_term_min == pytest.approx(-5.0)
+    assert config.pid.i_term_max == pytest.approx(10.0)
     assert config.zones[0].weight == pytest.approx(3.0)
 
 
@@ -88,7 +89,7 @@ def test_parse_apps_yaml_example() -> None:
     assert config.setpoint_min == 40.0
     assert config.control_interval == 300
     assert config.base_water_temp == pytest.approx(40.0)
-    assert config.pid.kp == pytest.approx(1.0)
+    assert config.pid == PidConfig(kp=1.0, ki=1.0, i_term_min=-10.0, i_term_max=15.0)
     assert config.zones[0].weight == pytest.approx(1.0)
 
 
@@ -100,11 +101,19 @@ def test_parse_rejects_setpoint_min_not_less_than_max() -> None:
         parse_config(args)
 
 
-def test_parse_rejects_integral_min_not_less_than_max() -> None:
+def test_parse_rejects_i_term_min_not_less_than_max() -> None:
+    args = _minimal_args()
+    args["pid"] = {"i_term_min": 10, "i_term_max": -10}
+    with pytest.raises(ConfigError, match="i_term_min must be less than i_term_max"):
+        parse_config(args)
+
+
+def test_parse_ignores_legacy_integral_keys() -> None:
+    """Old integral_min / integral_max (∫ units) no longer affect parsed config."""
     args = _minimal_args()
     args["pid"] = {"integral_min": 10, "integral_max": -10}
-    with pytest.raises(ConfigError, match="integral_min must be less than"):
-        parse_config(args)
+    config = parse_config(args)
+    assert config.pid == PidConfig()
 
 
 def test_parse_rejects_negative_zone_weight() -> None:

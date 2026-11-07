@@ -26,18 +26,21 @@ def _zone(
     )
 
 
+_DT_HOURS = 300.0 / 3600.0
+
+
 def _eval(
     zones: list[ZoneSnapshot],
     *,
     integral: float = 0.0,
-    dt: float = 300.0,
+    dt_hours: float = _DT_HOURS,
     base: float = 40.0,
     kp: float = 1.0,
-    ki: float = 0.1,
+    ki: float = 1.0,
     lo: float = 40.0,
     hi: float = 55.0,
-    integral_min: float = -50.0,
-    integral_max: float = 50.0,
+    i_term_min: float = -10.0,
+    i_term_max: float = 15.0,
 ):
     return evaluate_demand(
         zones,
@@ -47,10 +50,21 @@ def _eval(
         base_water_temp=base,
         setpoint_min=lo,
         setpoint_max=hi,
-        integral_min=integral_min,
-        integral_max=integral_max,
-        dt=dt,
+        i_term_min=i_term_min,
+        i_term_max=i_term_max,
+        dt_hours=dt_hours,
     )
+
+
+def _run_ticks(zones: list[ZoneSnapshot], ticks: int, *, integral: float = 0.0, **kw):
+    """Feed each tick's stepped ∫ into the next; return per-tick results."""
+    results = []
+    for _ in range(ticks):
+        result = _eval(zones, integral=integral, **kw)
+        assert result is not None
+        results.append(result)
+        integral = result.integral
+    return results
 
 
 @pytest.mark.parametrize(
@@ -103,16 +117,16 @@ def test_zero_weight_sum_returns_none() -> None:
     assert _eval(zones) is None
 
 
-def test_unsaturated_tick_advances_integral_then_clamps() -> None:
+def test_unsaturated_tick_advances_integral_in_degree_hours() -> None:
     zones = [_zone("a", 20.0, [22.0])]
-    result = _eval(zones, integral=0.0, dt=300.0)
+    result = _eval(zones, integral=0.0)
     assert result is not None
     assert result.e == pytest.approx(2.0)
     assert result.u_pid == pytest.approx(2.0)
     assert result.raw == pytest.approx(42.0)
     assert result.command == pytest.approx(42.0)
-    # ∫ += 2*300 = 600 → clamp to 50
-    assert result.integral == pytest.approx(50.0)
+    # ∫ += e·dt_hours = 2 * 300/3600 = 1/6 °C·h (inside the I-term rails)
+    assert result.integral == pytest.approx(2.0 / 12.0)
 
 
 def test_saturation_freeze_high_skips_integral_step() -> None:
@@ -141,19 +155,99 @@ def test_saturation_freeze_low_skips_integral_step() -> None:
 
 def test_no_freeze_when_sat_opposite_sign() -> None:
     """At high sat with e < 0, still advance (anti-windup freeze is same-sign only)."""
-    zones = [_zone("a", 30.0, [20.0])]  # e = -10
-    # ∫=300 → u_pid=20, raw=60 > max, but e < 0 → opposite sign → advance
-    result = _eval(
-        zones,
-        integral=300.0,
-        base=40.0,
-        lo=40.0,
-        hi=55.0,
-        dt=1.0,
-        integral_min=-50.0,
-        integral_max=50.0,
-    )
+    zones = [_zone("a", 21.0, [20.0])]  # e = -1
+    # ∫=5 → u_pid = -1 + 5 = 4, raw = 58 > max, but e < 0 → opposite sign → advance
+    result = _eval(zones, integral=5.0, base=54.0, lo=40.0, hi=55.0)
     assert result is not None
     assert result.raw > 55.0
     assert result.e < 0
-    assert result.integral == pytest.approx(50.0)  # 300 + (-10)*1 → clamp 50
+    assert result.command == pytest.approx(55.0)
+    assert result.integral == pytest.approx(5.0 - 1.0 / 12.0)  # 4.9167
+
+
+def test_small_error_three_ticks_i_term() -> None:
+    """Matrix row 1: e = 0.2, 300 s, ki 1.0 → I-term 0.05 °C after 3 steps."""
+    zones = [_zone("a", 21.8, [22.0])]
+    results = _run_ticks(zones, 3)
+    assert results[-1].e == pytest.approx(0.2)
+    assert 1.0 * results[-1].integral == pytest.approx(0.05)
+
+
+def test_full_hour_i_term_one_degree_no_rail() -> None:
+    """Matrix row 2: e = 1 for 12 ticks → I-term +1.0 °C; no tick hits a rail."""
+    zones = [_zone("a", 21.0, [22.0])]
+    results = _run_ticks(zones, 12)
+    i_terms = [1.0 * r.integral for r in results]
+    assert i_terms[-1] == pytest.approx(1.0)
+    assert all(-10.0 < i < 15.0 for i in i_terms)
+    steps = [b - a for a, b in zip([0.0, *i_terms], i_terms, strict=False)]
+    assert all(step == pytest.approx(1.0 / 12.0) for step in steps)
+
+
+@pytest.mark.parametrize("ki", [1.0, 2.0])
+def test_lower_rail_i_term_stops_at_i_term_min(ki: float) -> None:
+    """Matrix row 3: sustained e < 0, not saturated low → I-term stops at min."""
+    zones = [_zone("a", 23.0, [22.0])]  # e = -1
+    seed = -9.95 / ki  # I-term just above i_term_min
+    # base 52 keeps raw = 52 - 1 + I ≥ 41 > setpoint_min → no low freeze
+    results = _run_ticks(zones, 5, integral=seed, ki=ki, base=52.0, lo=40.0, hi=60.0)
+    for result in results:
+        assert result.raw > 40.0
+        assert ki * result.integral >= -10.0 - 1e-9
+    assert ki * results[-1].integral == pytest.approx(-10.0)
+
+
+def test_ki_zero_keeps_integral_and_i_term_zero() -> None:
+    """Matrix row 4: ki = 0 → ∫ and I-term stay 0 for any e."""
+    for temp in (20.0, 21.9, 22.0, 23.0):
+        zones = [_zone("a", temp, [22.0])]
+        results = _run_ticks(zones, 5, ki=0.0, base=48.0)
+        for result in results:
+            assert result.integral == 0.0
+            assert result.u_pid == pytest.approx(result.e)
+
+
+def test_kp_scales_proportional_term() -> None:
+    zones = [_zone("a", 20.0, [22.0])]  # e = 2
+    unit = _eval(zones, kp=1.0)
+    double = _eval(zones, kp=2.0)
+    assert unit is not None and double is not None
+    assert unit.u_pid == pytest.approx(2.0)
+    assert double.u_pid == pytest.approx(4.0)
+    assert double.command == pytest.approx(44.0)
+    # Kp does not enter the ∫ step
+    assert double.integral == pytest.approx(unit.integral)
+
+
+@pytest.mark.parametrize(
+    "lo,hi,expected_command,expected_i_term,reaches_i_term_max",
+    [
+        (40.0, 55.0, 55.0, 14.0, False),  # example bounds: SWT-saturation freeze
+        (42.0, 60.0, 58.0, 15.0, True),  # high bounds: I-term rail
+    ],
+)
+def test_multi_tick_trace_constant_error(
+    lo: float,
+    hi: float,
+    expected_command: float,
+    expected_i_term: float,
+    reaches_i_term_max: bool,
+) -> None:
+    """C4 defaults, e = 1, 200 ticks at 300 s: ramp by ~1/12 °C per tick."""
+    zones = [_zone("a", 21.0, [22.0])]
+    results = _run_ticks(zones, 200, base=lo, lo=lo, hi=hi)
+    commands = [r.command for r in results]
+    final_i_term = 1.0 * results[-1].integral
+
+    max_step = 1.0 * 1.0 * _DT_HOURS + 0.1 + 1e-9
+    for prev, cur in zip(commands, commands[1:], strict=False):
+        assert abs(cur - prev) <= max_step
+    assert all(lo <= c <= hi for c in commands)
+    assert commands[-1] == pytest.approx(expected_command)
+    if reaches_i_term_max:
+        assert final_i_term == pytest.approx(15.0)
+    else:
+        assert final_i_term == pytest.approx(expected_i_term, abs=0.1)
+        assert final_i_term < 15.0
+        # freeze holds once raw > 55: I-term never grows past 14 (+ float noise)
+        assert max(r.integral for r in results) <= expected_i_term + 1e-6
