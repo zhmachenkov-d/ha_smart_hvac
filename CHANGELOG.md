@@ -2,6 +2,47 @@
 
 <!-- version list -->
 
+## v2.0.0 (2026-11-07)
+
+### Bug Fixes
+
+- **pid**: Integrate PID in °C·h and skip only on plant readback
+  ([`4ca3a84`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/4ca3a848166e06e9142e2881da367891ea404d5c))
+
+### Chores
+
+- **bmad**: Add epic-fixed-pid-swt retrospective
+  ([`5c7454c`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/5c7454cc63cbae493d7e33989127d637c18a526d))
+
+- **bmad**: Mark story 1.4 refactor sweep done
+  ([`8b0d724`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/8b0d72419cda9cec363743d13845a5a5a599a33a))
+
+- **bmad**: Replan epic 1 from retrospective
+  ([`92aff07`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/92aff072b3f0dccb2cb6711fbc7e423967537dba))
+
+- **skills**: Add bmad-eval, bmad-toolsmith, bmod-founder, bmod-toolsmith skills
+  ([`417efe8`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/417efe86393ce14fb1f6edf9f455351c87ba8f8e))
+
+### Refactoring
+
+- **pid**: Drop CAP-7 sticky tie-break and advance_integral switch
+  ([`f7d5210`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/f7d52102cecc6f1504af408774d7e2b4cd1be81c))
+
+### Testing
+
+- **coordinator**: Tighten Critical Zone tests after 1.4 review
+  ([`40eb190`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/40eb190ff475789f4348b9119d96ae085ea4dc96))
+
+- **pid**: Close code-review findings for 1.5 and mark story done
+  ([`d96fc7d`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/d96fc7d634d8aa5383cd32fd540f55224a0334f9))
+
+### Breaking Changes
+
+- **pid**: Pid.integral_min / pid.integral_max are no longer read; use pid.i_term_min /
+  pid.i_term_max (°C of water). ki is now per hour and the defaults change (ki 0.1 -> 1.0, bounds
+  ±50 -> I-term [-10, +15]); a yaml without a pid: section picks up the new defaults.
+
+
 ## v1.7.1 (2026-11-07)
 
 ### Bug Fixes
