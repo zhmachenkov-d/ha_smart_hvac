@@ -54,3 +54,31 @@ Oneshot: two signature removals, one caller, two test files touched; well under 
 - `uv run pytest` -- expected: all green
 - `uv run ruff check apps tests && uv run ruff format --check apps tests` -- expected: clean
 - `rg -n "previous_name|advance_integral|T-hold" apps tests` -- expected: no matches
+- `rg -ni "cap-7|u_ff|ff_auto|feedforward|outdoor|weather" apps/ha_smart_hvac` -- expected: no matches (story verify: no FF/CAP-7 leftovers)
+
+## Code Review
+
+### 2026-11-07
+**Code review complete.** 0 `decision-needed`, 5 `patch`, 1 `defer`, 13 rejected.
+
+- [x] [Review][Patch] deferred-work.md not updated for items 1.4 resolved (`previous_name`, 1.1 checkboxes still read as open) [_bmad-output/initiative-pid/deferred-work.md:12]
+- [x] [Review][Patch] Plan Verification grep narrower than story verify clause — add FF/CAP-7 sweep rg [story-refactor-sweep-plan.md:56]
+- [x] [Review][Patch] `test_select_max_error_ignores_non_demand_pool` no longer isolates the demand-pool filter [tests/test_coordinator.py:137]
+- [x] [Review][Patch] Lexicographic tie test passes for input-order selection [tests/test_coordinator.py:127]
+- [x] [Review][Patch] `evaluate_demand` docstring omits pre-step ∫ ordering / tick-only caller rule [apps/ha_smart_hvac/pid.py:70]
+- [x] [Review][Defer] AGENTS.md / ADR 0004 / CONTEXT.md / knowledge describe the removed FF/CAP-7/CAP-8 design [AGENTS.md] — deferred: pre-existing from 1.2/1.3; agent-context/ADR edits owned by epic 2 (`epic-pid-domain-docs`)
+
+**Rejected:**
+- false — NaN `e` pins ∫/command (pid.py:84): `_read_float` drops non-finite values and `_read_zones` skips the zone; never reaches `evaluate_demand`.
+- false — "no behavior change" rests on untouched hvac_app tests: live caller used exactly the retained paths; existing hvac_app tests pin tick-only ∫ and Critical Zone logging; suite green.
+- false — `advance_integral` outside deferred notes: in scope as an orphan per the ticket description.
+- false — 1.1 checkbox edit on another plan: closes deferred-work.md 1.1 entry.
+- false — gates not confirmed: review ran them (130 passed, ruff clean).
+- false — non-finite fallback pool dead on live path: deliberate guard against `min()` on an empty tie set in a pure function.
+- low — unreachable `tset is None` / double `weight_sum` (pid.py): type-narrowing check and reshaping return; predates 1.4, not worth the restructure.
+- false — deleted `test_no_advance_keeps_integral` lost pre-step ∫ check: `test_no_freeze_when_sat_opposite_sign` fails (raw 35) if post-step ∫ were used.
+- false — Verification lists no results: plan template format; commands pass.
+- false — no Tasks & Acceptance section: oneshot plan template (1.2 identical).
+- low — 1.1 verify in tickets.toml mentions event-demand writes: closed ticket's historical acceptance; 1.2 verify states the current rule.
+- false — tie-break rule not recorded for epic 2: existing CONTEXT/knowledge deferral covers the Critical Zone rewrite.
+- low — `list` vs `Sequence` hints: cosmetic, not introduced by this change.

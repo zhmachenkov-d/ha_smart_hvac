@@ -69,6 +69,10 @@ def evaluate_demand(
 ) -> PidResult | None:
     """Compute PI command and step ∫ (tick-owned; saturation freeze applies).
 
+    The command uses ``integral`` as passed in (before this step); the returned
+    ``integral`` is the stepped value. Call only from the periodic control tick:
+    event paths must not call this, since every call advances ∫.
+
     Returns None when there are no demand contributions or weight sum ≤ 0
     (caller should take the idle path).
     """

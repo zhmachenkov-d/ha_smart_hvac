@@ -126,8 +126,8 @@ def test_select_max_error_among_heating_including_non_positive():
 
 def test_select_max_error_ties_break_lexicographically():
     zones = [
-        _zone("alpha", 20.0, [22.0]),
         _zone("beta", 20.0, [22.0]),
+        _zone("alpha", 20.0, [22.0]),
     ]
     selected = select_max_error_demand_zone(zones)
     assert selected is not None
@@ -135,13 +135,14 @@ def test_select_max_error_ties_break_lexicographically():
 
 
 def test_select_max_error_ignores_non_demand_pool():
+    """Idle zone stays out of the non-finite fallback pool despite sorting first."""
     zones = [
-        _zone("satisfied", 22.0, [20.0], ["idle"]),  # non-heating
-        _zone("cold", 18.0, [22.0]),  # heating, error 4
+        _zone("aaa_idle", 22.0, [20.0], ["idle"]),  # non-heating, error -inf
+        _zone("zzz_heating", float("nan"), [22.0]),  # heating, error NaN
     ]
     selected = select_max_error_demand_zone(zones)
     assert selected is not None
-    assert selected.name == "cold"
+    assert selected.name == "zzz_heating"
 
 
 def test_select_max_error_empty_or_no_demand():
