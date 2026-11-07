@@ -4,19 +4,19 @@
 id = 1
 type = "story"
 title = "Tracer: fixed-gain PID SWT law"
-description = "Replaces the demand water-path command with round-to-0.1(clamp(base_water_temp + u_pid)) using weighted demand-zone averages (e = Tset_w − Tair_w, Kd = 0), yaml base/gains/weights and control_interval default 300, Plant Management / Heating Demand gates (idle 0+clear; plant-off no write+clear), equal-rounded skip via last commanded SWT, and Critical Zone logged for diagnostics only."
-verify = "Automated tests show demand→round(clamp(base+u_pid)) with weighted averages; idle→write 0 and clear integral/last command; plant-off→no write+clear; equal rounded SWT skips the plant call; Critical Zone selection does not change the SWT command; example yaml commissions base/PID/weights/interval 300 without driving SWT from max Zone Error."
+description = "Replaces the demand water-path command with round-to-0.1(clamp(base_water_temp + u_pid)) using weighted demand-zone averages (e = Tset_w − Tair_w, Kd = 0), yaml base/gains/weights and control_interval default 300, Plant Management / Heating Demand gates (idle 0+clear; plant-off no write+clear), equal-rounded skip via last commanded SWT, Critical Zone logged for diagnostics only, and Outdoor dropped from control listeners (not a demand gate)."
+verify = "Automated tests show tick demand→round(clamp(base+u_pid)) with integral advance when unsaturated; sat. freeze skips ∫ step; event demand may write without advancing integral; partial invalid zones skipped; idle→write 0 and clear; plant-off→no write+clear; equal rounded skip; outdoor unavailable still demands; Outdoor not a listener; demand INFO Floor e/u_pid/command/CZ; Critical Zone does not change SWT; example yaml commissions base/PID/weights/interval 300 as starting defaults without max Zone Error as driver."
 covers = ["R1", "R2", "R3", "R7", "R8", "R9"]
 after = []
 hitl = false
 risk = "high"
-notes = ["Interim: feedforward/ff_auto_correct modules and outdoor entity may remain until entries 2–3; this entry does not claim R4/R5/R6."]
+notes = ["Interim: FF/CAP-7 modules and weather/outdoor parse/yaml may remain until entry 3; Outdoor control listener dropped here; integral tick-only while demand event writes remain (full R5/R6 = entry 2); no R4; anti-windup = integral clamps + SWT saturation freeze (party C2); defaults = starting commission not house-proven."]
 
 [[entry]]
 id = 2
 type = "story"
 title = "Tick-owned PID advance and event clear-only"
-description = "On the PID path from entry 1: makes control_interval the only schedule that advances PID state and writes demand SWT; event listeners clear on idle/plant-off/fail without demand write or PID advance; drops Outdoor Temperature from control listeners while keeping Plant Management, zone air, and thermostat hvac_action/setpoint."
+description = "On the PID path from entry 1: makes control_interval the only schedule that advances PID state and writes demand SWT; event listeners clear on idle/plant-off/fail without demand write or PID advance; keeps Outdoor Temperature off control listeners (already dropped in entry 1) while keeping Plant Management, zone air, and thermostat hvac_action/setpoint."
 verify = "Tests show a demand-path plant write and integral advance only from the periodic tick; an event under demand does not write a new SWT or change the integral; Outdoor is not registered as a listener; plant-off/idle/fail events still clear ephemeral state."
 covers = ["R5", "R6"]
 after = [1]

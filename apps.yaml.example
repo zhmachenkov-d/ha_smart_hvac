@@ -1,21 +1,31 @@
 # Copy to apps/apps.yaml (Exclusive Session) or beside ha_smart_hvac/ under AppDaemon
 # app_dir (manual install or Production). Replace YOUR_* placeholders with house entity IDs.
 # apps/apps.yaml is gitignored — do not commit live entity IDs.
+#
+# base_water_temp / pid / control_interval / zone weight below are C4 starting
+# commission defaults — not house-proven; retune under operator HITL after epic 2 docs.
 hvac:
   module: ha_smart_hvac
   class: HvacApp
+  # Parsed until entry 3; not a PID demand gate and not a control listener.
   outdoor_temperature: sensor.YOUR_OUTDOOR_TEMPERATURE
   plant_management: switch.YOUR_PLANT_MANAGEMENT
   plant_setpoint: number.YOUR_PLANT_SETPOINT
   setpoint_min: 40
   setpoint_max: 55
-  control_interval: 60
+  control_interval: 300
+  base_water_temp: 40
+  pid:
+    kp: 1.0
+    ki: 0.1
+    integral_min: -50
+    integral_max: 50
+  # Kept until entry 3 removes outdoor/FF/CAP-7 from package + commissioning yaml.
   weather_feedforward:
     base: 25
     slope: 1.2
     comfort_ref: 20
-    # Optional auto_correct nest — omit nest = E2 defaults (auto-correct always on).
-    # Ops: delete ff_auto_correct_state.json under app_dir to restore yaml commission.
+    # Optional auto_correct nest — omit nest = E2 defaults (unused by PID demand path).
     # auto_correct:
     #   outdoor_gate_delta_k: 12
     #   r_expected_c_per_h: 0.25
@@ -24,5 +34,6 @@ hvac:
   zones:
     - name: zone_one
       temperature: sensor.YOUR_ZONE_ONE_TEMPERATURE
+      weight: 1.0
       thermostats:
         - climate.YOUR_ZONE_ONE_THERMOSTAT

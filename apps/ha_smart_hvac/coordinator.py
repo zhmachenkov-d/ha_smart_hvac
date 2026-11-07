@@ -1,4 +1,4 @@
-"""Multi-Zone Coordinator — Heating Demand gate and CAP-7 zone selection."""
+"""Multi-Zone Coordinator — Heating Demand gate and Critical Zone selection."""
 
 from __future__ import annotations
 
@@ -19,13 +19,13 @@ def has_heating_demand(zones: list[ZoneSnapshot]) -> bool:
 def select_max_error_demand_zone(
     zones: list[ZoneSnapshot], previous_name: str | None
 ) -> ZoneSnapshot | None:
-    """Select the max Zone Error demand zone for CAP-7 rise-rate (FF params only).
+    """Select the max Zone Error demand zone for diagnostics (Critical Zone).
 
     Among zones with Heating Demand (has_heating_eligible), pick the largest
     finite error (may be ≤ 0). Non-finite errors rank below any finite; if all
-    demand errors are non-finite, still return a zone from that pool (CAP-7 M2
-    flush). T-hold: keep ``previous_name`` while it remains in the max-error
-    tie set; otherwise break ties by lexicographic ``name``.
+    demand errors are non-finite, still return a zone from that pool. T-hold:
+    keep ``previous_name`` while it remains in the max-error tie set; otherwise
+    break ties by lexicographic ``name``. Does not drive Set Water Temperature.
     """
     demand = [z for z in zones if z.has_heating_eligible]
     if not demand:

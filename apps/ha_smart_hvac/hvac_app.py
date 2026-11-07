@@ -1,26 +1,20 @@
-"""HVAC App — 60 s weather-curve Set Water Temperature loop."""
+"""HVAC App — fixed-gain PID Set Water Temperature loop."""
 
 from __future__ import annotations
 
-from pathlib import Path
+import math
 
 import appdaemon.plugins.hass.hassapi as hass
 
 from ha_smart_hvac.config import ConfigError, parse_config
-from ha_smart_hvac.coordinator import has_heating_demand
-from ha_smart_hvac.feedforward import weather_feedforward
-from ha_smart_hvac.ff_auto_correct import (
-    STATE_FILENAME,
-    FfAutoCorrector,
-    load_ff_state,
-    save_ff_state,
-)
+from ha_smart_hvac.coordinator import has_heating_demand, select_max_error_demand_zone
 from ha_smart_hvac.models import (
     HvacConfig,
     ThermostatReading,
     ZoneSnapshot,
     plant_management_enabled,
 )
+from ha_smart_hvac.pid import PidResult, evaluate_demand
 
 
 class HvacApp(hass.Hass):
@@ -31,22 +25,21 @@ class HvacApp(hass.Hass):
             self.log(f"HVAC config error: {exc}", level="ERROR")
             return
 
-        self._ff_auto_correct = self._build_corrector()
-        self._load_ff_overlay()
+        self._integral = 0.0
+        self._last_commanded: float | None = None
 
-        self._register_cap8_listeners()
+        self._register_control_listeners()
         self.run_every(
             self.control_tick,
             "now",
             self._config.control_interval,
         )
-        self.log("HVAC weather-curve app initialized")
+        self.log("HVAC fixed-gain PID app initialized")
 
-    def _register_cap8_listeners(self) -> None:
-        """CAP-8: re-evaluate gate on plant / outdoor / zone air / thermostat attrs."""
+    def _register_control_listeners(self) -> None:
+        """Re-evaluate gate on plant / zone air / thermostat attrs (not outdoor)."""
         config = self._config
         self.listen_state(self.control_event, config.plant_management)
-        self.listen_state(self.control_event, config.outdoor_temperature)
         for zone in config.zones:
             self.listen_state(self.control_event, zone.temperature)
             for entity_id in zone.thermostats:
@@ -57,55 +50,37 @@ class HvacApp(hass.Hass):
                     self.control_event, entity_id, attribute="temperature"
                 )
 
-    def _gate_prelude(self) -> tuple[list[ZoneSnapshot], float] | None:
-        """Shared CAP-1…CAP-3 prelude. Returns (zones, outdoor) on demand, else None."""
+    def _clear_pid_ephemeral(self) -> None:
+        self._integral = 0.0
+        self._last_commanded = None
+
+    def _gate_prelude(self) -> list[ZoneSnapshot] | None:
+        """Shared CAP-1…CAP-3 prelude. Returns zones on demand, else None."""
         config = self._config
-        corrector = self._ensure_corrector()
 
         if not plant_management_enabled(self.get_state(config.plant_management)):
-            corrector.clear_ephemeral()
+            self._clear_pid_ephemeral()
             self._hands_off("Plant Management disabled")
-            return None
-
-        outdoor = self._read_float(config.outdoor_temperature)
-        if outdoor is None:
-            corrector.clear_ephemeral()
-            self._go_idle(
-                f"Outdoor temperature unavailable: {config.outdoor_temperature}"
-            )
             return None
 
         zones = self._read_zones(config)
         if not zones:
-            corrector.clear_ephemeral()
             self._go_idle("No zones with valid readings this tick")
             return None
 
         if not has_heating_demand(zones):
-            corrector.clear_ephemeral()
             self._write_setpoint(0.0)
+            self._clear_pid_ephemeral()
             self.log("No heating demand; setpoint 0")
             return None
 
-        return zones, outdoor
+        return zones
 
     def control_tick(self, kwargs: dict) -> None:
-        outcome = self._gate_prelude()
-        if outcome is None:
+        zones = self._gate_prelude()
+        if zones is None:
             return
-        zones, outdoor = outcome
-        corrector = self._ensure_corrector()
-
-        result = corrector.process_demand(zones, outdoor)
-        write_ok = self._write_setpoint(result.command)
-        if result.params_changed and write_ok:
-            self._persist_ff_state()
-        if not write_ok:
-            return
-        u_ff = weather_feedforward(outdoor, corrector.ff_config())
-        self.log(
-            f"outdoor={outdoor:.2f} °C, u_ff={u_ff:.2f}, command={result.command:.2f}"
-        )
+        self._run_demand(zones, advance_integral=True)
 
     def control_event(
         self,
@@ -115,75 +90,67 @@ class HvacApp(hass.Hass):
         new: object,
         kwargs: dict,
     ) -> None:
-        """CAP-8 event entry: shared prelude; demand = clamp_uff only (no CAP-7)."""
+        """Event entry: shared prelude; demand may write PID command (∫ unchanged)."""
         # listen_state args ignored — re-read current Hass state in prelude.
-        outcome = self._gate_prelude()
-        if outcome is None:
+        zones = self._gate_prelude()
+        if zones is None:
             return
-        _zones, outdoor = outcome
-        corrector = self._ensure_corrector()
+        self._run_demand(zones, advance_integral=False)
 
-        command = corrector.clamp_uff(outdoor)
-        if not self._write_setpoint(command):
-            return
-        u_ff = weather_feedforward(outdoor, corrector.ff_config())
-        self.log(f"outdoor={outdoor:.2f} °C, u_ff={u_ff:.2f}, command={command:.2f}")
-
-    def _build_corrector(self) -> FfAutoCorrector:
+    def _run_demand(self, zones: list[ZoneSnapshot], *, advance_integral: bool) -> None:
         config = self._config
-        ff = config.weather_feedforward
-        return FfAutoCorrector(
-            auto_correct=config.auto_correct,
-            control_interval=config.control_interval,
-            base=ff.base,
-            slope=ff.slope,
-            comfort_ref=ff.comfort_ref,
+        pid = config.pid
+        result = evaluate_demand(
+            zones,
+            integral=self._integral,
+            kp=pid.kp,
+            ki=pid.ki,
+            base_water_temp=config.base_water_temp,
             setpoint_min=config.setpoint_min,
             setpoint_max=config.setpoint_max,
+            integral_min=pid.integral_min,
+            integral_max=pid.integral_max,
+            dt=float(config.control_interval),
+            advance_integral=advance_integral,
         )
-
-    def _ensure_corrector(self) -> FfAutoCorrector:
-        if not hasattr(self, "_ff_auto_correct"):
-            self._ff_auto_correct = self._build_corrector()
-        return self._ff_auto_correct
-
-    def _state_path(self) -> Path:
-        return Path(self.app_dir) / STATE_FILENAME
-
-    def _load_ff_overlay(self) -> None:
-        path = self._state_path()
-        loaded = load_ff_state(path)
-        if loaded is None:
-            if path.exists():
-                self.log(
-                    f"Ignoring invalid FF auto-correct state: {path}",
-                    level="WARNING",
-                )
-            else:
-                self.log(
-                    f"FF auto-correct state missing ({path}); using yaml commission",
-                    level="WARNING",
-                )
+        if result is None:
+            self._write_setpoint(0.0)
+            self._clear_pid_ephemeral()
+            self.log("Demand zone weights unusable; setpoint 0", level="WARNING")
             return
-        base, slope = loaded
-        self._ff_auto_correct.base = base
-        self._ff_auto_correct.slope = slope
-        self.log(f"Loaded FF auto-correct overlay from {path}")
 
-    def _persist_ff_state(self) -> None:
-        corrector = self._ff_auto_correct
-        path = self._state_path()
-        if not save_ff_state(path, corrector.base, corrector.slope):
-            self.log(
-                f"Failed to persist FF auto-correct state: {path}",
-                level="WARNING",
-            )
+        critical = select_max_error_demand_zone(zones, None)
+        if self._last_commanded is not None and result.command == self._last_commanded:
+            if advance_integral:
+                self._integral = result.integral
+            self._log_demand_success(result, critical)
+            return
+
+        if not self._write_setpoint(result.command):
+            return
+        if advance_integral:
+            self._integral = result.integral
+        self._last_commanded = result.command
+        self._log_demand_success(result, critical)
+
+    def _log_demand_success(
+        self, result: PidResult, critical: ZoneSnapshot | None
+    ) -> None:
+        parts = [
+            f"e={result.e:.2f}",
+            f"u_pid={result.u_pid:.2f}",
+            f"command={result.command:.1f}",
+        ]
+        if critical is not None:
+            parts.append(f"critical_zone={critical.name}")
+        self.log(", ".join(parts))
 
     def _hands_off(self, message: str) -> None:
         self.log(message, level="WARNING")
 
     def _go_idle(self, message: str) -> None:
         self._write_setpoint(0.0)
+        self._clear_pid_ephemeral()
         self.log(message, level="WARNING")
 
     def _read_zones(self, config: HvacConfig) -> list[ZoneSnapshot]:
@@ -222,6 +189,7 @@ class HvacApp(hass.Hass):
                     name=zone.name,
                     zone_temp=zone_temp,
                     thermostats=tuple(thermostats),
+                    weight=zone.weight,
                 )
             )
         return snapshots
@@ -231,18 +199,20 @@ class HvacApp(hass.Hass):
         if state in (None, "unavailable", "unknown"):
             return None
         try:
-            return float(state)
+            value = float(state)
         except (TypeError, ValueError):
             return None
+        return value if math.isfinite(value) else None
 
     def _read_setpoint(self, entity_id: str) -> float | None:
         value = self.get_state(entity_id, attribute="temperature")
         if value in (None, "unavailable", "unknown"):
             return None
         try:
-            return float(value)
+            parsed = float(value)
         except (TypeError, ValueError):
             return None
+        return parsed if math.isfinite(parsed) else None
 
     def _read_hvac_action(self, entity_id: str) -> str | None:
         value = self.get_state(entity_id, attribute="hvac_action")

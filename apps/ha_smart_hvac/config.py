@@ -7,6 +7,7 @@ from typing import Any
 from ha_smart_hvac.models import (
     AutoCorrectConfig,
     HvacConfig,
+    PidConfig,
     WeatherFeedforwardConfig,
     ZoneConfig,
 )
@@ -37,8 +38,20 @@ def _parse_zone(raw: Any) -> ZoneConfig:
     for entity_id in thermostats:
         if not isinstance(entity_id, str) or not entity_id:
             raise ConfigError(f"Zone {name!r}: invalid thermostat entity id")
+    if "weight" in raw:
+        try:
+            weight = float(raw["weight"])
+        except (TypeError, ValueError) as exc:
+            raise ConfigError(f"Zone {name!r}: weight must be a number") from exc
+        if weight < 0:
+            raise ConfigError(f"Zone {name!r}: weight must be >= 0")
+    else:
+        weight = 1.0
     return ZoneConfig(
-        name=name, temperature=temperature, thermostats=tuple(thermostats)
+        name=name,
+        temperature=temperature,
+        thermostats=tuple(thermostats),
+        weight=weight,
     )
 
 
@@ -84,6 +97,25 @@ def _parse_weather_feedforward(
     return ff, _parse_auto_correct(raw.get("auto_correct"))
 
 
+def _parse_pid(raw: Any) -> PidConfig:
+    """Parse optional pid nest; missing keys → C4 starting commission defaults."""
+    if raw is None:
+        return PidConfig()
+    if not isinstance(raw, dict):
+        raise ConfigError("pid must be a mapping")
+    defaults = PidConfig()
+    integral_min = float(raw.get("integral_min", defaults.integral_min))
+    integral_max = float(raw.get("integral_max", defaults.integral_max))
+    if integral_min >= integral_max:
+        raise ConfigError("pid.integral_min must be less than integral_max")
+    return PidConfig(
+        kp=float(raw.get("kp", defaults.kp)),
+        ki=float(raw.get("ki", defaults.ki)),
+        integral_min=integral_min,
+        integral_max=integral_max,
+    )
+
+
 def parse_config(args: dict[str, Any]) -> HvacConfig:
     """Parse AppDaemon app arguments into a validated HvacConfig."""
     outdoor_temperature = _require(args, "outdoor_temperature")
@@ -101,9 +133,12 @@ def parse_config(args: dict[str, Any]) -> HvacConfig:
     if setpoint_min >= setpoint_max:
         raise ConfigError("setpoint_min must be less than setpoint_max")
 
-    control_interval = int(args.get("control_interval", 60))
+    control_interval = int(args.get("control_interval", 300))
     if control_interval <= 0:
         raise ConfigError("control_interval must be positive")
+
+    base_water_temp = float(args.get("base_water_temp", 40.0))
+    pid = _parse_pid(args.get("pid"))
 
     zones_raw = _require(args, "zones")
     if not isinstance(zones_raw, list) or not zones_raw:
@@ -119,6 +154,8 @@ def parse_config(args: dict[str, Any]) -> HvacConfig:
         setpoint_min=setpoint_min,
         setpoint_max=setpoint_max,
         control_interval=control_interval,
+        base_water_temp=base_water_temp,
+        pid=pid,
         weather_feedforward=weather_feedforward,
         auto_correct=auto_correct,
         zones=tuple(_parse_zone(z) for z in zones_raw),
