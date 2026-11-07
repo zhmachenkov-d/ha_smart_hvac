@@ -3,7 +3,7 @@ title: '1.1 Tracer: fixed-gain PID SWT law'
 type: 'feature'
 ticket: '1'
 created: '2026-11-07'
-status: 'built'
+status: done
 baseline_revision: 'dcedf7d8d56ebf19bcaead7e5b7f8ffa335473e7'
 route: 'full'
 route_source: 'auto'
