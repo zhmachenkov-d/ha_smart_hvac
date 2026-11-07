@@ -20,7 +20,7 @@ Use this when the user asks about `bmad-build-auto`, building tickets with no hu
 
 - A ticket's plan sits beside `tickets.toml`, or in `backlog/` for a backlog ticket, at the path `tickets.py find` returns, with `ticket` and `baseline_revision` in its frontmatter. Other work gets `{output_folder}/{active_initiative}/plan-<slug>.md`, or `{output_folder}/plan-<slug>.md` with no initiative active.
 - A successful run ends at `built`, which the board shows as review. Only the user or an orchestrator marks the ticket done, with `tickets.py mark <ref> done`.
-- This is the repo store. On a tracker store, `next` and `mark` refuse, so name the ticket and move it through `bmad-ticket`.
+- This is the repo store. On a tracker store, `next` and `mark` refuse, so name the ticket and talk to Sofia the Product Owner (`bmad-agent-po`) to move it.
 
 ## Resume follows the plan's status
 
@@ -40,6 +40,7 @@ Use this when the user asks about `bmad-build-auto`, building tickets with no hu
 - `implementation verification failed`.
 - `review repair loop exceeded 5 iterations`: review kept sending the work back.
 - `blocked plan supplied`: the plan is still marked blocked.
+- `dropped plan supplied`: the ticket was dropped; the plan stays `dropped` and nothing is built.
 - A dirty working tree or a mismatched branch.
 
 A blocked plan halts every later dispatch of its ticket and keeps its first reason. To retry, fix the cause, then run `tickets.py mark <ref> <status>` with the status to resume from, which clears the blocked fields. A plan that holds only frontmatter can be deleted instead, and the next dispatch starts fresh.
@@ -52,6 +53,7 @@ When review halts on `intent gap`, the run saves the attempted change as a patch
 
 - `status` in the plan's frontmatter, or `tickets.py status`. Chat output is not proof of success.
 - `followup_review_recommended`: true when review fixed a high finding or two or more medium ones. It is a suggestion; dispatching the ticket again gives another pass.
+- `risk` in the frontmatter: `low`, `medium`, or `high`, the ticket's risk confirmed or raised at planning. `bmad-build` writes it too. A CI process can read it to decide how much review a change gets; BMad ships no such process.
 - `deferred` in the frontmatter: real findings that were not this ticket's problem. Nothing files them; the user decides whether to make tickets.
 - `Auto Run Result`: summary, review findings, verification, residual risks.
 - The run commits locally and never pushes.

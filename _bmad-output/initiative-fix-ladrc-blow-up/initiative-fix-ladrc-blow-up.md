@@ -17,7 +17,7 @@ status: done
 
 ## Description
 
-Live LADRC tracking is numerically exploding and thrashing Set Water Temperature between plant limits. This initiative delivers the fix in `_bmad-output/initiative-fix-ladrc-blow-up/epic-fix-ladrc-blow-up/spec-fix-ladrc-blow-up/` — continuous-form ESO at `dt=60`, tracking-residue known input, retuned plant-channel defaults, an app-level blow-up guard, regression tests, and an ADR 0002 amendment.
+Live LADRC tracking is numerically exploding and thrashing Set Water Temperature between plant limits. This initiative delivers the fix in `_bmad-output/initiative-fix-ladrc-blow-up/tickets/epic-fix-ladrc-blow-up/spec-fix-ladrc-blow-up/` — continuous-form ESO at `dt=60`, tracking-residue known input, retuned plant-channel defaults, an app-level blow-up guard, regression tests, and an ADR 0002 amendment.
 
 ## Outcome
 
@@ -38,7 +38,7 @@ Capability boundary: LADRC plant channel for OpenTherm Set Water Temperature in 
 
 ## References
 
-- spec — _bmad-output/initiative-fix-ladrc-blow-up/epic-fix-ladrc-blow-up/spec-fix-ladrc-blow-up/spec-fix-ladrc-blow-up.md, section Capabilities
+- spec — _bmad-output/initiative-fix-ladrc-blow-up/tickets/epic-fix-ladrc-blow-up/spec-fix-ladrc-blow-up/spec-fix-ladrc-blow-up.md, section Capabilities
 - constraint — the same spec, section Constraints
 - plan — /home/vscode/.cursor/plans/fix_ladrc_blow-up_4f4b86eb.plan.md
 

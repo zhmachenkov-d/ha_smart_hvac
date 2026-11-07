@@ -25,6 +25,8 @@ Capture `baseline_revision` (current HEAD, or `NO_VCS` if version control is una
 
 Build the change from `{plan_file}`. The Intent section is what you implement. As you work, add notes to `## Implementation Notes`: decisions you made, files you changed, surprises.
 
+When you are done, run the commands in `{plan_file}`'s `## Verification` section, if present, and fix any that fail.
+
 {% if workflow.route == "oneshot" %}
 **When to stop.** Stop coding if the request left out something the user would notice in the result. Write the gap in `## Implementation Notes`, then ask the human — do not guess.
 {% else %}
@@ -83,7 +85,7 @@ For each group:
 
 - **patch** — This change caused or exposed the problem. The smallest fix is simple, adds no new public API, and does not guard code paths you did not show are reachable. Fix it now.
 - **HALT** — Same as patch, but the smallest fix is not that simple. Stop and ask the user before continuing.
-- **defer** — Everything else: old bugs not caused by this change, ideas for later, groups where every member is `maybe-false` and would be `medium` or `high` if true (record that severity marked unverified, and what would prove it; if it would only be `low`, reject it), or fixes that would edit CLAUDE.md, AGENTS.md, rules, or specs. Add one entry to `{{ config.output_folder }}/{active_initiative}/deferred-work.md`:
+- **defer** — Everything else: old bugs not caused by this change, ideas for later, groups where every member is `maybe-false` and would be `medium` or `high` if true (record that severity marked unverified, and what would prove it; if it would only be `low`, reject it), or fixes that would edit CLAUDE.md, AGENTS.md, rules, or specs. Add one entry to `{{ initiative_folder }}/deferred-work.md`:
 
   ```markdown
   - source_plan: `{plan_file}`

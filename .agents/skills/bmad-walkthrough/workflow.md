@@ -50,9 +50,10 @@ opening fence); a VS Code `#file:path`; or a CWD-relative
 # Block shapes
 
 **Intent** (block 1). What the change is for and why it exists now.
-If you found a target plan file with an intent section, paste it
-verbatim. Otherwise generate from what you know about the target, no
-more than 300 tokens. Include a short note on where you got it from.
+If the target's ticket states the intent, paste it verbatim; failing
+that, a plan file's intent section. Otherwise generate from what you
+know about the target, no more than 300 tokens. Include a short note
+on where you got it from.
 
 **Broad strokes** (block 2). What the change generally is, and its top
 level: the three to five entry points a reader would open first, each
@@ -89,11 +90,6 @@ every match. Other entries are facts.
 
 {% endif %}
 # Workflow
-
-`{active_initiative}` is the value printed by
-`uv run {project-root}/_bmad/scripts/resolve_config.py --project-root {project-root} --key core.active_initiative`,
-read once before step 1. When it is unset, drop `/{active_initiative}`
-from every path.
 
 Follow the step files in order. Read one step fully, execute it, then
 load the next step only when directed. Do not skip, reorder, or

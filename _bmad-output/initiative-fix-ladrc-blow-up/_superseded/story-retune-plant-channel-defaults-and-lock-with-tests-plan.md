@@ -16,7 +16,7 @@ context:
   - '{project-root}/CONTEXT.md'
   - '{project-root}/docs/adr/0002-ladrc-critical-zone-control.md'
   - '{project-root}/docs/adr/0003-online-ladrc-omega-c-auto-tune.md'
-  - '{project-root}/_bmad-output/initiative-fix-ladrc-blow-up/epic-fix-ladrc-blow-up/spec-fix-ladrc-blow-up/spec-fix-ladrc-blow-up.md'
+  - '{project-root}/_bmad-output/initiative-fix-ladrc-blow-up/tickets/epic-fix-ladrc-blow-up/spec-fix-ladrc-blow-up/spec-fix-ladrc-blow-up.md'
 ---
 
 <frozen-after-approval reason="human-owned intent — do not modify unless human renegotiates">

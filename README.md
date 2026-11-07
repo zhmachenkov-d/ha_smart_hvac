@@ -4,32 +4,22 @@
 
 AppDaemon apps for multi-zone OpenTherm HVAC control via Home Assistant.
 
-## Install with HACS (custom repository)
+## Install (AppDaemon)
 
-This project ships as a **HACS AppDaemon** app (custom repository only — not in the HACS default store).
-
-1. In Home Assistant, open **HACS** → enable AppDaemon discovery if needed → **Custom repositories**.
-2. Add this repository URL, category **AppDaemon**, and install **ha_smart_hvac**.
-3. Install from a **published GitHub Release** (HACS prefers releases over the default branch alone). After `v0.1.0`, Releases are cut automatically by CI when releasing changes merge to `main`.
-4. HACS downloads the package to the HA config tree under `appdaemon/apps/ha_smart_hvac/` (e.g. `/config/appdaemon/apps/ha_smart_hvac/` on many HAOS installs). If your AppDaemon add-on’s default apps directory is elsewhere (common after add-on v0.15+ under `addon_configs/…`), point `app_dir` at the **parent** of that folder so AppDaemon can import the package ([hacs/integration#4442](https://github.com/hacs/integration/issues/4442)):
-
-   ```yaml
-   appdaemon:
-     # HAOS / Supervised typical HA config mount; adjust if your install differs
-     app_dir: /config/appdaemon/apps
-   ```
-
-5. Create `apps.yaml` **beside** the downloaded `ha_smart_hvac/` under that `app_dir` (HACS only installs the package directory under `apps/`; the wiring example is **not** in the download). Copy the example from the GitHub repo and replace `YOUR_*` placeholders with your entity IDs (never commit live house IDs):
+1. Place the `ha_smart_hvac/` package under your AppDaemon apps directory (copy `apps/ha_smart_hvac/` from inside a [published GitHub Release](https://github.com/zhmachenkov-d/ha_smart_hvac/releases) source tarball, or from this repo’s `apps/ha_smart_hvac/`). After `v0.1.0`, Releases are cut automatically by CI when releasing changes merge to `main`.
+2. Create `apps.yaml` **beside** that package under the same `app_dir`. Copy the example from the GitHub repo and replace `YOUR_*` placeholders with your entity IDs (never commit live house IDs):
 
    [apps.yaml.example](https://raw.githubusercontent.com/zhmachenkov-d/ha_smart_hvac/main/apps.yaml.example)
 
    Use `module: ha_smart_hvac` and `class: HvacApp` as in the example. After wiring, calibrate feedforward and rise-rate auto-correct for the house: [docs/house-calibration.md](docs/house-calibration.md).
 
+3. Point AppDaemon `app_dir` at the parent of `ha_smart_hvac/` if it is not already the add-on default (see [`app_dir` examples](#app_dir-examples)).
+
 ## Layout
 
 | Path | Role |
 |------|------|
-| `apps/ha_smart_hvac/` | HVAC App package (`module: ha_smart_hvac`, `class: HvacApp`) — sole directory under `apps/` (HACS requirement) |
+| `apps/ha_smart_hvac/` | HVAC App package (`module: ha_smart_hvac`, `class: HvacApp`) — sole tracked directory under `apps/` |
 | `apps/apps.yaml` | Local house entity wiring (**gitignored** — copy from example) |
 | `apps.yaml.example` | Placeholder entity IDs only (repo root — not under `apps/`) |
 | `appdaemon/` | Exclusive Session AppDaemon config (`appdaemon.yaml`, secrets) |
@@ -98,16 +88,6 @@ Per the [AppDaemon add-on Paths](https://appdaemon.readthedocs.io/en/latest/ADDO
 appdaemon:
   # Explicit form of the add-on default (./apps under /config)
   app_dir: /config/apps
-```
-
-### 3. Stranger HACS install
-
-Same path as the Install section above: when the add-on default differs from the HACS download location, set:
-
-```yaml
-appdaemon:
-  # HAOS / Supervised typical HA config mount; adjust if your install differs
-  app_dir: /config/appdaemon/apps
 ```
 
 ## Quality checks

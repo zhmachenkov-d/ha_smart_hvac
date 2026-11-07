@@ -11,7 +11,7 @@ review_source: 'pinned'
 lenses_ran: ['quick']
 review_loop_iteration: 0
 context:
-  - '{project-root}/_bmad-output/initiative-gate-omega-c-on-saturation/epic-gate-omega-c-on-saturation/epic-gate-omega-c-on-saturation-retrospective.md'
+  - '{project-root}/_bmad-output/initiative-gate-omega-c-on-saturation/tickets/epic-gate-omega-c-on-saturation/epic-gate-omega-c-on-saturation-retrospective.md'
   - '{project-root}/_bmad-output/initiative-gate-omega-c-on-saturation/spec-gate-omega-c-on-saturation/control-tick-behaviors.md'
 ---
 

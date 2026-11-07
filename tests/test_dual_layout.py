@@ -1,8 +1,7 @@
-"""Dual-layout / HACS packaging invariants."""
+"""Dual-layout packaging invariants."""
 
 from __future__ import annotations
 
-import json
 import subprocess
 from pathlib import Path
 
@@ -22,7 +21,7 @@ def test_exclusive_session_app_dir_points_at_repo_apps():
 
 
 def test_apps_contains_only_package_directory():
-    """HACS AppDaemon: only one directory under apps/; no sibling files."""
+    """Tracked apps/ holds only the package directory; no sibling files."""
     apps = ROOT / "apps"
     tracked = subprocess.check_output(
         ["git", "ls-files", "apps"],
@@ -66,33 +65,21 @@ def test_history_has_no_live_apps_yaml_entity_ids():
     assert out.strip() == "", "filtered apps.yaml paths still present in history"
 
 
-def test_hacs_json_name():
-    data = json.loads((ROOT / "hacs.json").read_text(encoding="utf-8"))
-    assert data == {"name": "ha_smart_hvac", "render_readme": True}
-
-
-def test_validate_workflow_hacs_appdaemon():
-    path = ROOT / ".github" / "workflows" / "validate.yaml"
-    text = path.read_text(encoding="utf-8")
-    assert "hacs/action" in text
-    assert "category: appdaemon" in text
-
-
-def test_readme_production_and_stranger_app_dir_examples():
+def test_readme_production_app_dir_example():
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     assert "addon_configs/a0d7b954_appdaemon" in readme
     assert "app_dir: /config/apps" in readme
-    assert "app_dir: /config/appdaemon/apps" in readme
-    assert "hacs/integration#4442" in readme
     assert "appdaemon.readthedocs.io" in readme
+    assert "app_dir: /config/appdaemon/apps" not in readme
+    assert "hacs" not in readme.lower()
 
 
 def test_readme_install_first_before_exclusive_session():
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     install_markers = (
-        "Custom repositories",
-        "category **AppDaemon**",
+        "## Install (AppDaemon)",
         "published GitHub Release",
+        "apps.yaml.example",
     )
     for marker in install_markers:
         assert marker in readme
@@ -101,3 +88,13 @@ def test_readme_install_first_before_exclusive_session():
     run_script_idx = readme.index("./scripts/run-appdaemon")
     assert install_idx < exclusive_idx
     assert install_idx < run_script_idx
+
+
+def test_hacs_surface_removed():
+    assert not (ROOT / "hacs.json").exists()
+    assert not (ROOT / ".github" / "workflows" / "validate.yaml").exists()
+    workflows = ROOT / ".github" / "workflows"
+    for path in sorted(workflows.glob("*.yaml")) + sorted(workflows.glob("*.yml")):
+        text = path.read_text(encoding="utf-8")
+        assert "hacs/action" not in text, path
+        assert "category: appdaemon" not in text, path
