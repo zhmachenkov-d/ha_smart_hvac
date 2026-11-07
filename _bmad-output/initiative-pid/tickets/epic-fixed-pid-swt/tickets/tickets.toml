@@ -44,3 +44,51 @@ covers = []
 after = [3]
 hitl = false
 risk = "low"
+
+[[entry]]
+id = 5
+type = "story"
+title = "PID integral units and R7 skip hardening"
+description = "Closes the retrospective's law and skip items: integral in °C·h (dt = control_interval/3600, ki in 1/h) with yaml I-term limits in °C of water (i_term_min/i_term_max replace integral_min/integral_max; ki = 0 holds the I-term and ∫ at 0) and C4 defaults kp 1.0, ki 1.0/h, I-term [−10, +15] °C; R7 skip only when the plant entity already reads the rounded command (last commanded SWT is no longer a skip input), and no ∫ advance while the plant entity is unavailable; apps.yaml.example and docs/house-calibration.md describe the new keys and units. Entries 7 and 6 rely on these key names."
+verify = "Tests show: e = 0.2 °C for 3 ticks at 300 s gives an I-term of 0.05 °C and e = 1 °C over 12 ticks adds 1.0 °C (ki 1.0/h), with no single-tick rail; kp ≠ 1 changes u_pid; ∫ carries across two app ticks into the written SWT; the I-term reaches i_term_min; ki = 0 keeps the I-term at 0; with the plant already at a command reached off the 0.1 grid (raw 41.96 → 42.0) the call is skipped; last commanded equal but plant drifted → write; plant unavailable on equal-skip → ∫ unchanged; uv run pytest and uv run ruff check clean."
+covers = ["R1", "R7"]
+after = [4]
+hitl = false
+risk = "high"
+notes = ["Source: epic-fixed-pid-swt-retrospective.md A1, A2, A4 (SR1, SR2, VG1–VG4); C4 and R7 as re-rendered 2026-11-07 (initiative D15, D22).", "Beyond criteria: the plan's Verification includes a multi-tick trace with C4 defaults under the example bounds (40–55) and the house bounds (42–60); full multi-lens code review, not review: quick (retro A9)."]
+
+[[entry]]
+id = 7
+type = "story"
+title = "Commission parse hardening and legacy-key warning"
+description = "Commission parsing per epic C5: parse_config raises ConfigError for non-numeric or non-finite setpoint_min, setpoint_max, pid.*, base_water_temp and control_interval, negative kp/ki, an I-term range excluding 0, and base_water_temp outside [setpoint_min, setpoint_max]; the parsed config carries an ignored_keys field listing the legacy or unknown top-level and pid keys it ignored (outdoor_temperature and weather_feedforward named; AppDaemon's reserved app keys such as module and class are not reported) so a caller can check a yaml without AppDaemon, and the App logs them as one WARNING at initialize; docs/house-calibration.md says leftover keys are logged as a WARNING. Entry 6 checks the house yaml through ignored_keys."
+verify = "Tests show each bad commission value makes initialize log 'HVAC config error' instead of raising; args with legacy or unknown keys are reported by parse_config and logged as one WARNING naming them; the example yaml (with module and class) reports none; uv run pytest and uv run ruff check clean."
+covers = []
+after = [5]
+hitl = false
+risk = "medium"
+notes = ["Source: epic-fixed-pid-swt-retrospective.md A3 and the code part of A5 (PD1, SR4); split from entry 5 by user decision 2026-11-07."]
+
+[[entry]]
+id = 6
+type = "story"
+title = "Commission house apps.yaml for fixed PID"
+description = "Before editing, the operator copies apps/apps.yaml to apps/apps.yaml.pre-pid and adds apps/apps.yaml.pre-pid to .gitignore (house entity IDs; never committed). The operator then commissions the house apps/apps.yaml for the PID App: adds base_water_temp within [setpoint_min, setpoint_max] and the pid nest (entry 5's kp / ki / i_term_min / i_term_max keys, C4 defaults or house-chosen values), sets control_interval, and removes outdoor_temperature and weather_feedforward; house entity IDs stay unchanged. No live run: Exclusive Session commissioning waits for epic-pid-domain-docs."
+verify = "PYTHONPATH=apps uv run python -c \"import yaml; from ha_smart_hvac.config import parse_config; c = parse_config(yaml.safe_load(open('apps/apps.yaml'))['hvac']); assert not c.ignored_keys, c.ignored_keys\" succeeds; base_water_temp is within [setpoint_min, setpoint_max]; the entity IDs equal apps/apps.yaml.pre-pid."
+covers = ["R4"]
+after = [7]
+hitl = true
+risk = "medium"
+notes = ["Source: epic-fixed-pid-swt-retrospective.md A5 (SR4). Policy: ask before changing house entity IDs (AGENTS.md); only non-entity keys change here."]
+
+[[entry]]
+id = 8
+type = "story"
+title = "Refactor sweep 2"
+description = "Cleans findings deferred by entries 5–7 plus retrospective DU1 (write 0 + clear + log implemented three ways in hvac_app.py) EC1 (rounding after the clamp can exceed setpoint_max when the bounds carry more than one decimal), and last commanded SWT state if entry 5 left it unused (D22); no new scope."
+verify = "uv run pytest and uv run ruff check clean; one idle helper serves every write-0-and-clear path; a test with setpoint_max 55.06 never commands above it; no item deferred by entries 5–7 left unowned."
+covers = []
+after = [5, 7, 6]
+hitl = false
+risk = "low"
+notes = ["Source: epic-fixed-pid-swt-retrospective.md DU1, EC1; closing sweep added by user decision 2026-11-07."]

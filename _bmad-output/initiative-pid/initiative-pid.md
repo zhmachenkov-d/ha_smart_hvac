@@ -31,7 +31,7 @@ The house holds zone comfort via `clamp(base_water_temp + u_pid)` on a 300s cont
 4. **R4 (D1):** Outdoor Temperature, Weather Feedforward, CAP-7 rise-rate auto-correct, and `ff_auto_correct_state.json` are removed from the SWT path and commissioning; CONTEXT/AGENTS and a new ADR supersede ADR 0004.
 5. **R5 (D8):** Periodic `control_interval` (default 300s) is the only schedule that advances PID state and issues a demand-path SWT write.
 6. **R6 (D8):** Event listeners may clear immediately on idle / plant-off / fail paths; they must not write a new demand SWT or advance PID state.
-7. **R7 (D9):** After 0.1 °C rounding, if the value equals the last commanded SWT, the App skips the plant service call.
+7. **R7 (D9, D22):** After 0.1 °C rounding, the App skips the plant service call when the plant entity already reads that value; PID state does not advance while the plant entity is unavailable.
 8. **R8 (D2, D7):** Heating Demand stays as today; PID averages use only Zones with Heating Demand and per-zone yaml weights (omit → 1.0, then normalize); max Zone Error is not an SWT driver.
 9. **R9 (D4):** A later epic delivers RLS-based retune of PID gains without restoring Weather Feedforward.
 10. **R10 (D14):** Critical Zone selection is retained for diagnostics/logging only and must not drive Set Water Temperature; CONTEXT/AGENTS state diagnostics-only after CAP-7 removal.
@@ -49,7 +49,7 @@ The house holds zone comfort via `clamp(base_water_temp + u_pid)` on a 300s cont
 2. Idle writes `0` + clear; plant-off does not write + clear — same gate law as today.
 3. Weather Feedforward, CAP-7, and `ff_auto_correct_state.json` are gone from the water path; a new ADR supersedes 0004; CONTEXT/AGENTS match.
 4. Demand SWT writes and PID advances occur only on `control_interval` (default 300s); events clear without demand SWT writes.
-5. Equal rounded SWT skips the plant call; automated tests lock gates, rounding/skip, weighted demand averages, and absence of weather on the path.
+5. Equal rounded SWT skips the plant call only when the plant already reads it; automated tests lock gates, rounding/skip, weighted demand averages, and absence of weather on the path.
 6. RLS remains a planned later epic, not required to close the fixed-PID delivery.
 7. Critical Zone remains selectable for diagnostics only; docs state it does not drive SWT.
 
@@ -59,7 +59,7 @@ Capability boundary: AppDaemon `ha_smart_hvac` Set Water Temperature path, zone 
 
 - Touch point: `apps/ha_smart_hvac/` SWT path — replace FF with PID; owner: epic-fixed-pid-swt
 - Touch point: `apps/apps.yaml` / `apps.yaml.example` — `base_water_temp`, PID gains, zone weights, `control_interval` default 300; remove weather_feedforward nest; owner: epic-fixed-pid-swt
-- Touch point: `docs/adr/`, `CONTEXT.md`, `AGENTS.md` — supersede ADR 0004; owner: epic-pid-domain-docs
+- Touch point: `docs/adr/`, `CONTEXT.md`, `AGENTS.md`, `knowledge/` concept pages — supersede ADR 0004; owner: epic-pid-domain-docs
 - Operator note: do not commission live Exclusive Session on the new PID yaml until epic-pid-domain-docs closes (CONTEXT/ADR match the App).
 - Must not change: Exclusive Session (ADR 0001); Heating Demand definition via thermostat `hvac_action`
 
@@ -79,3 +79,4 @@ Capability boundary: AppDaemon `ha_smart_hvac` Set Water Temperature path, zone 
 - Decision: Slice approved — three epics in order: (1) fixed-PID SWT runtime / FF-kill, (2) ADR/CONTEXT/AGENTS, (3) RLS retune; no separate platform-baseline; epic 1 Done when excludes docs; R4 path owned by epic 1, R4 docs by epic 2 (2026-11-07).
 - Decision: Operator HITL/note between epic 1 and 2 — do not live-commission Exclusive Session until epic 2 closes; not an epic-1 acceptance check (2026-11-07).
 - Decision: Declined fold of docs into epic 1; sequential ship kept (party 2026-11-07).
+- Decision: Replan from the epic-fixed-pid-swt retrospective (`tickets/epic-fixed-pid-swt/epic-fixed-pid-swt-retrospective.md`): D15 supersedes Q1/D12 defaults (∫ in °C·h, ki 1/h, I-term limits in °C, defaults kp 1.0 / ki 1.0 / I-term [−10, +15] °C); D16/D22 revise R7 (skip when the plant already reads the command; no ∫ advance while the plant is unavailable); D17 accepts event-clear latency up to `control_interval` as an ADR input; D18 puts `knowledge/` in epic 2 with AGENTS.md first; D19–D21 add epic-1 stories 5–8 (integral units and R7 skip; parse hardening per D20; hitl house yaml; closing sweep). Production stays on v1.5.1 until then (2026-11-07).
