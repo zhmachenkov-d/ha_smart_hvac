@@ -2,6 +2,56 @@
 
 <!-- version list -->
 
+## v1.6.0 (2026-11-07)
+
+### Bug Fixes
+
+- **hvac**: Harden PID demand path after code review
+  ([`19b5b33`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/19b5b33ebff39443f5f21fd5efc6989870fd4737))
+
+### Chores
+
+- Apply HACS-removal code review patches
+  ([`56b7c13`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/56b7c13d650bbee3c949482d0b1350fbc2a248f1))
+
+- Remove live HACS packaging surface
+  ([`213e5a9`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/213e5a9ef00664991f4d44d7e82df7de7f70ce9f))
+
+- **bmad**: Capture multi-zone PID SWT initiative spec
+  ([`944b044`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/944b044ba10ab2ed283b57a0a80075f3a2f0dc4f))
+
+- **bmad**: Close HACS initiative and epic as done
+  ([`f75fc49`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/f75fc49037a1ebf556a71e7967f4cef7fd4e4db7))
+
+- **bmad**: Mark HACS stranger-install 1.1 done
+  ([`ee6d7dc`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/ee6d7dc98806b5d460a587f8ed85b1764764b658))
+
+- **bmad**: Mark story 1.1 fixed-gain PID SWT done
+  ([`690b369`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/690b3694987aff97423719d35b991c87d31dcc4e))
+
+- **bmad**: Plan epic 1 fixed-PID SWT stories
+  ([`d002710`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/d002710c25cba4da787b58c1d7059f747043dc7b))
+
+- **bmad**: Refine epic 1 fixed-gain PID SWT requirements
+  ([`5cad76f`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/5cad76f67858095cde3fff151ed5a22b294dc9e1))
+
+- **bmad**: Slice PID initiative into three sequential epics
+  ([`8d29c9d`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/8d29c9da4cfba5bf5b9e5523bd1931aeaccdc166))
+
+- **bmad**: Upgrade Method for Sofia and tickets/ layout
+  ([`a2ce596`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/a2ce596ac0f80f5b74961628ea121fe1127df316))
+
+### Documentation
+
+- **cap-8**: Close initiative after epic 2 retro remediations
+  ([`4f9ff7b`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/4f9ff7bbb82045bd339d65f42156903e3a1dcc91))
+
+### Features
+
+- **hvac**: Replace weather FF demand with fixed-gain PID SWT
+  ([`f09eb2c`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/f09eb2c823b0c2feaea30e218554cc926f1ada84))
+
+
 ## v1.5.1 (2026-10-19)
 
 ### Bug Fixes
