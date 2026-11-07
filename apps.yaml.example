@@ -7,8 +7,6 @@
 hvac:
   module: ha_smart_hvac
   class: HvacApp
-  # Parsed until entry 3; not a PID demand gate and not a control listener.
-  outdoor_temperature: sensor.YOUR_OUTDOOR_TEMPERATURE
   plant_management: switch.YOUR_PLANT_MANAGEMENT
   plant_setpoint: number.YOUR_PLANT_SETPOINT
   setpoint_min: 40
@@ -20,17 +18,6 @@ hvac:
     ki: 0.1
     integral_min: -50
     integral_max: 50
-  # Kept until entry 3 removes outdoor/FF/CAP-7 from package + commissioning yaml.
-  weather_feedforward:
-    base: 25
-    slope: 1.2
-    comfort_ref: 20
-    # Optional auto_correct nest — omit nest = E2 defaults (unused by PID demand path).
-    # auto_correct:
-    #   outdoor_gate_delta_k: 12
-    #   r_expected_c_per_h: 0.25
-    #   near_setpoint_eps_k: 0.3
-    #   e_sat_c_per_h: 0.25
   zones:
     - name: zone_one
       temperature: sensor.YOUR_ZONE_ONE_TEMPERATURE

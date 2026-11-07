@@ -51,21 +51,6 @@ class ZoneSnapshot:
 
 
 @dataclass(frozen=True)
-class WeatherFeedforwardConfig:
-    base: float
-    slope: float
-    comfort_ref: float
-
-
-@dataclass(frozen=True)
-class AutoCorrectConfig:
-    outdoor_gate_delta_k: float = 12.0
-    r_expected_c_per_h: float = 0.25
-    near_setpoint_eps_k: float = 0.3
-    e_sat_c_per_h: float = 0.25
-
-
-@dataclass(frozen=True)
 class PidConfig:
     kp: float = 1.0
     ki: float = 0.1
@@ -79,7 +64,6 @@ def plant_management_enabled(switch_state: str | None) -> bool:
 
 @dataclass(frozen=True)
 class HvacConfig:
-    outdoor_temperature: str
     plant_management: str
     plant_setpoint: str
     setpoint_min: float
@@ -87,6 +71,4 @@ class HvacConfig:
     control_interval: int
     base_water_temp: float
     pid: PidConfig
-    weather_feedforward: WeatherFeedforwardConfig
-    auto_correct: AutoCorrectConfig
     zones: tuple[ZoneConfig, ...]

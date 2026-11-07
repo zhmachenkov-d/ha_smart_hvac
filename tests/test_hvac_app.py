@@ -6,8 +6,8 @@ from unittest.mock import MagicMock
 import pytest
 
 from ha_smart_hvac.config import parse_config
-from ha_smart_hvac.ff_auto_correct import clamp
 from ha_smart_hvac.hvac_app import HvacApp
+from ha_smart_hvac.pid import clamp
 
 _SETPOINT_MIN = 40.0
 _SETPOINT_MAX = 55.0
@@ -26,7 +26,6 @@ _ZONE_NAME = "zone_one"
 
 def _tick_args() -> dict:
     return {
-        "outdoor_temperature": _OUTDOOR,
         "plant_management": _PLANT_MGMT,
         "plant_setpoint": _PLANT_SETPOINT,
         "setpoint_min": _SETPOINT_MIN,
@@ -38,11 +37,6 @@ def _tick_args() -> dict:
             "ki": _KI,
             "integral_min": -50,
             "integral_max": 50,
-        },
-        "weather_feedforward": {
-            "base": 25,
-            "slope": 1.2,
-            "comfort_ref": 20,
         },
         "zones": [
             {
@@ -74,7 +68,6 @@ def _tick_app(
     plant_setpoint: object = 45.0,
     zone_temp: float = 20.0,
     setpoint: float = 22.0,
-    outdoor: float = 0.0,
     hvac_action: str = "heating",
     plant_management: str = "on",
 ) -> HvacApp:
@@ -90,8 +83,6 @@ def _tick_app(
     def get_state(entity_id: str, attribute: str | None = None):
         if entity_id == _PLANT_MGMT:
             return plant_management
-        if entity_id == _OUTDOOR:
-            return outdoor
         if entity_id == _ZONE_TEMP:
             return zone_temp
         if entity_id == _PLANT_SETPOINT:
@@ -162,6 +153,7 @@ def test_initialize_outdoor_not_among_listeners() -> None:
     zone_two_temp = "sensor.zone_two_temp"
     climate_two = "climate.zone_two"
     args = _tick_args()
+    args["outdoor_temperature"] = _OUTDOOR
     args["zones"] = [
         {
             "name": "zone_one",
@@ -454,18 +446,17 @@ def test_partial_zone_skip_unavailable_thermostat_setpoint() -> None:
     assert any("thermostat unavailable" in m for m in _warn_msgs(app))
 
 
-def test_outdoor_missing_still_runs_demand() -> None:
-    app = _tick_app(
-        zone_temp=20.0,
-        setpoint=22.0,
-        outdoor="unavailable",
-        plant_setpoint=45.0,
-    )
+def test_stale_outdoor_key_unavailable_still_runs_demand() -> None:
+    app = _tick_app(zone_temp=20.0, setpoint=22.0, plant_setpoint=45.0)
+    args = _tick_args()
+    args["outdoor_temperature"] = _OUTDOOR
+    app._config = parse_config(args)
     expected = _expected_command(zone_temp=20.0, setpoint=22.0)
 
     app.control_tick({})
 
     assert _set_value_writes(app) == [expected]
+    assert all(c.args[0] != _OUTDOOR for c in app.get_state.call_args_list)
 
 
 def test_equal_rounded_skip_no_set_value() -> None:

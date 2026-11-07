@@ -11,7 +11,7 @@ AppDaemon apps for multi-zone OpenTherm HVAC control via Home Assistant.
 
    [apps.yaml.example](https://raw.githubusercontent.com/zhmachenkov-d/ha_smart_hvac/main/apps.yaml.example)
 
-   Use `module: ha_smart_hvac` and `class: HvacApp` as in the example. After wiring, calibrate feedforward and rise-rate auto-correct for the house: [docs/house-calibration.md](docs/house-calibration.md).
+   Use `module: ha_smart_hvac` and `class: HvacApp` as in the example. After wiring, commission the base water temperature and PID gains for the house: [docs/house-calibration.md](docs/house-calibration.md).
 
 3. Point AppDaemon `app_dir` at the parent of `ha_smart_hvac/` if it is not already the add-on default (see [`app_dir` examples](#app_dir-examples)).
 
@@ -23,7 +23,7 @@ AppDaemon apps for multi-zone OpenTherm HVAC control via Home Assistant.
 | `apps/apps.yaml` | Local house entity wiring (**gitignored** — copy from example) |
 | `apps.yaml.example` | Placeholder entity IDs only (repo root — not under `apps/`) |
 | `appdaemon/` | Exclusive Session AppDaemon config (`appdaemon.yaml`, secrets) |
-| `docs/house-calibration.md` | How to calibrate wiring, feedforward, and rise-rate auto-correct for a house |
+| `docs/house-calibration.md` | How to calibrate wiring, base water temperature, and PID gains for a house |
 
 Canonical Python lives at repo-root `apps/ha_smart_hvac/`. Exclusive Session config stays under `appdaemon/` and loads that tree via `app_dir: ../apps` (no symlink).
 
