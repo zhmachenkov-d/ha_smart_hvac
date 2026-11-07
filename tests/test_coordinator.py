@@ -70,7 +70,7 @@ def test_idle_thermostat_does_not_beat_heating_thermostat():
     zone = _zone("living_room", 19.0, [22.0, 24.0], ["heating", "idle"])
     assert zone.zone_error == 3.0
     assert has_heating_demand([zone]) is True
-    selected = select_max_error_demand_zone([zone], None)
+    selected = select_max_error_demand_zone([zone])
     assert selected is not None
     assert selected.name == "living_room"
 
@@ -86,7 +86,7 @@ def test_unavailable_only_is_not_demand():
     zone = _zone("living_room", 18.0, [22.0], [None])
     assert zone.has_heating_eligible is False
     assert has_heating_demand([zone]) is False
-    assert select_max_error_demand_zone([zone], None) is None
+    assert select_max_error_demand_zone([zone]) is None
 
 
 def test_zone_with_only_idle_thermostats_cannot_win_contention():
@@ -95,7 +95,7 @@ def test_zone_with_only_idle_thermostats_cannot_win_contention():
         _zone("living_room", 18.0, [21.0], ["heating"]),
     ]
     assert has_heating_demand(zones) is True
-    selected = select_max_error_demand_zone(zones, None)
+    selected = select_max_error_demand_zone(zones)
     assert selected is not None
     assert selected.name == "living_room"
     assert selected.zone_error == 3.0
@@ -106,7 +106,7 @@ def test_select_max_error_picks_largest_demand_error():
         _zone("living_room", 21.0, [22.0]),  # error 1
         _zone("bedroom", 17.0, [21.0]),  # error 4
     ]
-    selected = select_max_error_demand_zone(zones, None)
+    selected = select_max_error_demand_zone(zones)
     assert selected is not None
     assert selected.name == "bedroom"
 
@@ -118,28 +118,18 @@ def test_select_max_error_among_heating_including_non_positive():
         _zone("at_setpoint", 22.0, [22.0]),  # heating, error 0
     ]
     assert has_heating_demand(zones) is True
-    selected = select_max_error_demand_zone(zones, None)
+    selected = select_max_error_demand_zone(zones)
     assert selected is not None
     assert selected.name == "at_setpoint"
     assert selected.zone_error == 0.0
 
 
-def test_select_max_error_t_hold_keeps_previous_in_tie_set():
-    zones = [
-        _zone("alpha", 20.0, [22.0]),  # error 2
-        _zone("beta", 20.0, [22.0]),  # error 2
-    ]
-    selected = select_max_error_demand_zone(zones, "beta")
-    assert selected is not None
-    assert selected.name == "beta"
-
-
-def test_select_max_error_lex_when_no_previous_in_tie():
+def test_select_max_error_ties_break_lexicographically():
     zones = [
         _zone("alpha", 20.0, [22.0]),
         _zone("beta", 20.0, [22.0]),
     ]
-    selected = select_max_error_demand_zone(zones, None)
+    selected = select_max_error_demand_zone(zones)
     assert selected is not None
     assert selected.name == "alpha"
 
@@ -149,22 +139,22 @@ def test_select_max_error_ignores_non_demand_pool():
         _zone("satisfied", 22.0, [20.0], ["idle"]),  # non-heating
         _zone("cold", 18.0, [22.0]),  # heating, error 4
     ]
-    selected = select_max_error_demand_zone(zones, "satisfied")
+    selected = select_max_error_demand_zone(zones)
     assert selected is not None
     assert selected.name == "cold"
 
 
 def test_select_max_error_empty_or_no_demand():
-    assert select_max_error_demand_zone([], None) is None
+    assert select_max_error_demand_zone([]) is None
     zones = [_zone("warm", 22.0, [20.0], ["idle"])]
-    assert select_max_error_demand_zone(zones, None) is None
+    assert select_max_error_demand_zone(zones) is None
 
 
 def test_select_max_error_heating_nan_still_returns_zone():
     """Non-finite zone_error stays in the Critical Zone demand pool."""
     zones = [_zone("zone_a", float("nan"), [22.0])]
     assert has_heating_demand(zones) is True
-    selected = select_max_error_demand_zone(zones, "zone_a")
+    selected = select_max_error_demand_zone(zones)
     assert selected is not None
     assert selected.name == "zone_a"
 
@@ -174,6 +164,6 @@ def test_select_max_error_prefers_finite_over_nan():
         _zone("nan_zone", float("nan"), [22.0]),
         _zone("cold", 18.0, [22.0]),  # error 4
     ]
-    selected = select_max_error_demand_zone(zones, None)
+    selected = select_max_error_demand_zone(zones)
     assert selected is not None
     assert selected.name == "cold"

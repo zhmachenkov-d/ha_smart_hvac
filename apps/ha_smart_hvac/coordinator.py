@@ -16,16 +16,13 @@ def has_heating_demand(zones: list[ZoneSnapshot]) -> bool:
     return any(z.has_heating_eligible for z in zones)
 
 
-def select_max_error_demand_zone(
-    zones: list[ZoneSnapshot], previous_name: str | None
-) -> ZoneSnapshot | None:
+def select_max_error_demand_zone(zones: list[ZoneSnapshot]) -> ZoneSnapshot | None:
     """Select the max Zone Error demand zone for diagnostics (Critical Zone).
 
     Among zones with Heating Demand (has_heating_eligible), pick the largest
     finite error (may be ≤ 0). Non-finite errors rank below any finite; if all
-    demand errors are non-finite, still return a zone from that pool. T-hold:
-    keep ``previous_name`` while it remains in the max-error tie set; otherwise
-    break ties by lexicographic ``name``. Does not drive Set Water Temperature.
+    demand errors are non-finite, still return a zone from that pool. Ties
+    break by lexicographic ``name``. Does not drive Set Water Temperature.
     """
     demand = [z for z in zones if z.has_heating_eligible]
     if not demand:
@@ -36,8 +33,4 @@ def select_max_error_demand_zone(
         tie_set = [z for z in finite if z.zone_error == max_error]
     else:
         tie_set = demand
-    if previous_name is not None:
-        for zone in tie_set:
-            if zone.name == previous_name:
-                return zone
     return min(tie_set, key=lambda z: z.name)

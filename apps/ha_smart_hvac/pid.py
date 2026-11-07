@@ -66,9 +66,8 @@ def evaluate_demand(
     integral_min: float,
     integral_max: float,
     dt: float,
-    advance_integral: bool,
 ) -> PidResult | None:
-    """Compute PI command; optionally step ∫ on tick (with saturation freeze).
+    """Compute PI command and step ∫ (tick-owned; saturation freeze applies).
 
     Returns None when there are no demand contributions or weight sum ≤ 0
     (caller should take the idle path).
@@ -82,11 +81,10 @@ def evaluate_demand(
     command = round(clamp(raw, setpoint_min, setpoint_max), 1)
 
     new_integral = integral
-    if advance_integral:
-        saturated_high = raw > setpoint_max and e > 0
-        saturated_low = raw < setpoint_min and e < 0
-        if not (saturated_high or saturated_low):
-            new_integral = clamp(integral + e * dt, integral_min, integral_max)
+    saturated_high = raw > setpoint_max and e > 0
+    saturated_low = raw < setpoint_min and e < 0
+    if not (saturated_high or saturated_low):
+        new_integral = clamp(integral + e * dt, integral_min, integral_max)
 
     return PidResult(
         e=e,
