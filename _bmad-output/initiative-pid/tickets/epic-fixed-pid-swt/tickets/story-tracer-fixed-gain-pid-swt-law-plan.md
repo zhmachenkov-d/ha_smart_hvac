@@ -84,11 +84,11 @@ context: []
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `apps/ha_smart_hvac/pid.py` -- add fixed-gain PI + weighted averages + sat. freeze + round/clamp helper -- isolates R1 math from AppDaemon
-- [ ] `apps/ha_smart_hvac/models.py` + `config.py` -- parse `base_water_temp`, `pid` nest, zone `weight`, default `control_interval` 300 -- commissioning surface
-- [ ] `apps/ha_smart_hvac/hvac_app.py` -- wire PID demand path, clear inventory, round/last-commanded skip; stop outdoor listener; Floor demand INFO; stop FfAutoCorrector for SWT; integral only on tick -- runtime tracer
-- [ ] `apps.yaml.example` -- base/PID/weights/interval 300 + starting-defaults comment; weather/outdoor non-gating until entry 3 -- commission template
-- [ ] `tests/test_pid.py` + `tests/test_hvac_app.py` + `tests/test_config.py` -- lock I/O matrix and ACs -- prove verify clause
+- [x] `apps/ha_smart_hvac/pid.py` -- add fixed-gain PI + weighted averages + sat. freeze + round/clamp helper -- isolates R1 math from AppDaemon
+- [x] `apps/ha_smart_hvac/models.py` + `config.py` -- parse `base_water_temp`, `pid` nest, zone `weight`, default `control_interval` 300 -- commissioning surface
+- [x] `apps/ha_smart_hvac/hvac_app.py` -- wire PID demand path, clear inventory, round/last-commanded skip; stop outdoor listener; Floor demand INFO; stop FfAutoCorrector for SWT; integral only on tick -- runtime tracer
+- [x] `apps.yaml.example` -- base/PID/weights/interval 300 + starting-defaults comment; weather/outdoor non-gating until entry 3 -- commission template
+- [x] `tests/test_pid.py` + `tests/test_hvac_app.py` + `tests/test_config.py` -- lock I/O matrix and ACs -- prove verify clause
 
 **Acceptance Criteria:**
 - Given Plant Management on and Heating Demand with valid weighted zone readings and unsaturated command, when `control_tick` runs, then SWT written is `round(clamp(base_water_temp + u_pid), 1)` where per-zone `Tset` is the max heating-thermostat setpoint and `Tair` is `zone_temp`, the integral advances by `e·dt` (then clamped), and Critical Zone selection does not change that SWT value.

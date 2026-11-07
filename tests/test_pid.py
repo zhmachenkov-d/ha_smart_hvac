@@ -30,7 +30,6 @@ def _eval(
     zones: list[ZoneSnapshot],
     *,
     integral: float = 0.0,
-    advance: bool = True,
     dt: float = 300.0,
     base: float = 40.0,
     kp: float = 1.0,
@@ -51,7 +50,6 @@ def _eval(
         integral_min=integral_min,
         integral_max=integral_max,
         dt=dt,
-        advance_integral=advance,
     )
 
 
@@ -107,7 +105,7 @@ def test_zero_weight_sum_returns_none() -> None:
 
 def test_unsaturated_tick_advances_integral_then_clamps() -> None:
     zones = [_zone("a", 20.0, [22.0])]
-    result = _eval(zones, integral=0.0, advance=True, dt=300.0)
+    result = _eval(zones, integral=0.0, dt=300.0)
     assert result is not None
     assert result.e == pytest.approx(2.0)
     assert result.u_pid == pytest.approx(2.0)
@@ -117,19 +115,11 @@ def test_unsaturated_tick_advances_integral_then_clamps() -> None:
     assert result.integral == pytest.approx(50.0)
 
 
-def test_no_advance_keeps_integral() -> None:
-    zones = [_zone("a", 20.0, [22.0])]
-    result = _eval(zones, integral=5.0, advance=False, dt=300.0)
-    assert result is not None
-    assert result.integral == pytest.approx(5.0)
-    assert result.command == pytest.approx(round(40.0 + 1.0 * 2.0 + 0.1 * 5.0, 1))
-
-
 def test_saturation_freeze_high_skips_integral_step() -> None:
     """raw > max and e > 0 → write clamp; do not apply ∫ += e·dt."""
     zones = [_zone("a", 10.0, [30.0])]  # e = 20
     # base + kp*e + ki*∫ = 40 + 20 + 0 = 60 > 55
-    result = _eval(zones, integral=0.0, advance=True, base=40.0, lo=40.0, hi=55.0)
+    result = _eval(zones, integral=0.0, base=40.0, lo=40.0, hi=55.0)
     assert result is not None
     assert result.raw > 55.0
     assert result.e > 0
@@ -141,7 +131,7 @@ def test_saturation_freeze_low_skips_integral_step() -> None:
     """raw < min and e < 0 → freeze ∫."""
     zones = [_zone("a", 30.0, [20.0])]  # e = -10
     # base + u_pid = 40 - 10 = 30 < 40
-    result = _eval(zones, integral=0.0, advance=True, base=40.0, lo=40.0, hi=55.0)
+    result = _eval(zones, integral=0.0, base=40.0, lo=40.0, hi=55.0)
     assert result is not None
     assert result.raw < 40.0
     assert result.e < 0
@@ -156,7 +146,6 @@ def test_no_freeze_when_sat_opposite_sign() -> None:
     result = _eval(
         zones,
         integral=300.0,
-        advance=True,
         base=40.0,
         lo=40.0,
         hi=55.0,

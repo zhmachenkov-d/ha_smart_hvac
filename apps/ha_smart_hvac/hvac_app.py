@@ -108,7 +108,6 @@ class HvacApp(hass.Hass):
             integral_min=pid.integral_min,
             integral_max=pid.integral_max,
             dt=float(config.control_interval),
-            advance_integral=True,
         )
         if result is None:
             self._write_setpoint(0.0)
@@ -116,7 +115,7 @@ class HvacApp(hass.Hass):
             self.log("Demand zone weights unusable; setpoint 0", level="WARNING")
             return
 
-        critical = select_max_error_demand_zone(zones, None)
+        critical = select_max_error_demand_zone(zones)
         if self._last_commanded is not None and result.command == self._last_commanded:
             self._integral = result.integral
             self._log_demand_success(result, critical)
