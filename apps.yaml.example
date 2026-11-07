@@ -13,11 +13,13 @@ hvac:
   setpoint_max: 55
   control_interval: 300
   base_water_temp: 40
+  # kp: °C water per °C air error. ki: 1/h (∫ is °C·h). i_term_*: bounds on
+  # ki·∫ in °C of water — independent of control_interval.
   pid:
     kp: 1.0
-    ki: 0.1
-    integral_min: -50
-    integral_max: 50
+    ki: 1.0
+    i_term_min: -10
+    i_term_max: 15
   zones:
     - name: zone_one
       temperature: sensor.YOUR_ZONE_ONE_TEMPERATURE

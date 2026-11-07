@@ -60,15 +60,15 @@ def _parse_pid(raw: Any) -> PidConfig:
     if not isinstance(raw, dict):
         raise ConfigError("pid must be a mapping")
     defaults = PidConfig()
-    integral_min = float(raw.get("integral_min", defaults.integral_min))
-    integral_max = float(raw.get("integral_max", defaults.integral_max))
-    if integral_min >= integral_max:
-        raise ConfigError("pid.integral_min must be less than integral_max")
+    i_term_min = float(raw.get("i_term_min", defaults.i_term_min))
+    i_term_max = float(raw.get("i_term_max", defaults.i_term_max))
+    if i_term_min >= i_term_max:
+        raise ConfigError("pid.i_term_min must be less than i_term_max")
     return PidConfig(
         kp=float(raw.get("kp", defaults.kp)),
         ki=float(raw.get("ki", defaults.ki)),
-        integral_min=integral_min,
-        integral_max=integral_max,
+        i_term_min=i_term_min,
+        i_term_max=i_term_max,
     )
 
 

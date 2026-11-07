@@ -53,9 +53,9 @@ class ZoneSnapshot:
 @dataclass(frozen=True)
 class PidConfig:
     kp: float = 1.0
-    ki: float = 0.1
-    integral_min: float = -50.0
-    integral_max: float = 50.0
+    ki: float = 1.0
+    i_term_min: float = -10.0
+    i_term_max: float = 15.0
 
 
 def plant_management_enabled(switch_state: str | None) -> bool:
