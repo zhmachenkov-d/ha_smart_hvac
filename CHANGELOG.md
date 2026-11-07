@@ -2,6 +2,24 @@
 
 <!-- version list -->
 
+## v1.7.1 (2026-11-07)
+
+### Bug Fixes
+
+- **hvac**: Apply 1.3 code review patches
+  ([`2e72f38`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/2e72f3887c2ee642a8a9e966e634d80939545caa))
+
+### Chores
+
+- **bmad**: Mark story 1.3 remove outdoor/FF/CAP-7 done
+  ([`89abb3e`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/89abb3ec8d1de1707ee74041b546e57919ce8d9b))
+
+### Refactoring
+
+- **hvac**: Remove outdoor, weather feedforward, and CAP-7 from the app
+  ([`a305049`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/a30504990e73832f7b33fd87b0317159b2c86c44))
+
+
 ## v1.7.0 (2026-11-07)
 
 ### Bug Fixes
