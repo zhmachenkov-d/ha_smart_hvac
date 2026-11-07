@@ -27,6 +27,7 @@ def _zone(
 
 
 _DT_HOURS = 300.0 / 3600.0
+_KI = 1.0  # C4 default ki (1/h); _eval's default
 
 
 def _eval(
@@ -36,7 +37,7 @@ def _eval(
     dt_hours: float = _DT_HOURS,
     base: float = 40.0,
     kp: float = 1.0,
-    ki: float = 1.0,
+    ki: float = _KI,
     lo: float = 40.0,
     hi: float = 55.0,
     i_term_min: float = -10.0,
@@ -170,18 +171,18 @@ def test_small_error_three_ticks_i_term() -> None:
     zones = [_zone("a", 21.8, [22.0])]
     results = _run_ticks(zones, 3)
     assert results[-1].e == pytest.approx(0.2)
-    assert 1.0 * results[-1].integral == pytest.approx(0.05)
+    assert _KI * results[-1].integral == pytest.approx(0.05)
 
 
 def test_full_hour_i_term_one_degree_no_rail() -> None:
     """Matrix row 2: e = 1 for 12 ticks → I-term +1.0 °C; no tick hits a rail."""
     zones = [_zone("a", 21.0, [22.0])]
     results = _run_ticks(zones, 12)
-    i_terms = [1.0 * r.integral for r in results]
+    i_terms = [_KI * r.integral for r in results]
     assert i_terms[-1] == pytest.approx(1.0)
     assert all(-10.0 < i < 15.0 for i in i_terms)
     steps = [b - a for a, b in zip([0.0, *i_terms], i_terms, strict=False)]
-    assert all(step == pytest.approx(1.0 / 12.0) for step in steps)
+    assert all(step == pytest.approx(_KI * 1.0 * _DT_HOURS) for step in steps)
 
 
 @pytest.mark.parametrize("ki", [1.0, 2.0])
@@ -237,9 +238,10 @@ def test_multi_tick_trace_constant_error(
     zones = [_zone("a", 21.0, [22.0])]
     results = _run_ticks(zones, 200, base=lo, lo=lo, hi=hi)
     commands = [r.command for r in results]
-    final_i_term = 1.0 * results[-1].integral
+    final_i_term = _KI * results[-1].integral
+    i_term_step = _KI * 1.0 * _DT_HOURS  # ki·e·dt_hours
 
-    max_step = 1.0 * 1.0 * _DT_HOURS + 0.1 + 1e-9
+    max_step = i_term_step + 0.1 + 1e-9
     for prev, cur in zip(commands, commands[1:], strict=False):
         assert abs(cur - prev) <= max_step
     assert all(lo <= c <= hi for c in commands)
@@ -249,5 +251,8 @@ def test_multi_tick_trace_constant_error(
     else:
         assert final_i_term == pytest.approx(expected_i_term, abs=0.1)
         assert final_i_term < 15.0
-        # freeze holds once raw > 55: I-term never grows past 14 (+ float noise)
-        assert max(r.integral for r in results) <= expected_i_term + 1e-6
+        # freeze needs raw = 41 + I strictly > 55: in exact arithmetic I = 14
+        # gives raw == 55 and steps once more, so allow one step past 14.
+        max_i_term = max(_KI * r.integral for r in results)
+        upper = expected_i_term + i_term_step + 1e-6
+        assert expected_i_term - 1e-6 <= max_i_term <= upper

@@ -554,12 +554,48 @@ def test_constant_error_ramps_about_one_twelfth_per_tick() -> None:
         app.control_tick({})
         readings.append(plant["value"])
 
-    assert readings[0] == pytest.approx(41.0)
-    max_step = _KI * 1.0 * _DT_HOURS + 0.1 + 1e-9
+    e = 1.0
+    assert readings[0] == pytest.approx(_BASE + _KP * e)
+    max_step = _KI * e * _DT_HOURS + 0.1 + 1e-9
     for prev, cur in zip(readings, readings[1:], strict=False):
         assert 0.0 <= cur - prev <= max_step
+    assert app._integral == pytest.approx(e * 12 * _DT_HOURS)  # one hour: e·1 h
+    assert readings[-1] == pytest.approx(
+        round(_BASE + _KP * e + _KI * e * 11 * _DT_HOURS, 1)
+    )
+
+
+def test_distinct_gains_wire_kp_and_ki_into_tick() -> None:
+    """kp ≠ ki at app level: swapped or merged gains change the written SWT."""
+    args = _tick_args()
+    args["pid"] = {**args["pid"], "kp": 2.0, "ki": 0.5}
+    app = _tick_app(zone_temp=20.0, setpoint=22.0, plant_setpoint=45.0)
+    app._config = parse_config(args)
+    app._integral = 4.0  # I-term 0.5·4 = 2 °C
+
+    app.control_tick({})
+
+    # e=2: 40 + 2·2 + 0.5·4 = 46.0 (swap → 49.0; ki=kp → 52.0; kp=ki → 43.0)
+    assert _set_value_writes(app) == [46.0]
+    # ∫ step does not involve kp: 4 + e·dt_hours
+    assert app._integral == pytest.approx(4.0 + 2.0 * _DT_HOURS)
+
+
+@pytest.mark.parametrize("interval", [60, 300])
+def test_one_hour_of_ticks_same_integral_at_any_interval(interval: int) -> None:
+    """∫ is °C·h: one hour of ticks adds e·1 h for any control_interval (house: 60)."""
+    args = _tick_args()
+    args["control_interval"] = interval
+    app = _tick_app(zone_temp=21.0, setpoint=22.0, plant_setpoint=45.0)
+    app._config = parse_config(args)
+    _echo_plant(app, 45.0)
+
+    app.control_tick({})
+    assert app._integral == pytest.approx(1.0 * interval / 3600.0)
+
+    for _ in range(3600 // interval - 1):
+        app.control_tick({})
     assert app._integral == pytest.approx(1.0)
-    assert readings[-1] == pytest.approx(round(41.0 + 11.0 / 12.0, 1))
 
 
 def test_plant_on_idle_writes_zero_and_clears() -> None:
@@ -629,7 +665,7 @@ def test_demand_fail_write_aborts_without_success_info() -> None:
     assert _set_value_writes(app) == []
     assert not any("command=" in m for m in _info_msgs(app))
     assert any("Plant setpoint unavailable" in m for m in _warn_msgs(app))
-    # decision A: ∫ advances only after successful write
+    # R7: ∫ advances only when the plant entity is readable (written or already equal)
     assert app._integral == pytest.approx(0.0)
     assert app._last_commanded is None
 

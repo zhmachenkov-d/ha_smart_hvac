@@ -23,3 +23,7 @@
 ## Deferred from: party review of story-pid-integral-units-and-r7-skip-hardening-plan (2026-11-07)
 
 - House `apps/apps.yaml` sets no `base_water_temp` (default 40) while `setpoint_min` is 42: with D15 `ki 1.0/h` the I-term must climb ~(2 − kp·e) °C before the command leaves the minimum — about 3 h at e = 0.5 °C. Commission `base_water_temp ≥ setpoint_min` (or accept the lag) in entry 6 (hitl house yaml); not a code defect, out of scope for entry 5.
+
+## Deferred from: code review of story-pid-integral-units-and-r7-skip-hardening-plan (2026-11-07)
+
+- `evaluate_demand` (`apps/ha_smart_hvac/pid.py`) uses ∫ as passed for the command, so with an I-term range that excludes 0 (e.g. `i_term_min > 0`) the command applies I = 0 (start/after clear) or a frozen value outside `[i_term_min, i_term_max]`. Pre-existing with `integral_min/max`; entry 1.7 (C5/D20) rejects such ranges at parse time.

@@ -2,7 +2,9 @@
 
 Units: e in °C of air; ∫ in °C·h (e integrated over hours); ``kp`` in °C water
 per °C air; ``ki`` in 1/h, so the I-term ``ki·∫`` is °C of water. The I-term is
-bounded by ``i_term_min`` / ``i_term_max`` (°C water), so changing the control
+bounded by ``i_term_min`` / ``i_term_max`` (°C water). Each periodic tick that
+steps adds ``e·control_interval/3600`` (the configured interval, not measured
+elapsed time; frozen or skipped ticks add nothing), so changing the control
 interval does not rescale the effective Ki.
 """
 

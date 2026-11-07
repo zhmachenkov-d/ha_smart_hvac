@@ -3,7 +3,7 @@ title: '1.5 PID integral units and R7 skip hardening'
 type: 'bugfix'
 ticket: '5'
 created: '2026-11-07'
-status: 'built'
+status: done
 baseline_revision: '94880392184ee414fcf31aa130418be82a5dcd41'
 route: 'full'
 route_source: 'auto'
@@ -106,3 +106,35 @@ Under the example commission (base = `setpoint_min`) `i_term_min` is reachable o
 - `uv run pytest` -- expected: all green
 - `uv run ruff check apps tests && uv run ruff format --check apps tests` -- expected: clean
 - `rg -n "integral_min|integral_max" apps tests apps.yaml.example docs` -- expected: only the test asserting old keys are ignored and the doc's upgrade note
+
+## Code Review
+
+### 2026-11-07
+
+**Code review complete.** 0 `decision-needed`, 8 `patch`, 1 `defer`, 16 rejected. Lenses: blind-hunter, edge-case-hunter, verification-gap, intent-alignment (full multi-lens, retro A9).
+
+- [x] [Review][Patch] App-level tests cannot distinguish kp from ki (`_KP` = `_KI` = 1.0); add a tick test with kp 2.0, ki 0.5 and seeded ∫ asserting written SWT and stepped ∫ [tests/test_hvac_app.py:16]
+- [x] [Review][Patch] `dt_hours` wiring tested only at 300 s while the house runs `control_interval: 60`; parametrize over 60 and 300 (one hour → same ∫) [apps/ha_smart_hvac/hvac_app.py:110]
+- [x] [Review][Patch] Multi-tick trace asserts ∫ never exceeds 14, true only via float noise (exact raw == 55 does not freeze); bound 14 ≤ I ≤ 14 + ki·e·dt_hours [tests/test_pid.py:253]
+- [x] [Review][Patch] Upgrade note: state old per-second `ki` × 3600 = per-hour `ki`, or delete `ki` to take the default [docs/house-calibration.md]
+- [x] [Review][Patch] "time-based, not tick-based" overstates: ∫ adds the configured interval per periodic tick that steps; held ticks add nothing [docs/house-calibration.md]
+- [x] [Review][Patch] Calibration doc: `base_water_temp` < `setpoint_min` gives hours of dead time at `ki 1.0/h` [docs/house-calibration.md]
+- [x] [Review][Patch] Tests hard-code ki literal 1.0 in I-term/step expectations; use the ki in use [tests/test_pid.py:240]
+- [x] [Review][Patch] Stale comment "∫ advances only after successful write" (now: only when the plant is readable) [tests/test_hvac_app.py:632]
+- [x] [Review][Defer] I-term range excluding 0 lets the command use an I-term outside bounds while ∫ = 0 or frozen [apps/ha_smart_hvac/pid.py:91] — deferred: pre-existing with integral_min/max; parse rejection is entry 1.7 (C5/D20)
+
+**Rejected**
+
+- false — ∫ advances on writes the plant never applies: by design (plan Always: ∫ advances when plant readable; plan Assumes accepts echo mismatch); ∫ stays clamped.
+- maybe-false — exact `current == value` may miss on float noise / off-grid plant readback (2 findings): settle by reading the live state string of the plant entity; if real only an extra write per tick (low).
+- false — risk/review-depth mismatch: this run is the full multi-lens review.
+- false — ki = 0 freeze path returns passed ∫: App ∫ starts at 0 and config is fixed per instance.
+- false — `i_term_min` reached only from seeded ∫: plan-prescribed fixture; Verify satisfied.
+- false — off-grid skip test passes on old code: intentionally locks VG4; R7 locked by drift/unavailable tests.
+- false — "house bounds" relabelled: recorded party decision (house base 40).
+- low — log lacks I-term / written-skipped flag: not a regression; flag changes `_write_setpoint` contract.
+- low — no ∫-resume-after-unavailable test: no state held, ordinary path already covered.
+- low — tests assert write-only `_last_commanded`: removed together with the field in entry 1.8.
+- low — legacy-key test shapes: entry 1.7 scope.
+- low — unavailable with a different command untested: same code path as the tested case.
+- (duplicates merged: kp==ki ×2, interval ×2, float trace ×2.)
