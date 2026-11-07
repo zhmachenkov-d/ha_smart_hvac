@@ -3,7 +3,7 @@ title: '1.2 Tick-owned PID advance and event clear-only'
 type: 'feature'
 ticket: '2'
 created: '2026-11-07'
-status: 'built'
+status: done
 baseline_revision: '7644c86e33316acc490e3af023091edebad563c8'
 route: 'oneshot'
 route_source: 'auto'
