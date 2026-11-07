@@ -6,7 +6,7 @@ AppDaemon apps for multi-zone OpenTherm HVAC control via Home Assistant.
 
 ## Install (AppDaemon)
 
-1. Place the `ha_smart_hvac/` package under your AppDaemon apps directory (copy from a [published GitHub Release](https://github.com/zhmachenkov-d/ha_smart_hvac/releases) tarball or from this repo’s `apps/ha_smart_hvac/`). After `v0.1.0`, Releases are cut automatically by CI when releasing changes merge to `main`.
+1. Place the `ha_smart_hvac/` package under your AppDaemon apps directory (copy `apps/ha_smart_hvac/` from inside a [published GitHub Release](https://github.com/zhmachenkov-d/ha_smart_hvac/releases) source tarball, or from this repo’s `apps/ha_smart_hvac/`). After `v0.1.0`, Releases are cut automatically by CI when releasing changes merge to `main`.
 2. Create `apps.yaml` **beside** that package under the same `app_dir`. Copy the example from the GitHub repo and replace `YOUR_*` placeholders with your entity IDs (never commit live house IDs):
 
    [apps.yaml.example](https://raw.githubusercontent.com/zhmachenkov-d/ha_smart_hvac/main/apps.yaml.example)

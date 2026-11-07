@@ -47,6 +47,7 @@ Oneshot: ~5 mechanical files (delete 2, edit README/example/tests); LOC ≤100. 
 ## Review Triage Log
 
 - context-free: (none) — no findings to triage.
+- 2026-11-07 full: 3 patch applied (README tarball path, apps.yaml.example comment, workflow HACS-scan); 1 defer (initiative Done-when/R4); 9 rejected.
 
 ## Verification
 
@@ -54,3 +55,25 @@ Oneshot: ~5 mechanical files (delete 2, edit README/example/tests); LOC ≤100. 
 - `uv run pytest tests/test_dual_layout.py` -- expected: pass; no asserts on `hacs.json` / `hacs/action` / HACS install markers
 - `uv run pytest` -- expected: full suite pass
 - `uv run ruff check apps tests` -- expected: clean
+
+## Code Review
+
+### 2026-11-07T08:32:57+00:00
+
+**Code review complete.** 0 `decision-needed`, 3 `patch`, 1 `defer`, 9 rejected.
+
+- [x] [Review][Patch] Clarify Release tarball nest path in Install step 1 [README.md:9]
+- [x] [Review][Patch] Widen apps.yaml.example app_dir comment beyond Production-only [apps.yaml.example:2]
+- [x] [Review][Patch] Strengthen HACS-removal regression beyond two fixed paths [tests/test_dual_layout.py:93]
+- [x] [Review][Defer] Initiative Done-when / R4 still assume live HACS publish surface [initiative-hacs.md:27] — deferred: intentional keep of `_bmad-output` HACS history; supersede/cancel/retarget is board hygiene outside this oneshot live-surface diff
+
+Rejected:
+- missing HACS→manual migration docs — false: locked intent drops live HACS path and README `hacs` string; migration prose conflicts with that
+- undocumented `/config/appdaemon/apps` after stranger example removal — false: locked decision explicitly drops that example and keeps Exclusive Session + Production `/config/apps`
+- no durable in-repo ruleset reminder for `validate-hacs` — false: active ruleset requires only `pr-title` and `pr-commits`; orphaned-check outcome does not occur
+- README substring ban blocks honest former-HACS wording — false: matches plan Implementation Notes (“no `hacs` string left in README”) and reading C locked by tests
+- no replacement CI packaging gate after deleting Validate — false: intent did not require a new gate; dual-layout/release tests remain
+- Layout table omits post-HACS rationale for sole tracked `apps/` package — low: unlikely everyday harm; fix would add speculative maintainer prose
+- install-order README markers can pass without procedure assertions — low: current README still has place/wire/app_dir steps; strengthening markers is speculative
+- thin plan audit trail (`ticket: ''`, empty change log) — rejected: fix would edit the plan under review
+- branch ruleset may still require deleted `validate-hacs` — false: ruleset `24390720` required checks are `pr-title`, `pr-commits` only

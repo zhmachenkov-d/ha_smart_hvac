@@ -93,3 +93,8 @@ def test_readme_install_first_before_exclusive_session():
 def test_hacs_surface_removed():
     assert not (ROOT / "hacs.json").exists()
     assert not (ROOT / ".github" / "workflows" / "validate.yaml").exists()
+    workflows = ROOT / ".github" / "workflows"
+    for path in sorted(workflows.glob("*.yaml")) + sorted(workflows.glob("*.yml")):
+        text = path.read_text(encoding="utf-8")
+        assert "hacs/action" not in text, path
+        assert "category: appdaemon" not in text, path
