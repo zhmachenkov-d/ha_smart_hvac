@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## v1.7.0 (2026-11-07)
+
+### Bug Fixes
+
+- **hvac**: Apply 1.2 code review patches
+  ([`a66917e`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/a66917e55ed25b3f5bc007781220801f2cc504c3))
+
+### Chores
+
+- **bmad**: Mark story 1.2 tick-owned PID advance done
+  ([`30fa193`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/30fa193282bf0a3f920c24163e0be4c99cd741df))
+
+
 ## v1.6.0 (2026-11-07)
 
 ### Bug Fixes
