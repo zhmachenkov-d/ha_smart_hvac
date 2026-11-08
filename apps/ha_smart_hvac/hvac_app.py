@@ -14,7 +14,8 @@ from ha_smart_hvac.models import (
     ZoneSnapshot,
     plant_management_enabled,
 )
-from ha_smart_hvac.pid import PidResult, evaluate_demand
+from ha_smart_hvac.pid import PidResult, evaluate_demand, weighted_error
+from ha_smart_hvac.rls import RlsState, imc_gains, rls_step
 
 
 class HvacApp(hass.Hass):
@@ -32,6 +33,7 @@ class HvacApp(hass.Hass):
             )
 
         self._integral = 0.0
+        self._rls = RlsState()
 
         self._register_control_listeners()
         self.run_every(
@@ -57,6 +59,8 @@ class HvacApp(hass.Hass):
 
     def _clear_pid_ephemeral(self) -> None:
         self._integral = 0.0
+        # Wipe y_prev only among RLS bookkeeping; keep θ/P, last u, last-good.
+        self._rls.y_prev = None
 
     def _gate_prelude(self) -> list[ZoneSnapshot] | None:
         """Plant Management / Heating Demand prelude. Zones on demand, else None."""
@@ -96,14 +100,52 @@ class HvacApp(hass.Hass):
         # listen_state args ignored — re-read current Hass state in prelude.
         self._gate_prelude()
 
+    def _gains_for_demand(self) -> tuple[float, float]:
+        pid = self._config.pid
+        rls = self._rls
+        if pid.adaptive and rls.adapted_kp is not None and rls.adapted_ki is not None:
+            return rls.adapted_kp, rls.adapted_ki
+        return pid.kp, pid.ki
+
+    def _maybe_rls_step(self) -> None:
+        """Step RLS at most once on a demand tick when priors and y allow it."""
+        config = self._config
+        entity_id = config.boiler_water
+        assert entity_id is not None  # parse requires it when adaptive
+        y = self._read_float(entity_id)
+        if y is None:
+            self.log(f"Boiler water unavailable: {entity_id}", level="WARNING")
+            return
+
+        rls = self._rls
+        y_prev = rls.y_prev
+        plant_ok = self._read_float(config.plant_setpoint) is not None
+        can_step = plant_ok and y_prev is not None and rls.last_u is not None
+        if can_step:
+            rls_step(rls, y=y, y_prev=y_prev, u_prev=rls.last_u)
+            gains = imc_gains(
+                rls.theta[0], rls.theta[1], float(config.control_interval)
+            )
+            if gains is not None:
+                rls.adapted_kp, rls.adapted_ki = gains
+        # Finite y always seeds/refreshes; plant-unreadable / missing u only skip step.
+        rls.y_prev = y
+
     def _run_demand(self, zones: list[ZoneSnapshot]) -> None:
         config = self._config
         pid = config.pid
+        # Weights-unusable clear must not step RLS (I/O matrix / AC).
+        if weighted_error(zones) is None:
+            self._go_idle("Demand zone weights unusable; setpoint 0")
+            return
+        if pid.adaptive:
+            self._maybe_rls_step()
+        kp, ki = self._gains_for_demand()
         result = evaluate_demand(
             zones,
             integral=self._integral,
-            kp=pid.kp,
-            ki=pid.ki,
+            kp=kp,
+            ki=ki,
             base_water_temp=config.base_water_temp,
             setpoint_min=config.setpoint_min,
             setpoint_max=config.setpoint_max,
@@ -121,6 +163,8 @@ class HvacApp(hass.Hass):
         if not self._write_setpoint(result.command):
             return
         self._integral = result.integral
+        # Last demand u: write True only (incl. equal-float skip); never idle 0.
+        self._rls.last_u = result.command
         self._log_demand_success(result, critical)
 
     def _log_demand_success(

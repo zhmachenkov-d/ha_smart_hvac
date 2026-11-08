@@ -8,6 +8,7 @@ import pytest
 from ha_smart_hvac.config import parse_config
 from ha_smart_hvac.hvac_app import HvacApp
 from ha_smart_hvac.pid import clamp
+from ha_smart_hvac.rls import RlsState
 
 _SETPOINT_MIN = 40.0
 _SETPOINT_MAX = 55.0
@@ -20,6 +21,7 @@ _DT_HOURS = _CONTROL_INTERVAL / 3600.0
 _OUTDOOR = "sensor.outdoor"
 _PLANT_MGMT = "switch.pm"
 _PLANT_SETPOINT = "number.plant_setpoint"
+_BOILER_WATER = "sensor.boiler_water"
 _ZONE_TEMP = "sensor.zone_one_temp"
 _CLIMATE = "climate.zone_one"
 _ZONE_NAME = "zone_one"
@@ -71,11 +73,14 @@ def _tick_app(
     setpoint: float = 22.0,
     hvac_action: str = "heating",
     plant_management: str = "on",
+    boiler_water: object = 50.0,
+    args: dict | None = None,
 ) -> HvacApp:
     """Hass-stubbed HvacApp for control_tick (_config only)."""
     app = object.__new__(HvacApp)
-    app._config = parse_config(_tick_args())
+    app._config = parse_config(args if args is not None else _tick_args())
     app._integral = 0.0
+    app._rls = RlsState()
     app.call_service = MagicMock()
     app.log = MagicMock()
     app.set_state = MagicMock()
@@ -87,6 +92,8 @@ def _tick_app(
             return zone_temp
         if entity_id == _PLANT_SETPOINT:
             return plant_setpoint
+        if entity_id == _BOILER_WATER:
+            return boiler_water
         if entity_id == _CLIMATE:
             if attribute == "temperature":
                 return setpoint
@@ -97,6 +104,13 @@ def _tick_app(
 
     app.get_state = MagicMock(side_effect=get_state)
     return app
+
+
+def _adaptive_args() -> dict:
+    args = _tick_args()
+    args["boiler_water"] = _BOILER_WATER
+    args["pid"] = {**args["pid"], "adaptive": True}
+    return args
 
 
 def _set_value_writes(app: HvacApp) -> list[float]:
@@ -420,6 +434,7 @@ def test_critical_zone_does_not_change_swt() -> None:
     app = object.__new__(HvacApp)
     app._config = config
     app._integral = 0.0
+    app._rls = RlsState()
     app.call_service = MagicMock()
     app.log = MagicMock()
 
@@ -473,6 +488,7 @@ def test_partial_zone_skip_uses_successful_snapshots_only() -> None:
     app = object.__new__(HvacApp)
     app._config = parse_config(args)
     app._integral = 0.0
+    app._rls = RlsState()
     app.call_service = MagicMock()
     app.log = MagicMock()
 
@@ -527,6 +543,7 @@ def test_partial_zone_skip_unavailable_thermostat_setpoint() -> None:
     app = object.__new__(HvacApp)
     app._config = parse_config(args)
     app._integral = 0.0
+    app._rls = RlsState()
     app.call_service = MagicMock()
     app.log = MagicMock()
 
@@ -815,6 +832,7 @@ def test_overflowing_weights_go_idle_not_setpoint_max() -> None:
     app = object.__new__(HvacApp)
     app._config = parse_config(args)
     app._integral = 3.0
+    app._rls = RlsState()
     app.call_service = MagicMock()
     app.log = MagicMock()
 
@@ -948,3 +966,301 @@ def test_non_finite_zone_temp_skips_zone_like_unavailable() -> None:
 
     assert _set_value_writes(app) == [0.0]
     assert app._integral == 0.0
+
+
+# --- RLS adaptive on control_tick (tracer) -----------------------------------
+
+
+def test_initialize_creates_rls_state() -> None:
+    app = _init_app()
+    app.initialize()
+    assert isinstance(app._rls, RlsState)
+    assert app._rls.theta == [0.0, 0.0]
+
+
+def test_adaptive_off_never_steps_rls(monkeypatch: pytest.MonkeyPatch) -> None:
+    stepped = {"n": 0}
+
+    def _count(*_a, **_k):
+        stepped["n"] += 1
+
+    monkeypatch.setattr("ha_smart_hvac.hvac_app.rls_step", _count)
+    app = _tick_app(zone_temp=20.0, setpoint=22.0, plant_setpoint=45.0)
+    app._rls.y_prev = 50.0
+    app._rls.last_u = 42.0
+
+    app.control_tick({})
+
+    assert stepped["n"] == 0
+    assert _set_value_writes(app) == [_expected_command(zone_temp=20.0, setpoint=22.0)]
+
+
+def test_adaptive_demand_tick_steps_and_uses_imc_gains(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Prior u + y_prev + finite y → one RLS step; tiny P keeps IMC-valid θ."""
+    from ha_smart_hvac.rls import imc_gains
+
+    stepped = {"n": 0}
+    real_step = __import__("ha_smart_hvac.rls", fromlist=["rls_step"]).rls_step
+
+    def _counting_step(state, **kwargs):
+        stepped["n"] += 1
+        real_step(state, **kwargs)
+
+    monkeypatch.setattr("ha_smart_hvac.hvac_app.rls_step", _counting_step)
+    app = _tick_app(
+        zone_temp=20.0,
+        setpoint=22.0,
+        plant_setpoint=45.0,
+        boiler_water=50.1,
+        args=_adaptive_args(),
+    )
+    app._rls.theta = [0.9, 0.1]
+    app._rls.p = [[1e-12, 0.0], [0.0, 1e-12]]
+    app._rls.y_prev = 50.0
+    app._rls.last_u = 45.0
+
+    app.control_tick({})
+
+    assert stepped["n"] == 1
+    gains = imc_gains(app._rls.theta[0], app._rls.theta[1], float(_CONTROL_INTERVAL))
+    assert gains is not None
+    assert app._rls.adapted_kp == pytest.approx(gains[0])
+    assert app._rls.adapted_ki == pytest.approx(gains[1])
+    expected = _expected_command(
+        zone_temp=20.0, setpoint=22.0, kp=gains[0], ki=gains[1]
+    )
+    assert _set_value_writes(app) == [expected]
+    assert app._rls.y_prev == pytest.approx(50.1)
+    assert app._rls.last_u == pytest.approx(expected)
+
+
+def _count_rls_steps(monkeypatch: pytest.MonkeyPatch) -> dict[str, int]:
+    stepped = {"n": 0}
+
+    def _count(*_a, **_k) -> None:
+        stepped["n"] += 1
+
+    monkeypatch.setattr("ha_smart_hvac.hvac_app.rls_step", _count)
+    return stepped
+
+
+def test_adaptive_seed_only_when_no_y_prev(monkeypatch: pytest.MonkeyPatch) -> None:
+    stepped = _count_rls_steps(monkeypatch)
+    app = _tick_app(
+        zone_temp=20.0,
+        setpoint=22.0,
+        plant_setpoint=45.0,
+        boiler_water=50.0,
+        args=_adaptive_args(),
+    )
+    app._rls.last_u = 42.0
+    assert app._rls.y_prev is None
+
+    app.control_tick({})
+
+    assert stepped["n"] == 0
+    assert app._rls.y_prev == pytest.approx(50.0)
+    assert _set_value_writes(app) == [_expected_command(zone_temp=20.0, setpoint=22.0)]
+
+
+def test_adaptive_no_step_without_prior_u_refreshes_y_prev(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    stepped = _count_rls_steps(monkeypatch)
+    app = _tick_app(
+        zone_temp=20.0,
+        setpoint=22.0,
+        plant_setpoint=45.0,
+        boiler_water=51.0,
+        args=_adaptive_args(),
+    )
+    app._rls.y_prev = 49.0
+    assert app._rls.last_u is None
+
+    app.control_tick({})
+
+    assert stepped["n"] == 0
+    assert app._rls.y_prev == pytest.approx(51.0)
+
+
+def test_adaptive_boiler_water_unreadable_no_step_leaves_y_prev(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    stepped = _count_rls_steps(monkeypatch)
+    app = _tick_app(
+        zone_temp=20.0,
+        setpoint=22.0,
+        plant_setpoint=45.0,
+        boiler_water="unavailable",
+        args=_adaptive_args(),
+    )
+    app._rls.y_prev = 50.0
+    app._rls.last_u = 42.0
+
+    app.control_tick({})
+
+    assert stepped["n"] == 0
+    assert app._rls.y_prev == pytest.approx(50.0)
+    assert any("Boiler water unavailable" in m for m in _warn_msgs(app))
+    assert app._integral == pytest.approx(2.0 * _DT_HOURS)
+
+
+def test_adaptive_plant_unreadable_no_rls_no_integral(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    stepped = _count_rls_steps(monkeypatch)
+    app = _tick_app(
+        zone_temp=20.0,
+        setpoint=22.0,
+        plant_setpoint="unavailable",
+        boiler_water=51.0,
+        args=_adaptive_args(),
+    )
+    app._rls.y_prev = 50.0
+    app._rls.last_u = 42.0
+    app._integral = 0.5
+
+    app.control_tick({})
+
+    assert stepped["n"] == 0
+    assert app._integral == pytest.approx(0.5)
+    assert app._rls.y_prev == pytest.approx(51.0)
+
+
+def test_adaptive_control_event_no_rls_no_write(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    stepped = _count_rls_steps(monkeypatch)
+    app = _tick_app(
+        zone_temp=20.0,
+        setpoint=22.0,
+        plant_setpoint=45.0,
+        boiler_water=50.0,
+        args=_adaptive_args(),
+    )
+    app._rls.y_prev = 50.0
+    app._rls.last_u = 42.0
+    app._integral = 1.0
+
+    _fire_control_event(app)
+
+    assert stepped["n"] == 0
+    assert _set_value_writes(app) == []
+    assert app._integral == pytest.approx(1.0)
+
+
+@pytest.mark.parametrize(
+    ("clear_mode", "expect_zero_write"),
+    [
+        ("idle", True),
+        ("plant_off", False),
+        ("no_zones", True),
+    ],
+)
+def test_clear_wipes_y_prev_keeps_rls_bookkeeping(
+    clear_mode: str, expect_zero_write: bool
+) -> None:
+    kwargs: dict = {
+        "zone_temp": 20.0,
+        "setpoint": 22.0,
+        "plant_setpoint": 45.0,
+        "boiler_water": 50.0,
+        "args": _adaptive_args(),
+    }
+    if clear_mode == "idle":
+        kwargs["hvac_action"] = "idle"
+    elif clear_mode == "plant_off":
+        kwargs["plant_management"] = "off"
+    else:
+        kwargs["zone_temp"] = "unavailable"
+    app = _tick_app(**kwargs)
+    app._integral = 12.0
+    app._rls.y_prev = 50.0
+    app._rls.last_u = 42.0
+    app._rls.theta = [0.8, 0.2]
+    app._rls.p = [[1.0, 0.1], [0.1, 2.0]]
+    app._rls.adapted_kp = 2.0
+    app._rls.adapted_ki = 0.5
+
+    app.control_tick({})
+
+    assert app._rls.y_prev is None
+    assert app._rls.last_u == pytest.approx(42.0)
+    assert app._rls.theta == [0.8, 0.2]
+    assert app._rls.p == [[1.0, 0.1], [0.1, 2.0]]
+    assert app._rls.adapted_kp == pytest.approx(2.0)
+    assert app._rls.adapted_ki == pytest.approx(0.5)
+    assert app._integral == 0.0
+    if expect_zero_write:
+        assert _set_value_writes(app) == [0.0]
+    else:
+        assert _set_value_writes(app) == []
+
+
+def test_weights_unusable_clear_wipes_y_prev_keeps_last_u() -> None:
+    args = _adaptive_args()
+    args["zones"][0]["weight"] = 0.0
+    app = _tick_app(
+        zone_temp=20.0,
+        setpoint=22.0,
+        plant_setpoint=45.0,
+        boiler_water=50.0,
+        args=args,
+    )
+    app._rls.y_prev = 50.0
+    app._rls.last_u = 42.0
+    app._rls.adapted_kp = 2.0
+    app._rls.adapted_ki = 0.5
+
+    app.control_tick({})
+
+    assert app._rls.y_prev is None
+    assert app._rls.last_u == pytest.approx(42.0)
+    assert app._rls.adapted_kp == pytest.approx(2.0)
+    assert _set_value_writes(app) == [0.0]
+
+
+def test_adaptive_after_clear_seed_then_last_good_gains(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    stepped = _count_rls_steps(monkeypatch)
+    app = _tick_app(
+        zone_temp=20.0,
+        setpoint=22.0,
+        plant_setpoint=45.0,
+        boiler_water=50.0,
+        args=_adaptive_args(),
+    )
+    app._rls.last_u = 42.0
+    app._rls.adapted_kp = 2.0
+    app._rls.adapted_ki = 0.5
+    app._rls.y_prev = None  # post-clear
+
+    app.control_tick({})
+
+    assert stepped["n"] == 0
+    assert app._rls.y_prev == pytest.approx(50.0)
+    # e=2, u_pid = 2*2 + 0.5*0 = 4 → command 44.0
+    assert _set_value_writes(app) == [44.0]
+
+    app.call_service.reset_mock()
+    app.control_tick({})
+
+    assert stepped["n"] == 1
+
+
+def test_equal_skip_demand_write_updates_last_u() -> None:
+    app = _tick_app(
+        zone_temp=20.04,
+        setpoint=22.0,
+        plant_setpoint=42.0,
+        boiler_water=50.0,
+        args=_adaptive_args(),
+    )
+
+    app.control_tick({})
+
+    assert _set_value_writes(app) == []
+    assert app._rls.last_u == pytest.approx(42.0)
