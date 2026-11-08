@@ -72,3 +72,4 @@ class HvacConfig:
     base_water_temp: float
     pid: PidConfig
     zones: tuple[ZoneConfig, ...]
+    ignored_keys: tuple[str, ...] = ()

@@ -24,6 +24,12 @@ class HvacApp(hass.Hass):
         except ConfigError as exc:
             self.log(f"HVAC config error: {exc}", level="ERROR")
             return
+        if self._config.ignored_keys:
+            self.log(
+                "HVAC config: ignoring legacy or unknown keys: "
+                + ", ".join(self._config.ignored_keys),
+                level="WARNING",
+            )
 
         self._integral = 0.0
         self._last_commanded: float | None = None

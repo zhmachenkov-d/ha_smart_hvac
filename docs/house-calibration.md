@@ -26,7 +26,7 @@ setpoint_max: 55
 control_interval: 300
 ```
 
-`setpoint_min` / `setpoint_max` bound the commanded Set Water Temperature; match them to the boiler / primary circuit limits. `control_interval` (seconds, default `300`) is the only schedule that advances the PID and writes a demand Set Water Temperature.
+`setpoint_min` / `setpoint_max` bound the commanded Set Water Temperature; match them to the boiler / primary circuit limits. `control_interval` (a whole number of seconds, at most `86400`, default `300`) is the only schedule that advances the PID and writes a demand Set Water Temperature.
 
 ## 3. Base water temperature and PID (yaml commission)
 
@@ -59,9 +59,20 @@ With `ki: 1.0`, a sustained 1 °C air error adds about 1 °C of water per hour (
 
 When `base_water_temp` equals `setpoint_min` (as in the example), a negative error with a non-positive I-term already sits at `setpoint_min`, so the integral freezes and `i_term_min` is reachable only when `base_water_temp` is above `setpoint_min`.
 
-When `base_water_temp` is below `setpoint_min`, the command sits at `setpoint_min` until the I-term has climbed `setpoint_min − base_water_temp − kp·e`: roughly that many degrees divided by `ki·e` hours (about 3 h for a 2 °C gap at e = 0.5 °C with the defaults). Keep `base_water_temp` ≥ `setpoint_min` unless that lag is wanted.
+`base_water_temp` must lie within `setpoint_min`…`setpoint_max` (bounds inclusive); an explicit value outside them is a config error and the App does not start. When `base_water_temp` is omitted, the default `40` is clamped into the bounds (with `setpoint_min: 42` the base is `42`; with `setpoint_max: 35` it is `35`).
 
 These are starting defaults, not house-proven. Raise `zones[].weight` for Zones that should count more in the averages.
+
+### Rejected commission values
+
+Each of these logs `HVAC config error: …` at startup and the App does not run:
+
+- A non-numeric value (text that is not a number, `null`, a list, or `true` / `false`) or a non-finite one (`nan`, `inf`) for `setpoint_min`, `setpoint_max`, `control_interval`, `base_water_temp`, any `pid.*` gain or bound, or a Zone `weight`
+- A fractional `control_interval` (`60.7`, `0.5`); `60.0` is accepted as `60`
+- A `control_interval` above `86400` (one day)
+- A negative `pid.kp` or `pid.ki` (`0` is accepted)
+- An I-term range that does not include `0` (`i_term_min` must be ≤ 0 ≤ `i_term_max`)
+- An explicit `base_water_temp` outside `setpoint_min`…`setpoint_max`
 
 ## 4. Safe order on a live house
 
@@ -73,11 +84,15 @@ These are starting defaults, not house-proven. Raise `zones[].weight` for Zones 
 
 ## Upgrading from Weather Feedforward
 
-Outdoor Temperature, Weather Feedforward, and rise-rate auto-correct are removed. Leftover `outdoor_temperature` and `weather_feedforward` keys in `apps.yaml` are ignored; delete them. `ff_auto_correct_state.json` in the AppDaemon app directory is no longer read and can be deleted.
+Outdoor Temperature, Weather Feedforward, and rise-rate auto-correct are removed. Leftover `outdoor_temperature` and `weather_feedforward` keys in `apps.yaml` are ignored and logged as one WARNING at startup (`HVAC config: ignoring legacy or unknown keys: …`, which also names any other unknown key); delete them. `ff_auto_correct_state.json` in the AppDaemon app directory is no longer read and can be deleted.
 
 ## Upgrading to hour-based PID integral
 
-`pid.integral_min` / `pid.integral_max` are replaced by `pid.i_term_min` / `pid.i_term_max`, which bound the I-term in °C of water rather than the raw integral. The old keys are ignored; replace them. The integral is now accumulated in °C·h with `ki` in 1/h, so the I-term builds over hours rather than per tick, and an old `ki` value does not carry the same meaning: the old `ki` was per second, so an explicit old value × 3600 is the equivalent per-hour `ki` (old `0.1` ≈ `360`, far above the new default). Delete an old `ki` to take the default `1.0`, or set a per-hour value deliberately. A yaml without a `pid:` section picks up the new defaults (`kp 1.0`, `ki 1.0`, `i_term_min -10`, `i_term_max 15`) on update.
+`pid.integral_min` / `pid.integral_max` are replaced by `pid.i_term_min` / `pid.i_term_max`, which bound the I-term in °C of water rather than the raw integral. The old keys are ignored and logged as one WARNING at startup; replace them. The integral is now accumulated in °C·h with `ki` in 1/h, so the I-term builds over hours rather than per tick, and an old `ki` value does not carry the same meaning: the old `ki` was per second, so an explicit old value × 3600 is the equivalent per-hour `ki` (old `0.1` ≈ `360`, far above the new default). Delete an old `ki` to take the default `1.0`, or set a per-hour value deliberately. A yaml without a `pid:` section picks up the new defaults (`kp 1.0`, `ki 1.0`, `i_term_min -10`, `i_term_max 15`) on update.
+
+## Upgrading to strict commission parsing
+
+An explicit `base_water_temp` outside `setpoint_min`…`setpoint_max`, or any value in the rejection list in §3, now stops the App at startup with `HVAC config error: …` instead of being accepted. An omitted `base_water_temp` now defaults to `40` clamped into the bounds, so a house with `setpoint_min` above `40` and no `base_water_temp` now starts from `setpoint_min`.
 
 ## What is not calibrated here
 
