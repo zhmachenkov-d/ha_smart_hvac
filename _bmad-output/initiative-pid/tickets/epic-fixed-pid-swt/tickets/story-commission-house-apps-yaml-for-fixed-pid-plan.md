@@ -29,9 +29,11 @@ context: []
 
 ## Implementation Notes
 
-Oneshot: `.gitignore` (committed) gains `apps/apps.yaml.pre-pid`; locally, `apps/apps.yaml.pre-pid` is created as a byte copy of the house yaml and `apps/apps.yaml` is rewritten (both gitignored). The commit carries `.gitignore`, this plan and a deferred-work "Resolved in 1.6" note; the house yaml never leaves the workstation.
+Oneshot: `.gitignore` (committed) gains `apps/apps.yaml.*` (covers `apps/apps.yaml.pre-pid` and any later house-yaml backup); locally, `apps/apps.yaml.pre-pid` is created as a byte copy of the house yaml and `apps/apps.yaml` is rewritten (both gitignored). The commit carries `.gitignore`, this plan and a deferred-work "Resolved in 1.6" note; the house yaml never leaves the workstation.
 
 Verified: `parse_config` on the house yaml → `ignored_keys == ()`, base 42 in [42, 60], `kp 2.0, ki 1.0, i_term [-15, 15]`, interval 300; plant and all 6 zone entity sets equal `apps.yaml.pre-pid`, and the `zones:` block is byte-identical; `git check-ignore` covers the backup.
+
+`apps/apps.yaml.pre-pid` is an entity-ID reference, not a rollback: Weather Feedforward / Outdoor code is gone since 1.3, so restoring it on the current App only logs the legacy keys as `ignored_keys` and runs PID defaults at `control_interval: 60`. Rolling back to the weather curve needs a pre-1.3 App release plus this backup.
 
 ## Review Triage Log
 
@@ -46,6 +48,28 @@ Verified: `parse_config` on the house yaml → `ignored_keys == ()`, base 42 in 
 ## Verification
 
 **Commands:**
-- `PYTHONPATH=apps uv run python -c "import yaml; from ha_smart_hvac.config import parse_config; c = parse_config(yaml.safe_load(open('apps/apps.yaml'))['hvac']); assert not c.ignored_keys, c.ignored_keys; assert c.setpoint_min <= c.base_water_temp <= c.setpoint_max; print(c)"` -- expected: succeeds, prints the commissioned values
-- Entity check: every `plant_*`, zone `temperature` and `thermostats` value in `apps/apps.yaml` equals `apps/apps.yaml.pre-pid` (script compares the parsed entity sets) -- expected: equal
+- `PYTHONPATH=apps uv run python -c "import yaml; from ha_smart_hvac.config import parse_config; d = yaml.safe_load(open('apps/apps.yaml'))['hvac']; c = parse_config(d); assert not c.ignored_keys, c.ignored_keys; p = c.pid; assert (c.base_water_temp, p.kp, p.ki, p.i_term_min, p.i_term_max, c.control_interval) == (42, 2, 1.0, -15, 15, 300), c; assert all(set(z) <= {'name', 'temperature', 'thermostats', 'weight'} for z in d['zones']); print('ok')"` -- expected: `ok` (parse succeeds — base range is enforced by `parse_config`; Decisions values locked; zone sub-keys known, since `ignored_keys` does not cover them)
+- `uv run python -c "import yaml; a, b = (yaml.safe_load(open(f))['hvac'] for f in ('apps/apps.yaml', 'apps/apps.yaml.pre-pid')); k = ('plant_management', 'plant_setpoint'); assert [a[x] for x in k] == [b[x] for x in k] and a['zones'] == b['zones']; print('entities ok')"` -- expected: `entities ok` (plant entity IDs and the whole parsed `zones:` block equal the backup; `outdoor_temperature` is left out on purpose — the ticket removes it)
 - `git check-ignore apps/apps.yaml.pre-pid` -- expected: path printed (ignored); `git status --short` shows no `apps/` file
+
+## Code Review
+
+### 2026-11-08
+**Code review complete.** 0 `decision-needed`, 5 `patch`, 0 `defer`, 9 rejected.
+
+- [x] [Review][Patch] Verification command does not lock the commissioned values (kp / ki / i_term / interval / base) or zone sub-keys [story-commission-house-apps-yaml-for-fixed-pid-plan.md:## Verification]
+- [x] [Review][Patch] Entity-equality check is not reproducible — no runnable command for the entity-set / `zones:` block comparison [story-commission-house-apps-yaml-for-fixed-pid-plan.md:## Verification]
+- [x] [Review][Patch] `.gitignore` covers only the exact backup filename; use `apps/apps.yaml.*` [.gitignore:165]
+- [x] [Review][Patch] Backup is not a rollback (WFF code is gone since 1.3); Implementation Notes do not say so [story-commission-house-apps-yaml-for-fixed-pid-plan.md:## Implementation Notes]
+- [x] [Review][Patch] `deferred-work.md` 1.6 section sits before the earlier 1.7 code-review deferral block [_bmad-output/initiative-pid/deferred-work.md:42]
+
+**Rejected**
+- low — `outdoor_temperature` is an entity ID removed despite "only non-entity keys": the ticket mandates the removal; fix would edit the frozen intent.
+- low — no rationale for `kp: 2` / `i_term_min: -15`: ticket allows house-chosen values; Decisions are frozen intent.
+- low — no Boundaries & Constraints section: would edit the frozen intent; constraints are in Approach and AGENTS.md.
+- false — `review_loop_iteration: 0` despite a loop: the counter increments only on an intent_gap / bad_plan loopback, which did not happen.
+- false — `control_interval: 300` delays demand response: tick-only demand writes at 300 s are epic R5/R6 and SR3 (accepted).
+- low — base 42 + `i_term_max: 15` caps e=0 SWT at 57: arithmetic correct, but values are the operator's frozen Decisions; watch at first Exclusive Session.
+- false — ∫ cleared on every idle blip: epic R2/R3 and SR3 by design, not a 1.6 defect.
+- low — strict reading of "entity IDs equal .pre-pid" fails: same intent tension as above; the ticket itself requires removing the outdoor sensor.
+- false — backup byte-identity / copy order unprovable: backup holds the full pre-commission shape and an older mtime; nothing indicates divergence.
