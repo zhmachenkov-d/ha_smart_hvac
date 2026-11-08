@@ -37,11 +37,11 @@ The OpenTherm boiler water setpoint the App commands on the Plant (the boiler's 
 _Avoid_: Room setpoint, climate temperature (those are Zone air targets), mixer setpoint
 
 **Plant Management**:
-When enabled, the App may command Set Water Temperature on the Plant. When disabled, the App does not write the Plant setpoint and clears ephemeral / water-path state (rise-rate window, steady count, I1 previous, selected-zone id). Persisted FF auto-correct JSON is left untouched.
+When enabled, the App may command Set Water Temperature on the Plant. When disabled, the App does not write the Plant setpoint and clears PID ephemeral state (∫) — not “write 0”.
 _Avoid_: CH override (integration-specific), boiler on (plant state)
 
 **Zone Error**:
-Per thermostat: setpoint minus zone sensor temperature. Zone-level error is the maximum across thermostats in that Zone whose `hvac_action` is `heating`; thermostats with idle, off, cooling, or unavailable action do not contribute. A Zone with no such thermostats has no eligible Zone Error. Among Zones with Heating Demand, Zone Error ranks Critical Zone selection for CAP-7 rise-rate auto-correct only (error may be ≤ 0).
+Per thermostat: setpoint minus zone sensor temperature. Zone-level error is the maximum across thermostats in that Zone whose `hvac_action` is `heating`; thermostats with idle, off, cooling, or unavailable action do not contribute. A Zone with no such thermostats has no eligible Zone Error. Among Zones with Heating Demand, Zone Error ranks Critical Zone selection for diagnostics and logging only (error may be ≤ 0).
 _Avoid_: Demand (use Heating Demand for the boolean need), delta (ambiguous)
 
 **Heating Demand**:
@@ -49,19 +49,19 @@ A Zone (or the house) needs heat when any of its thermostats reports `hvac_actio
 _Avoid_: Call for heat (informal), boiler on (plant state, not zone need)
 
 **Critical Zone**:
-The Zone with the largest Zone Error among Zones with Heating Demand. Its air temperature rise rate is the signal for Weather Feedforward rise-rate auto-correct (CAP-7) only — it never drives Set Water Temperature as a closed-loop air→water tracking term.
+The Zone with the largest Zone Error among Zones with Heating Demand. Retained for diagnostics and logging only — it must not drive Set Water Temperature.
 _Avoid_: Master zone, primary room
 
 **Outdoor Temperature**:
-The measured outdoor air temperature used when calculating an appropriate Set Water Temperature.
+The measured outdoor air temperature. Not on the Set Water Temperature path or live commissioning.
 _Avoid_: Weather, forecast (unless forecast is explicitly in scope)
 
-**Weather Feedforward**:
-The outdoor-temperature baseline that **is** Set Water Temperature under Plant Management and Heating Demand gates: `u_ff = base + slope × (comfort_ref − T_out)`, then `clamp(u_ff)`. Not an add-on to a tracking term.
-_Avoid_: Weather compensation (related idea, may differ in formula), curve (unless referring to the configured parameters)
+**PID**:
+The fixed-gain PI term on weighted demand-zone air error that produces `u_pid`. Under Plant Management and Heating Demand, demand Set Water Temperature is `round-to-0.1(clamp(base_water_temp + u_pid))`. Only the periodic `control_interval` (`control_tick`) advances PID and writes demand SWT; event listeners (Plant Management, zone air, thermostat `hvac_action` / setpoint — not Outdoor) re-evaluate gates via `control_event` and may clear on idle / plant-off / no-valid-zones without a demand write or PID advance. RLS retune of gains is planned, not current commissioning.
+_Avoid_: Weather Feedforward, CAP-7, weather compensation, curve (superseded SWT path)
 
 **Multi-Zone Coordinator**:
-The part of the HVAC App that computes Zone Error per Zone, Heating Demand, and Critical Zone selection for CAP-7 rise-rate auto-correct. It does not own the OpenTherm Set Water Temperature write.
+The part of the HVAC App that computes Zone Error per Zone, Heating Demand, and Critical Zone selection. It does not own the OpenTherm Set Water Temperature write. Critical Zone selection is for diagnostics and logging only and must not drive Set Water Temperature.
 _Avoid_: Thermostat, scheduler (unless that is all it does)
 
 ## Example dialogue
@@ -73,10 +73,10 @@ _Avoid_: Thermostat, scheduler (unless that is all it does)
 > **Dev:** Can I start AppDaemon in the Dev Container while the Production Add-on is still running?
 > **Expert:** No. That isn't an Exclusive Session — both would drive the same entities. Stop the add-on first, then run locally.
 > **Dev:** Two Zones want heat; which one moves the boiler?
-> **Expert:** Neither zone's air error drives water closed-loop. The HVAC App writes `clamp(u_ff)` from Weather Feedforward whenever any Zone has Heating Demand — any thermostat with `hvac_action` of `heating` — and Plant Management is on, or writes `0` when idle. The Multi-Zone Coordinator still picks the Critical Zone — largest Zone Error among demand zones — but only as the rise-rate source when discussing FF auto-correct.
+> **Expert:** Neither zone alone owns the water write. Under Plant Management and Heating Demand the App writes `round-to-0.1(clamp(base_water_temp + u_pid))` from weighted demand-zone averages, or writes `0` and clears ∫ when idle. The Multi-Zone Coordinator still picks the Critical Zone — largest Zone Error among demand zones — for diagnostics and logging only; it must not drive Set Water Temperature.
 > **Dev:** Is Set Water Temperature the same as a Zone thermostat setpoint?
 > **Expert:** No. Zone thermostats set air temperature targets. Set Water Temperature is the OpenTherm boiler water setpoint.
 > **Dev:** A Zone has Heating Demand but Plant Management is off — does the App still write zero?
-> **Expert:** No. Plant Management off means hands off entirely: no setpoint write, ephemeral / water-path state cleared. Heating Demand only matters when Plant Management is on.
-> **Dev:** If Plant Management, Outdoor Temperature, zone air, or a thermostat `hvac_action` / setpoint changes, do we wait for the next control tick?
-> **Expert:** No. CAP-8 re-applies the same gates on that change via `control_event`. On demand it writes `clamp(u_ff)` only — it does not advance CAP-7 rise-rate samples or persist FF JSON; those stay on the periodic `control_interval` (`control_tick`). Fail and idle paths still clear ephemeral state on events, same as on the tick.
+> **Expert:** No. Plant Management off means hands off entirely: no setpoint write, PID ephemeral state (∫) cleared — not “write 0”. Heating Demand only matters when Plant Management is on.
+> **Dev:** If Plant Management, zone air, or a thermostat `hvac_action` / setpoint changes, do we wait for the next control tick?
+> **Expert:** For demand SWT and ∫ advance, yes — only `control_tick` writes demand and advances PID. Those listeners fire `control_event`, which re-evaluates the shared gate prelude and may clear on idle / plant-off / no-valid-zones without a demand write or PID advance. Outdoor Temperature is not a control listener.
