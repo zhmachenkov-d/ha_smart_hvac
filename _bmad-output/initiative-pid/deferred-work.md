@@ -47,3 +47,9 @@
 ## Resolved in 1.6 commission house apps.yaml (2026-11-08)
 
 - Resolved: house `base_water_temp ≥ setpoint_min` (entry-5 party deferral, first closed by 1.7's default clamp) — the house `apps/apps.yaml` now sets `base_water_temp: 42` explicitly, with `pid`, `control_interval: 300`, and no legacy keys (`ignored_keys == ()`).
+
+## Resolved in 1.8 refactor sweep 2 (2026-11-08)
+
+- Resolved: runtime non-finite `e` (plan-split from 1.7) — `weighted_error` returns `None` when `e` is not finite, so `evaluate_demand` takes the existing weights-unusable idle path instead of `clamp(nan) == setpoint_max`.
+- Resolved: overflowing finite zone weights (~1e308) — covered by the non-finite-`e` guard; the plant receives 0 and ∫ clears, never `setpoint_max`.
+- Resolved: misspelled / leftover zone sub-keys (e.g. `weigth: 3`) — `_ignored_keys` reports them as `zones[<name>].<key>` and initialize logs one WARNING naming the key.

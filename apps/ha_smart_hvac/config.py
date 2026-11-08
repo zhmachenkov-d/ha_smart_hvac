@@ -40,6 +40,9 @@ _KNOWN_KEYS = frozenset(
 # Keys _parse_pid reads under ``pid``.
 _PID_KEYS = frozenset({"kp", "ki", "i_term_min", "i_term_max"})
 
+# Keys _parse_zone reads under each zone mapping.
+_ZONE_KEYS = frozenset({"name", "temperature", "thermostats", "weight"})
+
 # AppDaemon 4.5.13 reserved app keys (BaseApp / AppConfig / GlobalModule aliases,
 # plus the injected ``name``; ``global: false`` on an app stays in its args);
 # any ``constrain_*`` key is also AppDaemon's.
@@ -154,7 +157,7 @@ def _is_appdaemon_key(key: str) -> bool:
 
 
 def _ignored_keys(args: dict[Any, Any]) -> tuple[str, ...]:
-    """Unknown top-level and ``pid.*`` keys (AppDaemon reserved keys excepted)."""
+    """Unknown top-level, ``pid.*``, and zone sub-keys (AppDaemon keys excepted)."""
     ignored = [
         str(k)
         for k in args
@@ -163,6 +166,16 @@ def _ignored_keys(args: dict[Any, Any]) -> tuple[str, ...]:
     pid_raw = args.get("pid")
     if isinstance(pid_raw, dict):
         ignored.extend(f"pid.{k}" for k in pid_raw if str(k) not in _PID_KEYS)
+    zones_raw = args.get("zones")
+    if isinstance(zones_raw, list):
+        for index, zone in enumerate(zones_raw):
+            if not isinstance(zone, dict):
+                continue
+            name = zone.get("name")
+            label = str(name) if isinstance(name, str) and name else str(index)
+            ignored.extend(
+                f"zones[{label}].{str(k)}" for k in zone if str(k) not in _ZONE_KEYS
+            )
     return tuple(sorted(ignored))
 
 

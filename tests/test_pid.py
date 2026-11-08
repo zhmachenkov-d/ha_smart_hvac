@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from ha_smart_hvac.models import ThermostatReading, ZoneSnapshot
-from ha_smart_hvac.pid import clamp, evaluate_demand, weighted_error
+from ha_smart_hvac.pid import clamp, evaluate_demand, quantize_command, weighted_error
 
 
 def _zone(
@@ -116,6 +116,31 @@ def test_zero_weight_sum_returns_none() -> None:
     ]
     assert weighted_error(zones) is None
     assert _eval(zones) is None
+
+
+def test_non_finite_weighted_error_returns_none() -> None:
+    """Overflowing weights → non-finite e → None (idle path), not clamp(nan)."""
+    zones = [
+        _zone("a", 20.0, [22.0], weight=1e308),
+        _zone("b", 18.0, [24.0], weight=1e308),
+    ]
+    assert weighted_error(zones) is None
+    assert _eval(zones) is None
+
+
+@pytest.mark.parametrize(
+    ("raw", "lo", "hi", "expected"),
+    [
+        (60.0, 40.0, 55.06, 55.0),  # max with 2 decimals → ≤ hi
+        (30.0, 42.04, 55.0, 42.1),  # min with 2 decimals → ≥ lo
+        (41.96, 40.0, 55.0, 42.0),  # on-grid bounds unchanged
+        (55.03, 55.01, 55.06, 55.03),  # no grid point → clamp(raw) off-grid
+    ],
+)
+def test_quantize_command_grid_snap(
+    raw: float, lo: float, hi: float, expected: float
+) -> None:
+    assert quantize_command(raw, lo, hi) == pytest.approx(expected)
 
 
 def test_unsaturated_tick_advances_integral_in_degree_hours() -> None:

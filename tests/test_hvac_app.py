@@ -210,6 +210,27 @@ def test_initialize_warns_once_on_legacy_keys() -> None:
     app.run_every.assert_called_once()
 
 
+def test_initialize_warns_on_misspelled_zone_key() -> None:
+    args = _tick_args()
+    args["zones"] = [
+        {
+            "name": "living",
+            "temperature": _ZONE_TEMP,
+            "thermostats": [_CLIMATE],
+            "weigth": 3,
+        }
+    ]
+    app = _init_app(args=args)
+
+    app.initialize()
+
+    assert _warn_msgs(app) == [
+        "HVAC config: ignoring legacy or unknown keys: zones[living].weigth"
+    ]
+    assert app._config.zones[0].weight == pytest.approx(1.0)
+    app.run_every.assert_called_once()
+
+
 def test_initialize_clean_args_no_warning() -> None:
     args = _tick_args()
     args.update({"module": "ha_smart_hvac", "class": "HvacApp", "name": "hvac"})
@@ -324,6 +345,21 @@ def test_saturation_freeze_on_tick() -> None:
 
     assert _set_value_writes(app) == [55.0]
     assert app._integral == pytest.approx(0.0)
+
+
+def test_two_decimal_setpoint_max_command_stays_inside_bound() -> None:
+    """Grid snap must not write above setpoint_max when max has two decimals."""
+    args = _tick_args()
+    args["setpoint_max"] = 55.06
+    args["base_water_temp"] = 50.0
+    app = _tick_app(zone_temp=10.0, setpoint=30.0, plant_setpoint=45.0)
+    app._config = parse_config(args)
+    # e=20, raw=70 → quantize to 55.0 (≤ 55.06), not round(55.06)=55.1
+
+    app.control_tick({})
+
+    assert _set_value_writes(app) == [55.0]
+    assert _set_value_writes(app)[0] <= 55.06
 
 
 def test_heating_at_setpoint_still_writes_pid() -> None:
@@ -740,6 +776,57 @@ def test_zero_weight_sum_goes_idle() -> None:
     assert app._integral == 0.0
     assert "Demand zone weights unusable; setpoint 0" in _warn_msgs(app)
     assert not any("weights unusable" in m for m in _info_msgs(app))
+
+
+def test_overflowing_weights_go_idle_not_setpoint_max() -> None:
+    zone_two_temp = "sensor.zone_two_temp"
+    climate_two = "climate.zone_two"
+    args = _tick_args()
+    args["zones"] = [
+        {
+            "name": "zone_one",
+            "temperature": _ZONE_TEMP,
+            "weight": 1e308,
+            "thermostats": [_CLIMATE],
+        },
+        {
+            "name": "zone_two",
+            "temperature": zone_two_temp,
+            "weight": 1e308,
+            "thermostats": [climate_two],
+        },
+    ]
+    app = object.__new__(HvacApp)
+    app._config = parse_config(args)
+    app._integral = 3.0
+    app.call_service = MagicMock()
+    app.log = MagicMock()
+
+    def get_state(entity_id: str, attribute: str | None = None):
+        if entity_id == _PLANT_MGMT:
+            return "on"
+        if entity_id == _ZONE_TEMP:
+            return 20.0
+        if entity_id == zone_two_temp:
+            return 18.0
+        if entity_id == _PLANT_SETPOINT:
+            return 45.0
+        if entity_id in (_CLIMATE, climate_two):
+            if attribute == "temperature":
+                return 22.0
+            if attribute == "hvac_action":
+                return "heating"
+            return "heat"
+        return None
+
+    app.get_state = MagicMock(side_effect=get_state)
+
+    app.control_tick({})
+
+    assert _set_value_writes(app) == [0.0]
+    assert app._integral == 0.0
+    assert "Demand zone weights unusable; setpoint 0" in _warn_msgs(app)
+    assert _SETPOINT_MAX not in _set_value_writes(app)
 
 
 def test_event_plant_off_no_write_clears() -> None:
