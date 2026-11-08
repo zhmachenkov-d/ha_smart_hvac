@@ -10,6 +10,7 @@ interval does not rescale the effective Ki.
 
 from __future__ import annotations
 
+import math
 from collections.abc import Sequence
 from dataclasses import dataclass
 
@@ -18,6 +19,18 @@ from ha_smart_hvac.models import ZoneSnapshot
 
 def clamp(value: float, lo: float, hi: float) -> float:
     return max(lo, min(hi, value))
+
+
+def quantize_command(raw: float, lo: float, hi: float) -> float:
+    """Snap clamp(raw) to the 0.1 °C grid inside [lo, hi]; else clamp(raw)."""
+    c = round(clamp(raw, lo, hi), 1)
+    if c > hi:
+        c = round(c - 0.1, 1)
+    if c < lo:
+        c = round(c + 0.1, 1)
+    if c < lo or c > hi:
+        return clamp(raw, lo, hi)
+    return c
 
 
 @dataclass(frozen=True)
@@ -52,14 +65,19 @@ def _demand_contributions(
 
 
 def weighted_error(zones: Sequence[ZoneSnapshot]) -> float | None:
-    """e = Tset_w − Tair_w over demand zones; None if no usable contributions."""
+    """e = Tset_w − Tair_w over demand zones; None if unusable or non-finite."""
     contribs = _demand_contributions(zones)
     if contribs is None:
         return None
     weight_sum = sum(w for _, _, w in contribs)
+    if not math.isfinite(weight_sum):
+        return None
     tair_w = sum(w * tair for tair, _, w in contribs) / weight_sum
     tset_w = sum(w * tset for _, tset, w in contribs) / weight_sum
-    return tset_w - tair_w
+    e = tset_w - tair_w
+    if not math.isfinite(e):
+        return None
+    return e
 
 
 def evaluate_demand(
@@ -92,7 +110,7 @@ def evaluate_demand(
 
     u_pid = kp * e + ki * integral
     raw = base_water_temp + u_pid
-    command = round(clamp(raw, setpoint_min, setpoint_max), 1)
+    command = quantize_command(raw, setpoint_min, setpoint_max)
 
     new_integral = integral
     saturated_high = raw > setpoint_max and e > 0

@@ -32,7 +32,6 @@ class HvacApp(hass.Hass):
             )
 
         self._integral = 0.0
-        self._last_commanded: float | None = None
 
         self._register_control_listeners()
         self.run_every(
@@ -58,7 +57,6 @@ class HvacApp(hass.Hass):
 
     def _clear_pid_ephemeral(self) -> None:
         self._integral = 0.0
-        self._last_commanded = None
 
     def _gate_prelude(self) -> list[ZoneSnapshot] | None:
         """Shared CAP-1…CAP-3 prelude. Returns zones on demand, else None."""
@@ -75,9 +73,7 @@ class HvacApp(hass.Hass):
             return None
 
         if not has_heating_demand(zones):
-            self._write_setpoint(0.0)
-            self._clear_pid_ephemeral()
-            self.log("No heating demand; setpoint 0")
+            self._go_idle("No heating demand; setpoint 0", level="INFO")
             return None
 
         return zones
@@ -116,9 +112,7 @@ class HvacApp(hass.Hass):
             dt_hours=config.control_interval / 3600.0,
         )
         if result is None:
-            self._write_setpoint(0.0)
-            self._clear_pid_ephemeral()
-            self.log("Demand zone weights unusable; setpoint 0", level="WARNING")
+            self._go_idle("Demand zone weights unusable; setpoint 0")
             return
 
         critical = select_max_error_demand_zone(zones)
@@ -127,7 +121,6 @@ class HvacApp(hass.Hass):
         if not self._write_setpoint(result.command):
             return
         self._integral = result.integral
-        self._last_commanded = result.command
         self._log_demand_success(result, critical)
 
     def _log_demand_success(
@@ -136,7 +129,7 @@ class HvacApp(hass.Hass):
         parts = [
             f"e={result.e:.2f}",
             f"u_pid={result.u_pid:.2f}",
-            f"command={result.command:.1f}",
+            f"command={result.command}",
         ]
         if critical is not None:
             parts.append(f"critical_zone={critical.name}")
@@ -145,10 +138,10 @@ class HvacApp(hass.Hass):
     def _hands_off(self, message: str) -> None:
         self.log(message, level="WARNING")
 
-    def _go_idle(self, message: str) -> None:
+    def _go_idle(self, message: str, *, level: str = "WARNING") -> None:
         self._write_setpoint(0.0)
         self._clear_pid_ephemeral()
-        self.log(message, level="WARNING")
+        self.log(message, level=level)
 
     def _read_zones(self, config: HvacConfig) -> list[ZoneSnapshot]:
         snapshots: list[ZoneSnapshot] = []

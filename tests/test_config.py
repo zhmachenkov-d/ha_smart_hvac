@@ -371,6 +371,29 @@ def test_parse_reports_legacy_and_unknown_keys() -> None:
     )
 
 
+def test_parse_reports_unknown_zone_sub_keys() -> None:
+    args = _minimal_args()
+    args["zones"][0]["weigth"] = 3
+    config = parse_config(args)
+    assert config.ignored_keys == ("zones[living_room].weigth",)
+    assert config.zones[0].weight == pytest.approx(1.0)
+
+
+def test_parse_reports_unknown_zone_sub_keys_on_second_zone() -> None:
+    args = _minimal_args()
+    args["zones"].append(
+        {
+            "name": "zone_two",
+            "temperature": "sensor.temp_two",
+            "thermostats": ["climate.thermostat_two"],
+            "weigth": 3,
+        }
+    )
+    config = parse_config(args)
+    assert config.ignored_keys == ("zones[zone_two].weigth",)
+    assert config.zones[1].weight == pytest.approx(1.0)
+
+
 def test_parse_appdaemon_reserved_keys_not_reported() -> None:
     raw = yaml.safe_load((ROOT / "apps.yaml.example").read_text())
     args = dict(raw["hvac"])
@@ -390,7 +413,12 @@ def test_parse_reports_non_string_keys_as_strings() -> None:
     args = _minimal_args()
     args[60] = "x"
     args["pid"] = {1: 2}
-    assert parse_config(args).ignored_keys == ("60", "pid.1")
+    args["zones"][0][2] = "x"
+    assert parse_config(args).ignored_keys == (
+        "60",
+        "pid.1",
+        "zones[living_room].2",
+    )
 
 
 def test_appdaemon_keys_match_app_config_fields() -> None:

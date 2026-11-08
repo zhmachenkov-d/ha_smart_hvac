@@ -84,7 +84,7 @@ Each of these logs `HVAC config error: …` at startup and the App does not run:
 
 ## Upgrading from Weather Feedforward
 
-Outdoor Temperature, Weather Feedforward, and rise-rate auto-correct are removed. Leftover `outdoor_temperature` and `weather_feedforward` keys in `apps.yaml` are ignored and logged as one WARNING at startup (`HVAC config: ignoring legacy or unknown keys: …`, which also names any other unknown key); delete them. `ff_auto_correct_state.json` in the AppDaemon app directory is no longer read and can be deleted.
+Outdoor Temperature, Weather Feedforward, and rise-rate auto-correct are removed. Leftover `outdoor_temperature` and `weather_feedforward` keys in `apps.yaml` are ignored and logged as one WARNING at startup (`HVAC config: ignoring legacy or unknown keys: …`, which also names any other unknown key, including unknown zone sub-keys such as a misspelled `weigth`); delete them. `ff_auto_correct_state.json` in the AppDaemon app directory is no longer read and can be deleted.
 
 ## Upgrading to hour-based PID integral
 
