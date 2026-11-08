@@ -3,7 +3,7 @@ title: '1.6 Commission house apps.yaml for fixed PID'
 type: 'chore'
 ticket: '6'
 created: '2026-11-08'
-status: 'built'
+status: done
 baseline_revision: '8342bf221ca32094c7a5efc1a6c907cb66698ecb'
 route: 'oneshot'
 route_source: 'auto'
