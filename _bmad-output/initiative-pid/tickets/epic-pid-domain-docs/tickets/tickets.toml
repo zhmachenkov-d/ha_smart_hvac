@@ -1,0 +1,56 @@
+# epic-pid-domain-docs — story breakdown (approved 2026-11-08)
+
+[[entry]]
+id = 1
+type = "story"
+title = "AGENTS.md fixed-PID SWT conventions"
+description = "Rewrite AGENTS.md bmad:context conventions (R1: no Outdoor/FF/CAP-7 commissioning; R2: Critical Zone diagnostics-only) so a new agent session loads clamp(base + u_pid) and tick-owned demand / event clear-only before other docs land. Handoff: later stories cite this wording; ADR number may still say docs/adr/ until entry 2."
+verify = "Open AGENTS.md: weather-curve/CAP-7 is not live commissioning; PID law + tick/event + diagnostics-only Critical Zone match the shipped App from epic 1."
+covers = ["R1", "R2"]
+after = ["epic-fixed-pid-swt"]
+hitl = false
+risk = "medium"
+
+[[entry]]
+id = 2
+type = "story"
+title = "ADR superseding weather-curve SWT"
+description = "Add the next sequential ADR (expected 0005) that records the fixed-PID SWT law (R1) and Critical Zone diagnostics-only (R2), supersedes ADR 0004, and folds in the epic Notes ADR inputs (tick/event, clear latency, anti-windup, ∫ units, R7 skip). Follows locked AGENTS conventions from entry 1; may patch AGENTS to cite the new ADR id. States RLS is planned (epic 3), not current commissioning (C1)."
+verify = "docs/adr/ has an accepted ADR that supersedes 0004; 0004 frontmatter says superseded; body states clamp(base + u_pid), tick vs event, no weather/CAP-7 on the path, and Critical Zone diagnostics-only."
+covers = ["R1", "R2"]
+after = [1]
+hitl = false
+risk = "high"
+
+[[entry]]
+id = 3
+type = "story"
+title = "CONTEXT.md PID domain language"
+description = "Rewrite CONTEXT.md glossary and expert Q&A against the new ADR from entry 2 (R1: remove Outdoor/FF/CAP-7 commissioning language; R2: Critical Zone / Multi-Zone Coordinator diagnostics-only)."
+verify = "CONTEXT.md has no live weather-curve commissioning story; Critical Zone and Multi-Zone Coordinator match R2 and the new ADR; language matches the shipped App."
+covers = ["R1", "R2"]
+after = [2]
+hitl = false
+risk = "medium"
+
+[[entry]]
+id = 4
+type = "story"
+title = "knowledge concept pages for PID SWT"
+description = "Update knowledge/concepts pages named in Done when (set-water-temperature, outdoor-temperature, adrc, critical-zone, multi-zone-coordinator, index) against the new ADR from entry 2 (R1 path language; R2 diagnostics-only Critical Zone); reframe outdoor/adrc as not water-path commissioning."
+verify = "Those concept pages and the concepts index cite the new ADR / PID law, match the shipped App, and do not commission CAP-7 or Weather Feedforward as live SWT."
+covers = ["R1", "R2"]
+after = [2]
+hitl = false
+risk = "medium"
+
+[[entry]]
+id = 5
+type = "story"
+title = "Refactor sweep"
+description = "Cleanup-only pass over leftover weather/CAP-7 language deferred from stories 1–4 in docs this epic owns (and obvious cross-links); no new scope. Gates on ADR + CONTEXT + knowledge (and AGENTS via entry 2)."
+verify = "Repo search for live CAP-7 / Weather Feedforward commissioning in AGENTS, CONTEXT, docs/adr, and the listed knowledge concept pages finds none that contradict the PID law."
+covers = ["R1", "R2"]
+after = [2, 3, 4]
+hitl = false
+risk = "low"
