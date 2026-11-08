@@ -150,6 +150,78 @@ def test_initialize_schedules_control_tick() -> None:
     assert app.run_every.call_args.args[2] == _CONTROL_INTERVAL
 
 
+def _err_msgs(app: HvacApp) -> list[str]:
+    return [
+        str(c.args[0])
+        for c in app.log.call_args_list
+        if c.kwargs.get("level") == "ERROR"
+    ]
+
+
+def _bad_args(path: str, value: object) -> dict:
+    args = _tick_args()
+    if path.startswith("pid."):
+        args["pid"][path.removeprefix("pid.")] = value
+    elif path == "weight":
+        args["zones"][0]["weight"] = value
+    else:
+        args[path] = value
+    return args
+
+
+@pytest.mark.parametrize(
+    ("path", "value"),
+    [
+        pytest.param("setpoint_min", "abc", id="non-numeric"),
+        pytest.param("pid.kp", float("nan"), id="non-finite"),
+        pytest.param("pid.ki", -0.1, id="negative-gain"),
+        pytest.param("control_interval", 60.7, id="fractional-interval"),
+        pytest.param("pid.i_term_min", 1, id="i-term-excludes-zero"),
+        pytest.param("base_water_temp", 55.1, id="base-out-of-bounds"),
+        pytest.param("weight", float("inf"), id="non-finite-weight"),
+        pytest.param("setpoint_max", 10**400, id="overflow"),
+    ],
+)
+def test_initialize_logs_config_error_without_raising(path: str, value: object) -> None:
+    app = _init_app(args=_bad_args(path, value))
+
+    app.initialize()
+
+    errors = _err_msgs(app)
+    assert len(errors) == 1
+    assert "HVAC config error" in errors[0]
+    app.run_every.assert_not_called()
+    app.listen_state.assert_not_called()
+
+
+def test_initialize_warns_once_on_legacy_keys() -> None:
+    args = _tick_args()
+    args["outdoor_temperature"] = _OUTDOOR
+    args["weather_feedforward"] = {"base": 25}
+    args["pid"]["integral_min"] = -10
+    args["foo"] = 1
+    app = _init_app(args=args)
+
+    app.initialize()
+
+    assert _warn_msgs(app) == [
+        "HVAC config: ignoring legacy or unknown keys: "
+        "foo, outdoor_temperature, pid.integral_min, weather_feedforward"
+    ]
+    app.run_every.assert_called_once()
+
+
+def test_initialize_clean_args_no_warning() -> None:
+    args = _tick_args()
+    args.update({"module": "ha_smart_hvac", "class": "HvacApp", "name": "hvac"})
+    app = _init_app(args=args)
+
+    app.initialize()
+
+    assert _warn_msgs(app) == []
+    app.run_every.assert_called_once()
+
+
 def test_initialize_outdoor_not_among_listeners() -> None:
     zone_two_temp = "sensor.zone_two_temp"
     climate_two = "climate.zone_two"

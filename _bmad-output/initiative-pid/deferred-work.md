@@ -27,3 +27,14 @@
 ## Deferred from: code review of story-pid-integral-units-and-r7-skip-hardening-plan (2026-11-07)
 
 - `evaluate_demand` (`apps/ha_smart_hvac/pid.py`) uses ∫ as passed for the command, so with an I-term range that excludes 0 (e.g. `i_term_min > 0`) the command applies I = 0 (start/after clear) or a frozen value outside `[i_term_min, i_term_max]`. Pre-existing with `integral_min/max`; entry 1.7 (C5/D20) rejects such ranges at parse time.
+
+## Deferred from: plan split of story-commission-parse-hardening-and-legacy-key-warning-plan (2026-11-07)
+
+- source_plan: `_bmad-output/initiative-pid/tickets/epic-fixed-pid-swt/tickets/story-commission-parse-hardening-and-legacy-key-warning-plan.md`
+  summary: Runtime guard in `apps/ha_smart_hvac/pid.py` — `weighted_error` returns `None` when the weighted error is not finite, so `evaluate_demand` takes the existing "Demand zone weights unusable; setpoint 0" idle path instead of `clamp(nan) == setpoint_max` (party lock C), with `tests/test_pid.py` and `tests/test_hvac_app.py` cases; owner: refactor sweep 2 (entry 8).
+  evidence: Split by user at the 1.7 token gate (~2400 tokens); independent of config parsing. 1.7 closes the yaml entry point instead (`_parse_zone` rejects a non-finite `weight`); the runtime guard still covers non-finite zone readings and float overflow in the weighted sums.
+
+## Resolved in 1.7 commission parse hardening (2026-11-08)
+
+- Resolved: house yaml without `base_water_temp` and `setpoint_min: 42` (~3 h I-term lag) — an omitted `base_water_temp` now defaults to 40 clamped into `setpoint_min`…`setpoint_max`, so the house base becomes 42 and the lag is gone; an explicit base below `setpoint_min` is now a config error, so "accept the lag" is no longer an option.
+- Resolved: I-term range excluding 0 in `evaluate_demand` — `_parse_pid` (`apps/ha_smart_hvac/config.py`) rejects `not i_term_min <= 0 <= i_term_max` with `ConfigError`, so such a range never reaches the law.
