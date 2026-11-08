@@ -379,6 +379,21 @@ def test_parse_reports_unknown_zone_sub_keys() -> None:
     assert config.zones[0].weight == pytest.approx(1.0)
 
 
+def test_parse_reports_unknown_zone_sub_keys_on_second_zone() -> None:
+    args = _minimal_args()
+    args["zones"].append(
+        {
+            "name": "zone_two",
+            "temperature": "sensor.temp_two",
+            "thermostats": ["climate.thermostat_two"],
+            "weigth": 3,
+        }
+    )
+    config = parse_config(args)
+    assert config.ignored_keys == ("zones[zone_two].weigth",)
+    assert config.zones[1].weight == pytest.approx(1.0)
+
+
 def test_parse_appdaemon_reserved_keys_not_reported() -> None:
     raw = yaml.safe_load((ROOT / "apps.yaml.example").read_text())
     args = dict(raw["hvac"])

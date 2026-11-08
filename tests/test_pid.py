@@ -128,6 +128,16 @@ def test_non_finite_weighted_error_returns_none() -> None:
     assert _eval(zones) is None
 
 
+def test_infinite_weight_sum_with_finite_e_returns_none() -> None:
+    """weight_sum=inf with e=0 (0/inf) must idle, not run PID as perfect tracking."""
+    zones = [
+        _zone("a", 0.0, [0.0], weight=1e308),
+        _zone("b", 0.0, [0.0], weight=1e308),
+    ]
+    assert weighted_error(zones) is None
+    assert _eval(zones) is None
+
+
 @pytest.mark.parametrize(
     ("raw", "lo", "hi", "expected"),
     [

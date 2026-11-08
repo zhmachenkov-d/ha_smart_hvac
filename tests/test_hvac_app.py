@@ -362,6 +362,22 @@ def test_two_decimal_setpoint_max_command_stays_inside_bound() -> None:
     assert _set_value_writes(app)[0] <= 55.06
 
 
+def test_off_grid_command_logged_without_one_decimal_rounding() -> None:
+    """Success INFO must show the written off-grid command, not :.1f (55.0)."""
+    args = _tick_args()
+    args["setpoint_min"] = 55.01
+    args["setpoint_max"] = 55.06
+    args["base_water_temp"] = 55.03
+    app = _tick_app(zone_temp=22.0, setpoint=22.0, plant_setpoint=45.0)
+    app._config = parse_config(args)
+    # e=0, raw=55.03 → no 0.1 grid point in bounds → clamp fallback 55.03
+
+    app.control_tick({})
+
+    assert _set_value_writes(app) == [pytest.approx(55.03)]
+    assert any("command=55.03" in m for m in _info_msgs(app))
+
+
 def test_heating_at_setpoint_still_writes_pid() -> None:
     app = _tick_app(
         zone_temp=22.0,

@@ -70,6 +70,8 @@ def weighted_error(zones: Sequence[ZoneSnapshot]) -> float | None:
     if contribs is None:
         return None
     weight_sum = sum(w for _, _, w in contribs)
+    if not math.isfinite(weight_sum):
+        return None
     tair_w = sum(w * tair for tair, _, w in contribs) / weight_sum
     tset_w = sum(w * tset for _, tset, w in contribs) / weight_sum
     e = tset_w - tair_w

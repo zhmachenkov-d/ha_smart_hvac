@@ -3,7 +3,7 @@ title: '1.8 Refactor sweep 2'
 type: 'refactor'
 ticket: '8'
 created: '2026-11-08'
-status: 'built'
+status: done
 baseline_revision: '4789d7986d6ebd6e5d84a4eac8049fd2ec172d0f'
 route: 'full'
 route_source: 'auto'
@@ -104,3 +104,27 @@ Ship A first (idle helper + delete `_last_commanded`); plant behavior stays toda
 - `grep -n '_write_setpoint(0' apps/ha_smart_hvac/hvac_app.py` -- expected: the only match is inside `_go_idle`
 - `PYTHONPATH=apps uv run python -c "import yaml; from ha_smart_hvac.config import parse_config; c=parse_config(yaml.safe_load(open('apps.yaml.example'))['hvac']); assert not c.ignored_keys, c.ignored_keys"` -- expected: no assertion error
 - `PYTHONPATH=apps uv run python -c "import yaml; from ha_smart_hvac.config import parse_config; c=parse_config(yaml.safe_load(open('apps/apps.yaml'))['hvac']); assert not c.ignored_keys, c.ignored_keys"` -- expected: the house yaml still reports none (skip it if `apps/apps.yaml` is absent)
+
+## Code Review
+
+### 2026-11-08
+**Code review complete.** 0 `decision-needed`, 3 `patch`, 0 `defer`, 14 rejected.
+
+- [x] [Review][Patch] Infinite weight_sum with finite e bypasses weights-unusable idle [`apps/ha_smart_hvac/pid.py:72-78`]
+- [x] [Review][Patch] Off-grid demand-success log format is untested [`apps/ha_smart_hvac/hvac_app.py:132`]
+- [x] [Review][Patch] Multi-zone ignored_keys coverage stops at the first zone [`apps/ha_smart_hvac/config.py:169-178`]
+
+Rejected:
+- R1 low — plan checkboxes vs built: meta hygiene, rarely visible
+- R2 low — party memlog in diff: process noise, not product
+- R3 false — memlog vs frozen-after-approval is sequential timeline, not contradiction
+- R4 low — stale triage “patch” note; code already fixed in 6e9cf00
+- R6 low — min-bound 42.04 already locked in quantize_command unit tests
+- R7 false — index-label path unreachable on successful parse (name always valid)
+- R8 low — weight-defaults-to-1.0 doc expansion outside plan Code Map
+- R9 false — EC1 docs were not in plan scope for house-calibration
+- R10 false — post-append deferred-work content satisfies Resolved-or-epic-2
+- R11 low — AC vs Verification grep both match the same `_write_setpoint(0.0)` site
+- R12 low — overflow test fixture style; assertions already correct
+- R16 low — sole write-0 uniqueness already covered by Verification grep
+- R17 false — duplicate of R10; full-file ownership holds
