@@ -3,7 +3,7 @@ title: '1.7 Commission parse hardening and legacy-key warning'
 type: 'bugfix'
 ticket: '7'
 created: '2026-11-07'
-status: 'built'
+status: done
 baseline_revision: 'c642f92101fb76516cede527e994f62e56094ef9'
 route: 'full'
 route_source: 'auto'
@@ -93,7 +93,7 @@ Full route via implementation subagent; 268 tests green, ruff clean, example yam
 
 ## Design Notes
 
-Reserved AppDaemon keys (4.5.13 `BaseApp`/`AppConfig`/`GlobalModule`; `self.args` is `model_dump(by_alias=True, exclude_unset=True)` and AppDaemon injects `name`): `name`, `config_path`, `module`, `class`, `dependencies`, `global_dependencies`, `disable`, `priority`, `pin_app`, `pin_thread`, `log`, `log_level`, and any `constrain_*`. Hard-coded so `config.py` imports without AppDaemon; the drift guard catches an upgrade that adds a field.
+Reserved AppDaemon keys (4.5.13 `BaseApp`/`AppConfig`/`GlobalModule`; `self.args` is `model_dump(by_alias=True, exclude_unset=True)` and AppDaemon injects `name`): `name`, `config_path`, `global` (added in code review 2026-11-08), `module`, `class`, `dependencies`, `global_dependencies`, `disable`, `priority`, `pin_app`, `pin_thread`, `log`, `log_level`, and any `constrain_*`. Hard-coded so `config.py` imports without AppDaemon; the drift guard catches an upgrade that adds a field.
 
 YAML `true` is rejected (`float(True) == 1.0` would pass silently). Intended accepts: numeric strings Python `float` takes (`" 60 "`, `"6_0"` → 60.0) and PyYAML 1.1 sexagesimal `1:00` (= 60); `pid: null` means defaults, while `pid.kp: null` is rejected. Whole-seconds `control_interval` is beyond C5's letter, in its reject-don't-coerce spirit.
 
@@ -107,3 +107,30 @@ Omitted base follows the clamp because the order 5 → 7 → 6 ships 7 before th
 - `uv run pytest` -- expected: all green
 - `uv run ruff check apps tests && uv run ruff format --check apps tests` -- expected: clean
 - `PYTHONPATH=apps uv run python -c "import yaml; from ha_smart_hvac.config import parse_config; print(parse_config(yaml.safe_load(open('apps.yaml.example'))['hvac']).ignored_keys)"` -- expected: `()`
+
+## Code Review
+
+### 2026-11-08
+
+**Code review complete.** 1 `decision-needed`, 5 `patch`, 2 `defer`, 10 rejected. Decision resolved → 6 `patch`.
+
+- [x] [Review][Patch] No upper bound on `control_interval`: a huge value raises a raw `OverflowError` in `initialize` — decided 2026-11-08 (option A): reject `control_interval > 86400` with `control_interval must be at most 86400 seconds`, plus test and docs line [apps/ha_smart_hvac/config.py:178]
+- [x] [Review][Patch] `_APPDAEMON_KEYS` misses AppDaemon's `global` alias (an app with `global: false` keeps it in `args` and gets a spurious WARNING); drift guard is one-way and ignores `GlobalModule` — add `global`, assert set equality with `AppConfig` ∪ `GlobalModule` aliases ∪ `{"name"}` [apps/ha_smart_hvac/config.py:43, tests/test_config.py:376]
+- [x] [Review][Patch] Test regexes interpolate `pid.kp` unescaped (`.` matches anything); overflow-weight test omits the zone label [tests/test_config.py:215]
+- [x] [Review][Patch] No test for newly rejected zone `weight` `true` / `false` / `"abc"` / `[1]` [tests/test_config.py:131]
+- [x] [Review][Patch] Docs list "text" as rejected although numeric strings are accepted — say "text that is not a number" [docs/house-calibration.md:70]
+- [x] [Review][Patch] Party memlog's last 1.7 outcome (fork 4 locked C, "no config-time weight check", plan draft) is not followed by the token-gate split — append an outcome line [_bmad-output/party-mode/memories/installed/.memlog.md:124]
+- [x] [Review][Defer] Huge finite zone `weight` (~1e307) overflows the weighted sums to `e = nan`, so `clamp(nan)` silently commands `setpoint_max` [apps/ha_smart_hvac/pid.py:54] — deferred: pre-existing (such weights parsed before 1.7); already covered by the deferred runtime non-finite-`e` guard for entry 8
+- [x] [Review][Defer] Misspelled or leftover zone sub-keys (`weigth: 3`) are silently ignored and the weight falls back to 1.0 [apps/ha_smart_hvac/config.py:151] — deferred: pre-existing and outside 1.7's frozen scope (top-level and `pid` keys only)
+
+**Rejected**
+
+- low — legacy-key WARNING not shown when parsing also fails: costs one extra restart, only when yaml is both stale and invalid; fix needs the key scan exposed on the error path.
+- low — `from ha_smart_hvac.config import …` still loads AppDaemon via the package `__init__`: only matters outside the project uv env that AGENTS.md mandates; `parse_config` needs no AppDaemon runtime; fix (PEP 562 lazy `__init__` + import-blocking test) is beyond a direct correction. (Also raised by intent-alignment as reading B2.)
+- low — `ignored_keys` takes part in `HvacConfig` equality: no production caller compares configs; only three test call sites affected.
+- false — epic C5 / entry 7 wording contradicts the omitted-base clamp: the effective base is always within bounds (clamped when omitted, checked when explicit); the clamp is human lock A.
+- false — omitted-base reading A1 vs A2: human-locked decision in the Change Log; changing it means editing the frozen intent.
+- false — `initialize` tested per rejection kind, not per key × value: `except ConfigError` is key-agnostic and the full matrix raises `ConfigError` at `parse_config`.
+- false — example-yaml no-WARNING shown at `initialize` only on synthetic args: `initialize` warns iff `ignored_keys` is non-empty, and the real example parses to `()`.
+- false — house yaml not checked: entry 6's job; house `apps/apps.yaml` is out of bounds.
+- false — extra scope (weight finiteness, whole-second interval, base default, docs): each is a recorded human decision in this plan.

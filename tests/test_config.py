@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib
 import math
+import re
 from dataclasses import replace
 from pathlib import Path
 
@@ -128,10 +129,13 @@ def test_parse_rejects_negative_zone_weight() -> None:
         parse_config(args)
 
 
-def test_parse_rejects_non_numeric_zone_weight() -> None:
+@pytest.mark.parametrize("value", [None, "abc", [1], True, False])
+def test_parse_rejects_non_numeric_zone_weight(value: object) -> None:
     args = _minimal_args()
-    args["zones"][0]["weight"] = None
-    with pytest.raises(ConfigError, match="weight must be a number"):
+    args["zones"][0]["weight"] = value
+    with pytest.raises(
+        ConfigError, match="Zone 'living_room': weight must be a number"
+    ):
         parse_config(args)
 
 
@@ -212,14 +216,14 @@ _ALL_NUMERIC_KEYS = _TOP_NUMERIC_KEYS + [f"pid.{k}" for k in _PID_NUMERIC_KEYS]
 @pytest.mark.parametrize("key", _ALL_NUMERIC_KEYS)
 @pytest.mark.parametrize("value", ["abc", None, [1], True])
 def test_parse_rejects_non_numeric(key: str, value: object) -> None:
-    with pytest.raises(ConfigError, match=rf"^{key} must be a number$"):
+    with pytest.raises(ConfigError, match=rf"^{re.escape(key)} must be a number$"):
         parse_config(_with_value(key, value))
 
 
 @pytest.mark.parametrize("key", _ALL_NUMERIC_KEYS)
 @pytest.mark.parametrize("value", [math.nan, math.inf, -math.inf, "nan", "inf"])
 def test_parse_rejects_non_finite(key: str, value: object) -> None:
-    with pytest.raises(ConfigError, match=rf"^{key} must be finite$"):
+    with pytest.raises(ConfigError, match=rf"^{re.escape(key)} must be finite$"):
         parse_config(_with_value(key, value))
 
 
@@ -233,14 +237,14 @@ def test_parse_rejects_non_finite_zone_weight(value: float) -> None:
 
 @pytest.mark.parametrize("key", _ALL_NUMERIC_KEYS)
 def test_parse_rejects_overflow(key: str) -> None:
-    with pytest.raises(ConfigError, match=rf"^{key} must be finite$"):
+    with pytest.raises(ConfigError, match=rf"^{re.escape(key)} must be finite$"):
         parse_config(_with_value(key, 10**400))
 
 
 def test_parse_rejects_overflow_zone_weight() -> None:
     args = _minimal_args()
     args["zones"][0]["weight"] = 10**400
-    with pytest.raises(ConfigError, match="weight must be finite"):
+    with pytest.raises(ConfigError, match="Zone 'living_room': weight must be finite"):
         parse_config(args)
 
 
@@ -283,6 +287,22 @@ def test_parse_accepts_yaml_sexagesimal_control_interval() -> None:
     args = _minimal_args()
     args["control_interval"] = yaml.safe_load("v: 1:00")["v"]
     assert parse_config(args).control_interval == 60
+
+
+@pytest.mark.parametrize("value", [86401, 1e15])
+def test_parse_rejects_control_interval_above_one_day(value: float) -> None:
+    args = _minimal_args()
+    args["control_interval"] = value
+    with pytest.raises(
+        ConfigError, match="control_interval must be at most 86400 seconds"
+    ):
+        parse_config(args)
+
+
+def test_parse_accepts_control_interval_of_one_day() -> None:
+    args = _minimal_args()
+    args["control_interval"] = 86400
+    assert parse_config(args).control_interval == 86400
 
 
 @pytest.mark.parametrize("value", [0, -60])
@@ -373,9 +393,10 @@ def test_parse_reports_non_string_keys_as_strings() -> None:
     assert parse_config(args).ignored_keys == ("60", "pid.1")
 
 
-def test_appdaemon_keys_cover_app_config_fields() -> None:
-    """Drift guard: every AppConfig key AppDaemon dumps into self.args is reserved."""
-    from appdaemon.models.config.app import AppConfig
+def test_appdaemon_keys_match_app_config_fields() -> None:
+    """Drift guard both ways: reserved keys == AppConfig/GlobalModule keys + name."""
+    from appdaemon.models.config.app import AppConfig, GlobalModule
 
-    for name, field in AppConfig.model_fields.items():
-        assert (field.alias or name) in _APPDAEMON_KEYS, name
+    fields = AppConfig.model_fields | GlobalModule.model_fields
+    expected = {field.alias or name for name, field in fields.items()} | {"name"}
+    assert expected == _APPDAEMON_KEYS

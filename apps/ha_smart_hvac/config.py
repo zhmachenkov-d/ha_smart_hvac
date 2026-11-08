@@ -20,6 +20,9 @@ _REQUIRED = object()
 
 _DEFAULT_BASE_WATER_TEMP = 40.0
 
+# One day; also keeps run_every's timedelta from overflowing.
+_MAX_CONTROL_INTERVAL = 86400
+
 # Top-level keys parse_config reads.
 _KNOWN_KEYS = frozenset(
     {
@@ -38,12 +41,14 @@ _KNOWN_KEYS = frozenset(
 _PID_KEYS = frozenset({"kp", "ki", "i_term_min", "i_term_max"})
 
 # AppDaemon 4.5.13 reserved app keys (BaseApp / AppConfig / GlobalModule aliases,
-# plus the injected ``name``); any ``constrain_*`` key is also AppDaemon's.
+# plus the injected ``name``; ``global: false`` on an app stays in its args);
+# any ``constrain_*`` key is also AppDaemon's.
 # Hard-coded so this module imports without AppDaemon; a test guards drift.
 _APPDAEMON_KEYS = frozenset(
     {
         "name",
         "config_path",
+        "global",
         "module",
         "class",
         "dependencies",
@@ -181,6 +186,10 @@ def parse_config(args: dict[str, Any]) -> HvacConfig:
     control_interval = int(interval)
     if control_interval <= 0:
         raise ConfigError("control_interval must be positive")
+    if control_interval > _MAX_CONTROL_INTERVAL:
+        raise ConfigError(
+            f"control_interval must be at most {_MAX_CONTROL_INTERVAL} seconds"
+        )
 
     if "base_water_temp" in args:
         base_water_temp = _number(args, "base_water_temp")

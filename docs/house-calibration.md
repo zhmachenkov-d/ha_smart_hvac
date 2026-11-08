@@ -26,7 +26,7 @@ setpoint_max: 55
 control_interval: 300
 ```
 
-`setpoint_min` / `setpoint_max` bound the commanded Set Water Temperature; match them to the boiler / primary circuit limits. `control_interval` (a whole number of seconds, default `300`) is the only schedule that advances the PID and writes a demand Set Water Temperature.
+`setpoint_min` / `setpoint_max` bound the commanded Set Water Temperature; match them to the boiler / primary circuit limits. `control_interval` (a whole number of seconds, at most `86400`, default `300`) is the only schedule that advances the PID and writes a demand Set Water Temperature.
 
 ## 3. Base water temperature and PID (yaml commission)
 
@@ -67,8 +67,9 @@ These are starting defaults, not house-proven. Raise `zones[].weight` for Zones 
 
 Each of these logs `HVAC config error: …` at startup and the App does not run:
 
-- A non-numeric value (text, `null`, a list, or `true` / `false`) or a non-finite one (`nan`, `inf`) for `setpoint_min`, `setpoint_max`, `control_interval`, `base_water_temp`, any `pid.*` gain or bound, or a Zone `weight`
+- A non-numeric value (text that is not a number, `null`, a list, or `true` / `false`) or a non-finite one (`nan`, `inf`) for `setpoint_min`, `setpoint_max`, `control_interval`, `base_water_temp`, any `pid.*` gain or bound, or a Zone `weight`
 - A fractional `control_interval` (`60.7`, `0.5`); `60.0` is accepted as `60`
+- A `control_interval` above `86400` (one day)
 - A negative `pid.kp` or `pid.ki` (`0` is accepted)
 - An I-term range that does not include `0` (`i_term_min` must be ≤ 0 ≤ `i_term_max`)
 - An explicit `base_water_temp` outside `setpoint_min`…`setpoint_max`

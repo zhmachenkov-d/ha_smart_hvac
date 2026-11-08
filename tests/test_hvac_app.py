@@ -176,6 +176,7 @@ def _bad_args(path: str, value: object) -> dict:
         pytest.param("pid.kp", float("nan"), id="non-finite"),
         pytest.param("pid.ki", -0.1, id="negative-gain"),
         pytest.param("control_interval", 60.7, id="fractional-interval"),
+        pytest.param("control_interval", 1e15, id="interval-above-one-day"),
         pytest.param("pid.i_term_min", 1, id="i-term-excludes-zero"),
         pytest.param("base_water_temp", 55.1, id="base-out-of-bounds"),
         pytest.param("weight", float("inf"), id="non-finite-weight"),
