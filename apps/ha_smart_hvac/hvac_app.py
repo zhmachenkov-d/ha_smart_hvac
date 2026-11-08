@@ -59,7 +59,7 @@ class HvacApp(hass.Hass):
         self._integral = 0.0
 
     def _gate_prelude(self) -> list[ZoneSnapshot] | None:
-        """Shared CAP-1…CAP-3 prelude. Returns zones on demand, else None."""
+        """Plant Management / Heating Demand prelude. Zones on demand, else None."""
         config = self._config
 
         if not plant_management_enabled(self.get_state(config.plant_management)):
