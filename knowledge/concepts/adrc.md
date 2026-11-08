@@ -3,7 +3,7 @@ type: Concept
 title: ADRC
 description: Active Disturbance Rejection Control — estimate and cancel total disturbance each sample, then apply a simple outer controller.
 tags: [control, adrc, plant]
-timestamp: 2026-10-19T14:41:00Z
+timestamp: 2026-11-08T22:19:00Z
 ---
 
 # ADRC
@@ -14,7 +14,7 @@ Original ADRC uses nonlinear ESO and nonlinear feedback; parameter tuning is awk
 
 ## In this project
 
-ADRC / LADRC on the water path is **removed** — **superseded by ADR 0004**. Live [Set Water Temperature](/concepts/set-water-temperature.md) is weather-curve-only (`clamp(u_ff)`) under Plant Management / Heating Demand; the [Multi-Zone Coordinator](/concepts/multi-zone-coordinator.md) selects [Critical Zone](/concepts/critical-zone.md) for CAP-7 rise-rate auto-correct only. This page stays as literature depth, not the live App stack.
+ADRC / LADRC on the water path is **removed** — **superseded by ADR 0005**. Live [Set Water Temperature](/concepts/set-water-temperature.md) is fixed-gain PID (`round-to-0.1(clamp(base_water_temp + u_pid))`) under Plant Management / Heating Demand; the [Multi-Zone Coordinator](/concepts/multi-zone-coordinator.md) selects [Critical Zone](/concepts/critical-zone.md) for diagnostics and logging only. This page stays as literature depth, not the live App stack.
 
 Literature:
 
@@ -22,6 +22,8 @@ Literature:
 - High-order lag / wide operating range (adaptive MADRC, field): [/references/wang-2026-madrc-sst.md](/references/wang-2026-madrc-sst.md)
 
 ## Related
+
+LADRC / MADRC Project notes still describe superseded ADR 0004 (siblings owned by story 2.5).
 
 - [/concepts/ladrc.md](/concepts/ladrc.md)
 - [/concepts/madrc.md](/concepts/madrc.md)
@@ -32,3 +34,4 @@ Literature:
 
 - [/references/huang-2018-ladrc-hvac.md](/references/huang-2018-ladrc-hvac.md) §1, §3.1
 - [/references/wang-2026-madrc-sst.md](/references/wang-2026-madrc-sst.md) §3
+- [ADR 0005](../../docs/adr/0005-fixed-pid-swt.md) — live SWT is fixed-gain PID, not ADRC
