@@ -34,6 +34,7 @@ Oneshot: six short concept docs (~55–75 substantive lines). Match ADR 0005 / C
 - Manual verify: no live commissioning language on the six paths; AGENTS/CONTEXT/ADR/App untouched.
 - Quick review patch: MZC `description` / index cell no longer scope “for diagnostics” over ZE/HD — Critical Zone selection only.
 - Quick review defer: `adrc.md` Related still links `ladrc.md`/`madrc.md` whose Project notes commission ADR 0004 — owned by story 2.5.
+- Full review patches: SWT gate law (weight-unusable tick-only + no-valid-zones shared); `base_water_temp` gloss; SWT description/index PID signal; ADRC Related caveat for ladrc/madrc (siblings still 2.5).
 
 ## Plan Change Log
 
@@ -52,3 +53,24 @@ Oneshot: six short concept docs (~55–75 substantive lines). Match ADR 0005 / C
 - Critical Zone is diagnostics/logging only and must not drive SWT; Multi-Zone Coordinator still computes ZE/HD/CZ selection without owning the SWT write.
 - Outdoor and ADRC “In this project” (or equivalent) state they are not on the live water path.
 - No edits outside those six paths (AGENTS/CONTEXT/ADR/App/`ladrc`/`madrc`/`knowledge/index.md` untouched).
+
+## Code Review
+
+### 2026-11-08
+**Code review complete.** 0 `decision-needed`, 4 `patch`, 0 `defer`, 9 rejected. Decision F4 → patch (A).
+
+- [x] [Review][Patch] ADRC Related caveat for ladrc/madrc still on ADR 0004 [adrc.md:Related] — decided A: one-line Related caveat; siblings stay 2.5
+- [x] [Review][Patch] SWT concept gate enumeration incomplete vs ADR 0005 [set-water-temperature.md:15]
+- [x] [Review][Patch] `base_water_temp` unexplained on SWT concept page [set-water-temperature.md:15]
+- [x] [Review][Patch] SWT index/description lack PID / ADR 0005 signal [set-water-temperature.md:description; index.md:SWT row]
+
+#### Rejected
+- R1 false — “air error” matches ADR 0005/CONTEXT; formula already has `u_pid`
+- R2 low — ZE/HD already listed as computed; CZ-only diagnostics tag is enough; affirming PID wiring is altitude creep
+- R4 false — ADR 0005 is under Citations; git hunk context was misleading
+- R5 low — Outdoor body already says not on SWT path; Related framing rarely needed
+- R7 low — plan Verification meta vs deferred-work/plan artifacts; product six-path scope still holds
+- R9 low — empty Plan Change Log scaffold; unused on oneshot
+- R10 false — `control_tick`/`control_event`/∫ match ADR/CONTEXT altitude
+- R11 low — Outdoor negation is the intentional reframe payload
+- R14/R15 false — CONTEXT/AGENTS/App out of frozen plan; docs-only verify is manual

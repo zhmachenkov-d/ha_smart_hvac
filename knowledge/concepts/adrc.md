@@ -3,7 +3,7 @@ type: Concept
 title: ADRC
 description: Active Disturbance Rejection Control — estimate and cancel total disturbance each sample, then apply a simple outer controller.
 tags: [control, adrc, plant]
-timestamp: 2026-11-08T20:40:00Z
+timestamp: 2026-11-08T22:19:00Z
 ---
 
 # ADRC
@@ -22,6 +22,8 @@ Literature:
 - High-order lag / wide operating range (adaptive MADRC, field): [/references/wang-2026-madrc-sst.md](/references/wang-2026-madrc-sst.md)
 
 ## Related
+
+LADRC / MADRC Project notes still describe superseded ADR 0004 (siblings owned by story 2.5).
 
 - [/concepts/ladrc.md](/concepts/ladrc.md)
 - [/concepts/madrc.md](/concepts/madrc.md)
