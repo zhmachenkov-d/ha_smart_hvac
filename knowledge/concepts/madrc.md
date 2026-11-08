@@ -3,7 +3,7 @@ type: Concept
 title: MADRC
 description: Modified ADRC — delay the ESO’s command input with an inertia compensator so it stays synchronized with a high-order lag plant’s delayed output.
 tags: [control, adrc, madrc, observer]
-timestamp: 2026-10-19T14:41:00Z
+timestamp: 2026-11-08T22:38:00Z
 ---
 
 # MADRC
@@ -28,7 +28,7 @@ Wang et al. (2026) tune \(\omega_o\), \(b_0\), \(k_p\), and plant-linked \(T\), 
 
 ## Project note
 
-MADRC is **not** on the live water path — **ADR 0004** (weather-curve-only SWT). House thermal dynamics may still look high-order relative to OpenTherm [Set Water Temperature](/concepts/set-water-temperature.md); this page is prior art only. Paper gains and SST numerics are not copy-paste settings for this Plant.
+MADRC is **not** on the live water path — **superseded by ADR 0005** (weather-curve ADR 0004 is historical). Live [Set Water Temperature](/concepts/set-water-temperature.md) is fixed-gain PID (`round-to-0.1(clamp(base_water_temp + u_pid))`) under Plant Management / Heating Demand; the [Multi-Zone Coordinator](/concepts/multi-zone-coordinator.md) selects [Critical Zone](/concepts/critical-zone.md) for diagnostics and logging only. House thermal dynamics may still look high-order relative to OpenTherm SWT; this page is prior art only. Paper gains and SST numerics are not copy-paste settings for this Plant.
 
 ## Related
 
@@ -40,3 +40,4 @@ MADRC is **not** on the live water path — **ADR 0004** (weather-curve-only SWT
 # Citations
 
 - [/references/wang-2026-madrc-sst.md](/references/wang-2026-madrc-sst.md) §3, Eqs. (15)–(18), (29)–(30)
+- [ADR 0005](../../docs/adr/0005-fixed-pid-swt.md) — live SWT is fixed-gain PID, not ADRC

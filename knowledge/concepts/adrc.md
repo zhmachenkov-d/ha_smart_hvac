@@ -23,8 +23,6 @@ Literature:
 
 ## Related
 
-LADRC / MADRC Project notes still describe superseded ADR 0004 (siblings owned by story 2.5).
-
 - [/concepts/ladrc.md](/concepts/ladrc.md)
 - [/concepts/madrc.md](/concepts/madrc.md)
 - [/concepts/extended-state-observer.md](/concepts/extended-state-observer.md)
