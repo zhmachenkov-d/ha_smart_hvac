@@ -2,6 +2,17 @@
 
 <!-- version list -->
 
+## v3.0.0 (2026-11-08)
+
+### Bug Fixes
+
+- **config**: Close code-review findings for 1.7 and mark story done
+  ([`7b5192d`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/7b5192d1cb6e702afd5af29ef4a7fba8125b3075))
+
+- **config**: Harden commission parsing and warn on legacy keys
+  ([`712cc9c`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/712cc9c8ebc0ca2fa7824e6c1f418e17bdd0c239))
+
+
 ## v2.0.0 (2026-11-07)
 
 ### Bug Fixes
