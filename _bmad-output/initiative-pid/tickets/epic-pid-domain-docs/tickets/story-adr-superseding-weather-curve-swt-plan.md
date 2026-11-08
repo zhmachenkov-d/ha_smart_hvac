@@ -3,7 +3,7 @@ title: 'ADR superseding weather-curve SWT'
 type: 'chore'
 ticket: '2'
 created: '2026-11-08'
-status: 'built'
+status: done
 baseline_revision: '85a2e2257e78040323beb080dae9c4765a4f310c'
 route: 'oneshot'
 route_source: 'auto'
