@@ -3,7 +3,7 @@ type: Reference
 title: Wang et al. 2026 — Adaptive MADRC for superheated steam temperature
 description: Open-access field + simulation study of gain-scheduled MADRC on a 660 MW unit SST cascade loop.
 tags: [adrc, madrc, cascade, gain-scheduling, literature, thermal-power]
-timestamp: 2026-07-08T15:45:00Z
+timestamp: 2026-11-08T22:38:00Z
 resource: raw/wang-2026-madrc-sst/
 ---
 

@@ -35,6 +35,7 @@ Oneshot (~25–35 lines across ~7 docs files; mechanical reframe). Mirror `adrc.
 - `knowledge/references/huang-2018-ladrc-hvac.md` + `wang-2026-madrc-sst.md` — “This repo” / mapping rows: PID SWT, Critical Zone diagnostics-only, no CAP-7 / weather-curve FF.
 - `knowledge/log.md` — append a 2026-11-08 entry (append-only; do not rewrite the 2026-10-19 Fact).
 - `AGENTS.md` — drop “pending stories 2.3+” / “pending story 2.4”; Verified stamp → `ae26c32` (baseline).
+- `_bmad-output/initiative-pid/deferred-work.md` — bookkeeping only: add “Resolved in 2.5” for the closed 2.4 ladrc/madrc deferral (Deferred bullet kept per house pattern).
 - Out of scope: App runtime, ADR 0004/0005 bodies, CONTEXT.md (already aligned), house-calibration (already migration text), epic-3 RLS.
 - Closed 2.4 deferral target: ladrc/madrc Project notes + adrc Related caveat.
 - Quick review patches: ladrc/madrc Project notes mirrored to adrc altitude; wang Critical Zone “diagnostics and logging only” + full demand clamp formula; Verification rg excludes append-only `knowledge/log.md`.
@@ -67,3 +68,21 @@ Oneshot (~25–35 lines across ~7 docs files; mechanical reframe). Mirror `adrc.
 - `knowledge/index.md` live water path is ADR 0005.
 - `AGENTS.md` Where-things-are no longer says PID/concept pages pending 2.3+/2.4.
 - No App or ADR body edits.
+
+## Code Review
+
+### 2026-11-08
+**Code review complete.** 0 `decision-needed`, 6 `patch`, 0 `defer`, 4 rejected.
+
+- [x] [Review][Patch] OKF frontmatter timestamps not bumped on edited pages [knowledge/index.md:5]
+- [x] [Review][Patch] Huang This-repo row omits full demand SWT formula that wang has [knowledge/references/huang-2018-ladrc-hvac.md:39]
+- [x] [Review][Patch] ladrc/madrc Citations omit ADR 0005 present on adrc [knowledge/concepts/ladrc.md:37]
+- [x] [Review][Patch] madrc Project note weaker historical framing than ladrc [knowledge/concepts/madrc.md:31]
+- [x] [Review][Patch] knowledge/log omits Cleared line for 2.5 deferred-work close [knowledge/log.md:5]
+- [x] [Review][Patch] Plan inventory omits deferred-work.md edit [story-refactor-sweep-plan.md:28]
+
+#### Rejected
+- false — deferred-work open deferral left beside Resolved: house pattern keeps Deferred bullets and adds Resolved (same as 1.4/1.7/1.8)
+- false — Section titles Project note vs In this project: plan kept “Project note” and asked for content altitude, already patched
+- false — Diff does not deliver full epic R1/R2 App/CONTEXT/ADR: story/plan are cleanup-only; those surfaces out of scope
+- false — Gate surfaces CONTEXT/ADR/AGENTS Critical Zone not edited: already aligned; search-without-edit intentional

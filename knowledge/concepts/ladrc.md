@@ -3,7 +3,7 @@ type: Concept
 title: LADRC
 description: Linear Active Disturbance Rejection Control — linear ESO plus linear state feedback; practical ADRC form with fewer tuning knobs.
 tags: [control, adrc, ladrc]
-timestamp: 2026-10-19T14:41:00Z
+timestamp: 2026-11-08T22:38:00Z
 ---
 
 # LADRC
@@ -37,3 +37,4 @@ LADRC-on-Critical-Zone water control is **removed** — **superseded by ADR 0005
 # Citations
 
 - [/references/huang-2018-ladrc-hvac.md](/references/huang-2018-ladrc-hvac.md) §3.1, Tables 6–7
+- [ADR 0005](../../docs/adr/0005-fixed-pid-swt.md) — live SWT is fixed-gain PID, not ADRC

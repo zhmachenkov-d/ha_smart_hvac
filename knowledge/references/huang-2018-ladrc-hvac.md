@@ -3,7 +3,7 @@ type: Reference
 title: Huang et al. 2018 — LADRC for HVAC zone temperature
 description: Open-access simulation study comparing LADRC, PID, and integral-fuzzy on a winter AHU zone model.
 tags: [adrc, ladrc, hvac, simulation, literature]
-timestamp: 2026-07-08T15:45:00Z
+timestamp: 2026-11-08T22:38:00Z
 resource: raw/huang-2018-ladrc-hvac/
 ---
 
@@ -36,7 +36,7 @@ LADRC tuned parameters (Table 6): \(b_0 = 2.8\), \(k_p = 0.053\), \(\beta_1 = 15
 Useful as **prior art that LADRC can beat PID on HVAC air-temperature loops under disturbance**. Not a drop-in blueprint:
 
 - Paper plant: AHU coil **water flow** → supply air → zone.
-- This repo: [Plant](/concepts/plant.md) OpenTherm **[Set Water Temperature](/concepts/set-water-temperature.md)** is fixed-gain PID under ADR 0005 — no LADRC / ADRC Controller on water. The [Multi-Zone Coordinator](/concepts/multi-zone-coordinator.md) selects [Critical Zone](/concepts/critical-zone.md) for diagnostics and logging only.
+- This repo: [Plant](/concepts/plant.md) OpenTherm **[Set Water Temperature](/concepts/set-water-temperature.md)** is fixed-gain PID (`round-to-0.1(clamp(base_water_temp + u_pid))`) under ADR 0005 — no LADRC / ADRC Controller on water. The [Multi-Zone Coordinator](/concepts/multi-zone-coordinator.md) selects [Critical Zone](/concepts/critical-zone.md) for diagnostics and logging only.
 
 ## Key sections (PDF)
 

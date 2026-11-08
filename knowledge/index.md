@@ -2,7 +2,7 @@
 okf_version: "0.1"
 title: Smart HVAC knowledge
 description: Domain depth for AppDaemon HVAC control — OpenTherm plant, fixed-PID SWT, multi-zone coordination; ADRC literature retained as prior art.
-timestamp: 2026-10-19T14:41:00Z
+timestamp: 2026-11-08T22:38:00Z
 ---
 
 # Smart HVAC knowledge
