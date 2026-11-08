@@ -3,7 +3,7 @@ title: 'knowledge concept pages for PID SWT'
 type: 'chore'
 ticket: '4'
 created: '2026-11-08'
-status: 'built'
+status: done
 baseline_revision: '023d931abddfcb5f3ee53ed75918c97bdb101cfc'
 route: 'oneshot'
 route_source: 'auto'
