@@ -3,7 +3,7 @@ title: 'CONTEXT.md PID domain language'
 type: 'chore'
 ticket: '3'
 created: '2026-11-08'
-status: 'built'
+status: done
 baseline_revision: 'e69cc2a7fb4ceba87e8ac73a1966008d50858087'
 route: 'oneshot'
 route_source: 'auto'
