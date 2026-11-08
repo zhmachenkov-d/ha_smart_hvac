@@ -129,7 +129,7 @@ class HvacApp(hass.Hass):
         parts = [
             f"e={result.e:.2f}",
             f"u_pid={result.u_pid:.2f}",
-            f"command={result.command:.1f}",
+            f"command={result.command}",
         ]
         if critical is not None:
             parts.append(f"critical_zone={critical.name}")
