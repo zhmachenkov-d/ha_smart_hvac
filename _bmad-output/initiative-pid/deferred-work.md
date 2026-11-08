@@ -43,3 +43,7 @@
 
 - Huge finite zone `weight` (~1e307, or several near `1e308`) passes `_parse_zone`; in `weighted_error` (`apps/ha_smart_hvac/pid.py`) `w*tair` / the weight sum overflow to `inf`, `e` becomes `nan`, and `clamp(nan)` silently commands `setpoint_max`. Pre-existing; the plan-split entry above (runtime non-finite-`e` guard, owner entry 8) already covers it — entry 8's tests should include an overflowing-weight case.
 - Misspelled or leftover zone sub-keys (e.g. `weigth: 3`) are silently ignored and the weight falls back to `1.0`; `_ignored_keys` (`apps/ha_smart_hvac/config.py`) reports only top-level and `pid.*` keys. Pre-existing and outside 1.7's frozen scope; candidate for entry 8 (report as `zones[<name>].<key>` in `ignored_keys`).
+
+## Resolved in 1.6 commission house apps.yaml (2026-11-08)
+
+- Resolved: house `base_water_temp ≥ setpoint_min` (entry-5 party deferral, first closed by 1.7's default clamp) — the house `apps/apps.yaml` now sets `base_water_temp: 42` explicitly, with `pid`, `control_interval: 300`, and no legacy keys (`ignored_keys == ()`).
