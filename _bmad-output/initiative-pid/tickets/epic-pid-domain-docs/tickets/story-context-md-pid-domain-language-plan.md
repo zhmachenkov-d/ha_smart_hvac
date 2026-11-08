@@ -31,6 +31,7 @@ Oneshot: single-file `CONTEXT.md` rewrite (~Plant Management through Multi-Zone 
 - Rewrote Plant Management / Zone Error / Critical Zone / Outdoor / Multi-Zone Coordinator; replaced Weather Feedforward glossary entry with PID; updated dialogue turns for demand law, plant-off, and tick vs event.
 - Left AGENTS.md, ADR, knowledge/, and App untouched.
 - Quick review patches: Multi-Zone Coordinator diagnostics-only scoped to Critical Zone only; event dialogue says shared gate prelude (not “same gates”).
+- Full review patches: event idle/no-valid-zones write 0 vs plant-off no write; base_water_temp / weighted `e` / ∫ gloss; weight-unusable tick-only; PID Avoid residues; Verification MZC wording.
 
 ## Plan Change Log
 
@@ -47,6 +48,23 @@ Oneshot: single-file `CONTEXT.md` rewrite (~Plant Management through Multi-Zone 
 **Manual checks (if no CLI):**
 - `CONTEXT.md` has no live weather-curve / CAP-7 / CAP-8 / `clamp(u_ff)` / FF auto-correct JSON / Outdoor-as-control commissioning story.
 - Demand law is `round-to-0.1(clamp(base_water_temp + u_pid))`; plant-off = no write + clear ∫; idle = write 0 + clear ∫.
-- Critical Zone and Multi-Zone Coordinator are diagnostics/logging only and do not drive Set Water Temperature.
-- Tick vs event: demand SWT + ∫ only on `control_tick`; `control_event` listeners exclude Outdoor; events clear-only on idle / plant-off / no-valid-zones.
+- Critical Zone selection is diagnostics/logging only and must not drive Set Water Temperature; Multi-Zone Coordinator still computes Zone Error and Heating Demand without owning the SWT write.
+- Tick vs event: demand SWT + ∫ only on `control_tick` (weight-unusable tick-only write 0 + clear ∫); `control_event` listeners exclude Outdoor; event idle/no-valid-zones write 0 + clear ∫; plant-off clear ∫ with no write.
 - Language matches ADR 0005 and the shipped App; Exclusive Session / Zone / Plant / Heating Demand glossary that still holds is preserved.
+
+## Code Review
+
+### 2026-11-08
+**Code review complete.** 0 `decision-needed`, 5 `patch`, 0 `defer`, 3 rejected (incl. F4→B).
+
+- [x] [Review][Decision] Plant readback throttle/∫ rule absent from CONTEXT — resolved: **B** — leave readback throttle in AGENTS/ADR only; no CONTEXT change.
+- [x] [Review][Patch] Event clear path omits idle/no-valid-zones write 0 [CONTEXT.md:59-60]
+- [x] [Review][Patch] base_water_temp / weighted averages / ∫ underdefined [CONTEXT.md:59-60]
+- [x] [Review][Patch] Weight-unusable tick-only fail path undocumented [CONTEXT.md:59-60]
+- [x] [Review][Patch] Plan Verification still over-scopes Multi-Zone Coordinator [story-context-md-pid-domain-language-plan.md:Verification]
+- [x] [Review][Patch] PID Avoid list incomplete for weather-curve residues [CONTEXT.md:61]
+
+#### Rejected
+- F4/R3 Plant readback throttle absent from CONTEXT — rejected after decision **B**: leave in AGENTS/ADR only.
+- R5 Weather Feedforward deleted instead of not-commissioned entry — false: plan Approach allows remove or mark not-commissioned; Avoid lists Weather Feedforward / CAP-7.
+- R7 Plan Change Log empty — low: rarely visible process hygiene; not worth filling for this run.
