@@ -76,7 +76,6 @@ def _tick_app(
     app = object.__new__(HvacApp)
     app._config = parse_config(_tick_args())
     app._integral = 0.0
-    app._last_commanded = None
     app.call_service = MagicMock()
     app.log = MagicMock()
     app.set_state = MagicMock()
@@ -144,7 +143,6 @@ def test_initialize_schedules_control_tick() -> None:
     app.initialize()
 
     assert app._integral == 0.0
-    assert app._last_commanded is None
     app.run_every.assert_called_once()
     assert app.run_every.call_args.args[0].__func__ is HvacApp.control_tick
     assert app.run_every.call_args.args[2] == _CONTROL_INTERVAL
@@ -270,7 +268,6 @@ def test_demand_tick_writes_pid_command_and_advances_integral() -> None:
     assert _set_value_writes(app) == [expected]
     # e=2, dt_hours=300/3600 → ∫ = 1/6 °C·h
     assert app._integral == pytest.approx(2.0 * _DT_HOURS)
-    assert app._last_commanded == pytest.approx(expected)
     joined = " ".join(_info_msgs(app))
     assert "e=" in joined
     assert "u_pid=" in joined
@@ -299,24 +296,20 @@ def test_demand_event_no_write_no_integral_change() -> None:
 
     assert _set_value_writes(app) == []
     assert app._integral == pytest.approx(0.0)
-    assert app._last_commanded is None
 
 
-def test_tick_then_demand_event_leaves_integral_and_last() -> None:
+def test_tick_then_demand_event_leaves_integral() -> None:
     app = _tick_app(zone_temp=20.0, setpoint=22.0, plant_setpoint=45.0)
 
     app.control_tick({})
     integral_after_tick = app._integral
-    last_after_tick = app._last_commanded
     assert integral_after_tick == pytest.approx(2.0 * _DT_HOURS)
-    assert last_after_tick is not None
 
     app.call_service.reset_mock()
     _fire_control_event(app)
 
     assert _set_value_writes(app) == []
     assert app._integral == pytest.approx(integral_after_tick)
-    assert app._last_commanded == last_after_tick
 
 
 def test_saturation_freeze_on_tick() -> None:
@@ -375,7 +368,6 @@ def test_critical_zone_does_not_change_swt() -> None:
     app = object.__new__(HvacApp)
     app._config = config
     app._integral = 0.0
-    app._last_commanded = None
     app.call_service = MagicMock()
     app.log = MagicMock()
 
@@ -429,7 +421,6 @@ def test_partial_zone_skip_uses_successful_snapshots_only() -> None:
     app = object.__new__(HvacApp)
     app._config = parse_config(args)
     app._integral = 0.0
-    app._last_commanded = None
     app.call_service = MagicMock()
     app.log = MagicMock()
 
@@ -484,7 +475,6 @@ def test_partial_zone_skip_unavailable_thermostat_setpoint() -> None:
     app = object.__new__(HvacApp)
     app._config = parse_config(args)
     app._integral = 0.0
-    app._last_commanded = None
     app.call_service = MagicMock()
     app.log = MagicMock()
 
@@ -536,7 +526,6 @@ def test_stale_outdoor_key_unavailable_still_runs_demand() -> None:
 def test_equal_rounded_skip_no_set_value() -> None:
     """Off-grid raw 41.96 rounds to 42.0; plant already reads 42.0 → no call."""
     app = _tick_app(zone_temp=20.04, setpoint=22.0, plant_setpoint=42.0)
-    assert app._last_commanded is None
 
     app.control_tick({})
 
@@ -545,34 +534,28 @@ def test_equal_rounded_skip_no_set_value() -> None:
     assert any("command=42.0" in m for m in _info_msgs(app))
     # plant readable and at the command → ∫ advances
     assert app._integral == pytest.approx(1.96 * _DT_HOURS)
-    assert app._last_commanded == pytest.approx(42.0)
 
 
-def test_plant_drift_rewrites_command_despite_last_commanded() -> None:
+def test_plant_drift_rewrites_command() -> None:
     """R7: plant drifted to 50 after we commanded 42.0 → write 42.0 again."""
     app = _tick_app(zone_temp=20.0, setpoint=22.0, plant_setpoint=50.0)
-    app._last_commanded = 42.0
 
     app.control_tick({})
 
     assert _set_value_writes(app) == [42.0]
     assert app._integral == pytest.approx(2.0 * _DT_HOURS)
-    assert app._last_commanded == pytest.approx(42.0)
 
 
-def test_plant_unavailable_equal_last_commanded_no_integral_step() -> None:
-    """Plant unreadable: no write and ∫ held even if command == _last_commanded."""
+def test_plant_unavailable_no_integral_step() -> None:
+    """Plant unreadable: no write and ∫ held."""
     app = _tick_app(zone_temp=20.0, setpoint=22.0, plant_setpoint="unavailable")
     app._integral = 0.5
-    expected = _expected_command(zone_temp=20.0, setpoint=22.0, integral=0.5)
-    app._last_commanded = expected
 
     app.control_tick({})
 
     assert _set_value_writes(app) == []
     app.call_service.assert_not_called()
     assert app._integral == pytest.approx(0.5)
-    assert app._last_commanded == pytest.approx(expected)
     assert any("Plant setpoint unavailable" in m for m in _warn_msgs(app))
     assert not any("command=" in m for m in _info_msgs(app))
 
@@ -674,13 +657,13 @@ def test_one_hour_of_ticks_same_integral_at_any_interval(interval: int) -> None:
 def test_plant_on_idle_writes_zero_and_clears() -> None:
     app = _tick_app(zone_temp=22.0, setpoint=22.0, hvac_action="idle")
     app._integral = 12.0
-    app._last_commanded = 42.0
 
     app.control_tick({})
 
     assert _set_value_writes(app) == [0.0]
     assert app._integral == 0.0
-    assert app._last_commanded is None
+    assert "No heating demand; setpoint 0" in _info_msgs(app)
+    assert not any("No heating demand" in m for m in _warn_msgs(app))
 
 
 def test_idle_write_fail_still_clears() -> None:
@@ -691,39 +674,34 @@ def test_idle_write_fail_still_clears() -> None:
         plant_setpoint="unavailable",
     )
     app._integral = 12.0
-    app._last_commanded = 42.0
 
     app.control_tick({})
 
     assert _set_value_writes(app) == []
     assert app._integral == 0.0
-    assert app._last_commanded is None
     assert any("Plant setpoint unavailable" in m for m in _warn_msgs(app))
 
 
 def test_plant_off_no_write_clears() -> None:
     app = _tick_app(plant_management="off")
     app._integral = 12.0
-    app._last_commanded = 42.0
 
     app.control_tick({})
 
     assert _set_value_writes(app) == []
     app.call_service.assert_not_called()
     assert app._integral == 0.0
-    assert app._last_commanded is None
 
 
 def test_no_valid_zones_writes_zero_and_clears() -> None:
     app = _tick_app(zone_temp="unavailable")
     app._integral = 5.0
-    app._last_commanded = 41.0
 
     app.control_tick({})
 
     assert _set_value_writes(app) == [0.0]
     assert app._integral == 0.0
-    assert app._last_commanded is None
+    assert any("No zones with valid readings this tick" in m for m in _warn_msgs(app))
 
 
 def test_demand_fail_write_aborts_without_success_info() -> None:
@@ -740,7 +718,6 @@ def test_demand_fail_write_aborts_without_success_info() -> None:
     assert any("Plant setpoint unavailable" in m for m in _warn_msgs(app))
     # R7: ∫ advances only when the plant entity is readable (written or already equal)
     assert app._integral == pytest.approx(0.0)
-    assert app._last_commanded is None
 
 
 def test_zero_weight_sum_goes_idle() -> None:
@@ -756,38 +733,33 @@ def test_zero_weight_sum_goes_idle() -> None:
     app = _tick_app(zone_temp=20.0, setpoint=22.0, plant_setpoint=45.0)
     app._config = parse_config(args)
     app._integral = 3.0
-    app._last_commanded = 42.0
 
     app.control_tick({})
 
     assert _set_value_writes(app) == [0.0]
     assert app._integral == 0.0
-    assert app._last_commanded is None
-    assert any("weights unusable" in m for m in _warn_msgs(app))
+    assert "Demand zone weights unusable; setpoint 0" in _warn_msgs(app)
+    assert not any("weights unusable" in m for m in _info_msgs(app))
 
 
 def test_event_plant_off_no_write_clears() -> None:
     app = _tick_app(plant_management="off")
     app._integral = 5.0
-    app._last_commanded = 42.0
 
     _fire_control_event(app)
 
     assert _set_value_writes(app) == []
     assert app._integral == 0.0
-    assert app._last_commanded is None
 
 
 def test_event_idle_writes_zero_clears() -> None:
     app = _tick_app(zone_temp=22.0, setpoint=22.0, hvac_action="idle")
     app._integral = 5.0
-    app._last_commanded = 42.0
 
     _fire_control_event(app)
 
     assert _set_value_writes(app) == [0.0]
     assert app._integral == 0.0
-    assert app._last_commanded is None
 
 
 def test_event_idle_write_fail_still_clears() -> None:
@@ -798,26 +770,22 @@ def test_event_idle_write_fail_still_clears() -> None:
         plant_setpoint="unavailable",
     )
     app._integral = 5.0
-    app._last_commanded = 42.0
 
     _fire_control_event(app)
 
     assert _set_value_writes(app) == []
     assert app._integral == 0.0
-    assert app._last_commanded is None
     assert any("Plant setpoint unavailable" in m for m in _warn_msgs(app))
 
 
 def test_event_no_valid_zones_writes_zero_and_clears() -> None:
     app = _tick_app(zone_temp="unavailable")
     app._integral = 5.0
-    app._last_commanded = 41.0
 
     _fire_control_event(app)
 
     assert _set_value_writes(app) == [0.0]
     assert app._integral == 0.0
-    assert app._last_commanded is None
 
 
 def _write_stub(raw_state: object) -> HvacApp:
@@ -872,10 +840,8 @@ def test_write_setpoint_fail_closed_when_entity_unreadable(raw_state):
 def test_non_finite_zone_temp_skips_zone_like_unavailable() -> None:
     app = _tick_app(zone_temp=float("nan"), plant_setpoint=45.0)
     app._integral = 5.0
-    app._last_commanded = 41.0
 
     app.control_tick({})
 
     assert _set_value_writes(app) == [0.0]
     assert app._integral == 0.0
-    assert app._last_commanded is None
