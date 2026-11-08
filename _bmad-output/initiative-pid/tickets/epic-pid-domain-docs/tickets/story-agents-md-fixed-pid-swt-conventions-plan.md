@@ -3,7 +3,7 @@ title: 'AGENTS.md fixed-PID SWT conventions'
 type: 'chore'
 ticket: '1'
 created: '2026-11-08'
-status: 'built'
+status: done
 baseline_revision: '0a3bf9b83b89e27cf5c682a024d9410f8a782056'
 route: 'oneshot'
 route_source: 'auto'
