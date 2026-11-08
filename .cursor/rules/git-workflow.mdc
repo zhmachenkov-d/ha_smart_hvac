@@ -1,0 +1,72 @@
+---
+description: Git workflow for Conventional Commits, PR titles/bodies, staging, history cleanup, and deleting feature branches after merge.
+alwaysApply: true
+---
+
+# Git Workflow
+
+Apply when helping with **local Git operations**, **commit/PR wording**, or **post-merge cleanup**.
+
+## Conventional Commits
+
+Follow [Conventional Commits](https://www.conventionalcommits.org/) for **git commit subjects** and **PR titles**:
+
+```
+<type>[optional scope]: <subject>
+```
+
+- **Type** (required): lowercase — `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`.
+- **Scope** (optional): short noun — e.g. `feat(opentherm):` — omit if it adds noise.
+- **Subject**: imperative ("add" not "added"), **no trailing period**, target **≤ 72 characters**.
+- **Breaking change**: `!` after type/scope and/or footer `BREAKING CHANGE: …`.
+- **Body** (optional): blank line after subject; explain *why*; wrap ~72 chars.
+- **Footer** (optional): `Refs #123`, `Closes #45`, `Co-authored-by:`, etc.
+
+**CI:** `.github/workflows/conventional-commits.yaml` requires a Conventional Commits **PR title** and Conventional Commits subjects on every **non-merge** commit in `base…head`. Git merge commits are ignored by the commits job.
+
+**PR body** sections:
+
+- **Summary** — what changed and why
+- **Test plan** — how verified
+- **Related issues** (optional) — only when the user provides or clearly implies an issue key
+
+## Propose a commit
+
+1. Inspect: `git status`, `git diff`, `git diff --staged`.
+2. Stage coherent units; prefer **one logical change per commit**.
+3. Draft the message from the actual diff.
+4. Verify: type, imperative subject, ≤ 72 chars, no trailing period.
+
+## Fix last commit / history
+
+- **Amend** message or forgotten files only when allowed by project/user amend rules; avoid amending pushed shared history unless the user wants a force-with-lease rewrite.
+- **Interactive rebase** only on local/personal feature branches before opening/updating a PR.
+- Do not rewrite published `main`/`develop` without team agreement.
+- Rebase/merge from the target branch per project convention; `--force-with-lease` only after an intentional history rewrite on a remote-backed branch.
+
+## After a successful PR merge
+
+Delete the feature branch on **remote and local** once the PR is merged (unless the user asks to keep it):
+
+- Prefer `gh pr merge … --delete-branch` when merging via `gh`.
+- If already merged: `git push origin --delete <branch>` and `git branch -d <branch>` (use `-D` only if local is fully merged remotely / user confirms).
+- Switch off the feature branch first (e.g. to `main`) before deleting the local branch.
+- Never delete `main`/`master`/`develop` or other long-lived protected branches.
+
+## Examples
+
+```
+feat(opentherm): add boiler status polling
+
+Poll TBoiler every 1s via OpenTherm data ID 25; log on change only.
+```
+
+```
+fix(wifi): retry connection after DHCP timeout
+```
+
+```
+feat(opentherm)!: replace legacy status enum with bit flags
+
+BREAKING CHANGE: status field is now a u16 bitmask; update all callers.
+```
