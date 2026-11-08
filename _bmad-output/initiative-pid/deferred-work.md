@@ -4,11 +4,11 @@
 
 ## Deferred from: code review of story-tick-owned-pid-advance-and-event-clear-only-plan (2026-11-07)
 
-- AGENTS.md / ADR 0004 / CONTEXT.md still describe CAP-8 — demand events writing `clamp(u_ff)` and Outdoor Temperature as a control listener — while runtime is tick-only PID demand with event clear-only and no Outdoor listener; deferred because these are agent-context/ADR edits owned by epic 2 (R4 docs, `epic-pid-domain-docs`).
+- ADR 0004 / CONTEXT.md still describe CAP-8 — demand events writing `clamp(u_ff)` and Outdoor Temperature as a control listener — while runtime is tick-only PID demand with event clear-only and no Outdoor listener; deferred because these are ADR/CONTEXT edits owned by epic 2 (R4 docs, `epic-pid-domain-docs`). AGENTS.md conventions were rewritten in story 2.1.
 
 ## Deferred from: code review of story-remove-outdoor-weather-feedforward-and-cap-7-from-the-app-plan (2026-11-07)
 
-- AGENTS.md conventions (Plant Management off leaving `ff_auto_correct_state.json` untouched; `weather_feedforward.auto_correct` CAP-7 defaults; CAP-8 event `clamp(u_ff)` writes), ADR 0004, CONTEXT.md, and `knowledge/` still describe Outdoor / Weather Feedforward / CAP-7, which 1.3 deleted from the package; deferred because these are agent-context/ADR edits owned by epic 2 (`epic-pid-domain-docs`). README.md and docs/house-calibration.md were updated in 1.3.
+- ADR 0004, CONTEXT.md, and `knowledge/` still describe Outdoor / Weather Feedforward / CAP-7, which 1.3 deleted from the package; deferred because these are ADR/CONTEXT/`knowledge/` edits owned by epic 2 (`epic-pid-domain-docs`). AGENTS.md conventions were rewritten in story 2.1. README.md and docs/house-calibration.md were updated in 1.3.
 - `select_max_error_demand_zone(previous_name)` sticky tie-break is CAP-7 residue — the only caller (`hvac_app.py`) passes `None`; deferred to 1.4 refactor sweep by user decision.
 
 ## Resolved in 1.4 refactor sweep (2026-11-07)
@@ -18,7 +18,7 @@
 
 ## Deferred from: code review of story-refactor-sweep-plan (2026-11-07)
 
-- AGENTS.md conventions, ADR 0004, CONTEXT.md, and `knowledge/` still describe Weather Feedforward / CAP-7 / CAP-8 (demand events writing `clamp(u_ff)`, `ff_auto_correct_state.json`, `weather_feedforward.auto_correct`) while runtime is tick-only fixed PID with event clear-only; pre-existing from 1.2/1.3, agent-context/ADR edits owned by epic 2 (`epic-pid-domain-docs`).
+- ADR 0004, CONTEXT.md, and `knowledge/` still describe Weather Feedforward / CAP-7 / CAP-8 (demand events writing `clamp(u_ff)`, `ff_auto_correct_state.json`, `weather_feedforward.auto_correct`) while runtime is tick-only fixed PID with event clear-only; pre-existing from 1.2/1.3, ADR/CONTEXT/`knowledge/` edits owned by epic 2 (`epic-pid-domain-docs`). AGENTS.md conventions were rewritten in story 2.1.
 
 ## Deferred from: party review of story-pid-integral-units-and-r7-skip-hardening-plan (2026-11-07)
 
@@ -53,6 +53,10 @@
 - Resolved: runtime non-finite `e` (plan-split from 1.7) — `weighted_error` returns `None` when `e` is not finite, so `evaluate_demand` takes the existing weights-unusable idle path instead of `clamp(nan) == setpoint_max`.
 - Resolved: overflowing finite zone weights (~1e308) — covered by the non-finite-`e` guard; the plant receives 0 and ∫ clears, never `setpoint_max`.
 - Resolved: misspelled / leftover zone sub-keys (e.g. `weigth: 3`) — `_ignored_keys` reports them as `zones[<name>].<key>` and initialize logs one WARNING naming the key.
+
+## Deferred from: code review of story-agents-md-fixed-pid-swt-conventions-plan (2026-11-08)
+
+- Event "fail" left undefined in AGENTS.md `control_event` clear path — deferred: точный каталог fail — в ADR 2.2.
 
 ## Deferred from: retrospective of epic-fixed-pid-swt (2026-11-08)
 

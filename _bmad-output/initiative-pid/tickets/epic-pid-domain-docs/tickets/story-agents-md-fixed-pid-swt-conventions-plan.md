@@ -34,6 +34,8 @@ Oneshot: single-file AGENTS rewrite matching shipped `hvac_app.py` gates; conven
 
 ## Plan Change Log
 
+- 2026-11-08: Built AGENTS rewrite — round-to-0.1(clamp(base + u_pid)), tick-owned demand / event clear-only, Critical Zone diagnostics-only; ADR 0004 supersede left pending (story 2.2).
+
 ## Review Triage Log
 
 - 2026-11-08 quick: no findings.
@@ -41,4 +43,26 @@ Oneshot: single-file AGENTS rewrite matching shipped `hvac_app.py` gates; conven
 ## Verification
 
 **Manual checks (if no CLI):**
-- Open `AGENTS.md`: no live weather-curve / CAP-7 / `ff_auto_correct_state.json` / Outdoor-as-control commissioning; demand law is round-to-0.1(clamp(base + u_pid)); plant-off = no write + clear ∫; idle = write 0 + clear; demand SWT + ∫ only on `control_tick`; `control_event` clears only; Critical Zone diagnostics/log only; ADR pointer does not present 0004 as live SWT law.
+- Open `AGENTS.md`: no live weather-curve / CAP-7 / `ff_auto_correct_state.json` / Outdoor-as-control commissioning; demand law is round-to-0.1(clamp(base + u_pid)); plant-off = no write + clear ∫; idle = write 0 + clear; demand SWT + ∫ only on `control_tick`; demand `control_event` = no write/∫, clears only on idle / plant-off / fail; Critical Zone diagnostics/log only; ADR pointer does not present 0004 as live SWT law.
+
+## Code Review
+
+### 2026-11-08
+**Code review complete.** 0 `decision-needed`, 6 `patch`, 1 `defer`, 7 rejected.
+
+- [x] [Review][Defer] Event "fail" left undefined [AGENTS.md:control_event bullet] — deferred: точный каталог fail — в ADR 2.2
+- [x] [Review][Patch] Navigation pointers to still-stale CONTEXT and knowledge lack caveats [AGENTS.md:Where things are]
+- [x] [Review][Patch] Plant-unavailable / write-fail ∫ gate omitted beside equal-float skip [AGENTS.md:tick/throttle bullet]
+- [x] [Review][Patch] deferred-work.md still marks AGENTS CAP-7 rewrite as open [_bmad-output/initiative-pid/deferred-work.md]
+- [x] [Review][Patch] ADR 0004 pointer caveat is soft while file stays accepted [AGENTS.md:ADR bullet]
+- [x] [Review][Patch] Plan Verification overstates control_event clears only [plan:Verification]
+- [x] [Review][Patch] Plan Change Log empty at built status [plan:Plan Change Log]
+
+Rejected:
+- R4 Frozen Intent clamp vs round-to-0.1 — fix would edit intent section (rule 3d).
+- R6 Weighted averages underspecified — intentional short-form; ADR deferred to 2.2.
+- R7 quantize_command re-snap omitted — intentional short-form; ADR deferred.
+- R8 Clamp bounds unnamed — intentional short-form; ADR deferred.
+- R11 Unusable demand weights undocumented — low + would expand short bullets; covered loosely by idle/fail.
+- R15 Epic R1/R2 triad (CONTEXT+ADR) not in diff — out of story scope; intentional deferral.
+- R16 Verify App fidelity not exercised in-diff — expected manual verify for docs-only story.
