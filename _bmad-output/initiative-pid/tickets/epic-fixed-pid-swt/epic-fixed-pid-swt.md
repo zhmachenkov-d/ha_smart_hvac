@@ -9,6 +9,7 @@ companions: []
 after: []
 refined: true
 risk: high
+status: done
 ---
 
 # Fixed-gain PID Set Water Temperature
@@ -24,7 +25,7 @@ The house holds zone comfort on a 300s control tick via `clamp(base + fixed u_pi
 ## Requirements
 
 1. **R1 (parent R1):** Under Plant Management on and Heating Demand, the App commands Set Water Temperature = round-to-0.1(clamp(`base_water_temp` + `u_pid`)), where `u_pid` is fixed-gain PID on weight-normalized demand-zone air temperature versus weight-normalized demand-zone setpoints — `e = Tset_w − Tair_w`, `u_pid = Kp·e + Ki·∫e`, `dt = control_interval / 3600` (hours, per C4), Kd = 0.
-2. **R2 (parent R2):** Plant Management on and no Heating Demand writes `0` and clears PID ephemeral / water-path state (integral and last commanded SWT); no persisted PID/FF JSON in this epic.
+2. **R2 (parent R2):** Plant Management on and no Heating Demand writes `0` and clears PID ephemeral / water-path state (integral only; last commanded SWT was removed in entry 8 / D22); no persisted PID/FF JSON in this epic.
 3. **R3 (parent R3):** Plant Management off does not write Set Water Temperature and clears ephemeral / water-path state (same inventory as R2).
 4. **R4 (parent R4, path/commissioning):** Outdoor Temperature, Weather Feedforward, CAP-7 rise-rate auto-correct, and `ff_auto_correct_state.json` are removed from the SWT path and commissioning yaml; Outdoor is not listened for control. CONTEXT/AGENTS and the new ADR that supersede ADR 0004 are epic 2.
 5. **R5 (parent R5):** Periodic `control_interval` (default 300s in example yaml and when the key is omitted in the parser) is the only schedule that advances PID state and issues a demand-path SWT write.
@@ -44,7 +45,7 @@ The house holds zone comfort on a 300s control tick via `clamp(base + fixed u_pi
 ## Done when
 
 1. On Heating Demand with Plant Management on, SWT equals round-to-0.1(clamp(`base` + fixed `u_pid`)) with weighted demand-zone averages and `e = Tset_w − Tair_w`; no outdoor/FF term.
-2. Idle writes `0` + clear (integral + last commanded SWT); plant-off does not write + clear.
+2. Idle writes `0` + clear (integral only); plant-off does not write + clear.
 3. Outdoor/FF/CAP-7 and `ff_auto_correct_state.json` are gone from the App water path, the example commissioning, and the house `apps/apps.yaml` (non-entity keys only); Outdoor is not a control listener.
 4. Demand SWT writes and PID advances occur only on `control_interval` (default 300s); events may clear without demand SWT writes or PID advance.
 5. Equal rounded SWT skips the plant call only when the plant already reads it; automated tests lock gates, rounding/skip, weighted averages, gains and I-term carry across ticks, and absence of weather on the path.
@@ -69,7 +70,7 @@ Owns the AppDaemon `ha_smart_hvac` SWT runtime path and yaml commission for base
 - Waits on nothing: opening epic / platform baseline for this initiative.
 - Decision: No separate platform-baseline epic; this epic is the opening tracer (2026-11-07).
 - Decision: PID form — `e = Tset_w − Tair_w`, `u_pid = Kp·e + Ki·∫e`, `dt = control_interval`, Kd = 0 (2026-11-07) (dt units superseded by C4 / D15).
-- Decision: Clear inventory — ephemeral integral + last commanded SWT; no persisted PID/FF JSON in this epic (2026-11-07).
+- Decision: Clear inventory — ephemeral integral only (last commanded SWT removed in entry 8 / D22; was interim through 1.7); no persisted PID/FF JSON in this epic (2026-11-07; re-rendered 2026-11-08 retro B1).
 - Decision: Drop Outdoor Temperature from control listeners; keep Plant Management, zone air, thermostat `hvac_action` / setpoint (2026-11-07).
 - Decision: Parser default `control_interval` when omitted is 300s, matching example yaml (2026-11-07).
 - Decision: Module layout (e.g. new `pid.py`) left to stories; anti-windup = integral clamps + SWT saturation freeze (same-sign e) locked in entry 1 (2026-11-07).
@@ -77,3 +78,4 @@ Owns the AppDaemon `ha_smart_hvac` SWT runtime path and yaml commission for base
 - Decision: Replan from `epic-fixed-pid-swt-retrospective.md` (accepted-with-open-items): R7 and C4 re-rendered from initiative D16→D22 / D15; entries added after the closed refactor sweep 4 — 5 (integral units and R7 skip, retro A1/A2/A4), 7 (parse hardening and legacy-key warning, retro A3/A5 code, C5 from D20), 6 (commission house `apps/apps.yaml`, hitl, retro A5), then closing refactor sweep 8 (DU1, EC1, deferrals of 5–7); nothing built is rolled back (2026-11-07).
 - Decision: Entry 5 split into 5 and 7 for one-session sizing; closing sweep 8 added so a sweep still closes the epic (user, 2026-11-07).
 - Decision: SR3 accepted — event clears may hold the plant at 0 until the next tick and reset ∫; R6 unchanged, documented via epic 2's ADR (2026-11-07).
+- Decision: Closed 2026-11-08 after `epic-fixed-pid-swt-retrospective.md` verdict **accepted-with-open-items** (user confirmed). Closure check: Done when 1–6 met in code/tests at `d037933` + house yaml commission; remaining open items are B2 (AGENTS/CONTEXT/ADR/`knowledge/` → epic 2 first) and B3 (refine: no `review: quick` on high-risk) — not unfinished runtime scope. B4/B6 in `deferred-work.md`. No Exclusive Session in this epic (HITL before epic 2).
