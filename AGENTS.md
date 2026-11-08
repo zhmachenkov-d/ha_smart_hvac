@@ -1,5 +1,5 @@
 <!-- bmad:context -->
-<!-- Verified 2026-10-02 against 243550d. Managed by bmad-project-context; edits inside this block are replaced on refresh. Keep anything you want preserved outside the markers. -->
+<!-- Verified 2026-11-08 against 0a3bf9b. Managed by bmad-project-context; edits inside this block are replaced on refresh. Keep anything you want preserved outside the markers. -->
 
 ## ha_smart_hvac
 
@@ -14,10 +14,10 @@ AppDaemon Apps that control multi-zone OpenTherm HVAC through Home Assistant. Py
 
 ## Where things are
 
-- Domain terms and avoid-list: `CONTEXT.md`
-- Architecture decisions: `docs/adr/` (0001 Exclusive Session, 0004 weather-curve SWT)
+- Domain terms and avoid-list: `CONTEXT.md` (PID language pending stories 2.3+)
+- Architecture decisions: `docs/adr/` (0001 Exclusive Session; do not follow 0004 for live SWT until the superseding ADR lands — story 2.2)
 - App package: `apps/ha_smart_hvac/`; entity wiring: `apps/apps.yaml` (gitignored; start from `apps.yaml.example` at repo root)
-- Algorithm depth / citations: `knowledge/`
+- Algorithm depth / citations: `knowledge/` (concept pages pending story 2.4)
 - In-flight planning artifacts: `_bmad-output/`
 
 ## Running and verifying
@@ -29,10 +29,11 @@ AppDaemon Apps that control multi-zone OpenTherm HVAC through Home Assistant. Py
 
 ## Conventions that differ from defaults
 
-- Plant Management off means no Set Water Temperature write and cleared ephemeral / water-path state — not “write 0”. Persisted `ff_auto_correct_state.json` is left untouched.
-- Heating Demand idle writes 0 and clears ephemeral / water-path state; that path is only when Plant Management is on.
-- Omitting `weather_feedforward.auto_correct` means CAP-7 rise-rate auto-correct is on (E2 defaults); there is no `enabled` switch.
-- CAP-8: Plant Management, thermostat `hvac_action` / setpoint, zone air, and Outdoor Temperature re-evaluate CAP-1…CAP-3 gates immediately (`control_event`); on demand that path writes `clamp(u_ff)` only and must not advance CAP-7 samples or persist FF JSON — only periodic `control_interval` (`control_tick`) does. Fail/idle clears on events are the same as on the tick. No debounce; equal-float skip is the write throttle. Changing Heating Demand inputs must update CAP-8 listeners and the ADR 0004 trigger list in the same change.
+- Plant Management off means no Set Water Temperature write and cleared PID ephemeral state (∫) — not “write 0”.
+- Heating Demand idle writes 0 and clears PID ephemeral state; that path is only when Plant Management is on.
+- On demand, Set Water Temperature is round-to-0.1(clamp(`base_water_temp` + `u_pid`)) from weighted demand-zone averages. Outdoor Temperature, Weather Feedforward, CAP-7 rise-rate auto-correct, and `ff_auto_correct_state.json` are not on the water path or live commissioning.
+- Only periodic `control_interval` (`control_tick`) advances PID and writes demand SWT. Event listeners (Plant Management, zone air, thermostat `hvac_action` / setpoint — not Outdoor) re-evaluate gates via `control_event` and may clear on idle / plant-off / fail without a demand write or PID advance. No debounce; equal-float plant readback skip is the write throttle; unreadable or non-finite plant readback skips the write and does not advance ∫. Changing Heating Demand inputs must update those listeners in the same change.
+- Critical Zone is diagnostics / logging only and must not drive Set Water Temperature.
 - Do not mark an initiative `done` until every epic in its `tickets.toml` is done.
 
 <!-- /bmad:context -->
