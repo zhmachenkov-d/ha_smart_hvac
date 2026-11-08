@@ -2,6 +2,11 @@
 
 Append-only history of OKF ingest and lint passes.
 
+## 2026-11-08 — Align ADRC/LADRC/MADRC project notes with ADR 0005
+
+- **Updated:** `concepts/ladrc`, `madrc`, `adrc` Related; `references/huang-2018-ladrc-hvac`, `wang-2026-madrc-sst`; root `index.md`.
+- **Fact:** live SWT is fixed-gain PID under ADR 0005; ADRC literature retained as prior art, not App stack.
+
 ## 2026-10-19 — Align ADRC/LADRC/MADRC project notes with ADR 0004
 
 - **Updated:** `concepts/adrc`, `ladrc`, `madrc`; `references/huang-2018-ladrc-hvac`, `wang-2026-madrc-sst`; root `index.md`.

@@ -27,7 +27,7 @@ u_0 = k_p(T_r - z_1),\quad u = (u_0 - z_2)/b_0
 
 ## Project note
 
-LADRC-on-Critical-Zone water control is **removed** — **superseded by ADR 0004** (ADR 0002 is historical). Live SWT is weather-curve-only; Huang’s plant (coil water **flow**) and gains remain literature only, not the App path.
+LADRC-on-Critical-Zone water control is **removed** — **superseded by ADR 0005** (ADR 0002 / weather-curve ADR 0004 are historical). Live [Set Water Temperature](/concepts/set-water-temperature.md) is fixed-gain PID (`round-to-0.1(clamp(base_water_temp + u_pid))`) under Plant Management / Heating Demand; the [Multi-Zone Coordinator](/concepts/multi-zone-coordinator.md) selects [Critical Zone](/concepts/critical-zone.md) for diagnostics and logging only. Huang’s plant (coil water **flow**) and gains remain literature only, not the App path.
 
 ## Related
 

@@ -1,5 +1,5 @@
 <!-- bmad:context -->
-<!-- Verified 2026-11-08 against 85a2e22. Managed by bmad-project-context; edits inside this block are replaced on refresh. Keep anything you want preserved outside the markers. -->
+<!-- Verified 2026-11-08 against ae26c32. Managed by bmad-project-context; edits inside this block are replaced on refresh. Keep anything you want preserved outside the markers. -->
 
 ## ha_smart_hvac
 
@@ -14,10 +14,10 @@ AppDaemon Apps that control multi-zone OpenTherm HVAC through Home Assistant. Py
 
 ## Where things are
 
-- Domain terms and avoid-list: `CONTEXT.md` (PID language pending stories 2.3+)
+- Domain terms and avoid-list: `CONTEXT.md`
 - Architecture decisions: `docs/adr/` (0001 Exclusive Session; 0005 fixed-PID SWT — do not follow superseded 0004 for live SWT)
 - App package: `apps/ha_smart_hvac/`; entity wiring: `apps/apps.yaml` (gitignored; start from `apps.yaml.example` at repo root)
-- Algorithm depth / citations: `knowledge/` (concept pages pending story 2.4)
+- Algorithm depth / citations: `knowledge/`
 - In-flight planning artifacts: `_bmad-output/`
 
 ## Running and verifying
