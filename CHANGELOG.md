@@ -2,6 +2,42 @@
 
 <!-- version list -->
 
+## v3.0.1 (2026-11-08)
+
+### Bug Fixes
+
+- **pid**: Close code-review findings for 1.8 and mark story done
+  ([`2506d87`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/2506d87317f20216ecd5e0b9337606a937f15ac4))
+
+### Chores
+
+- Add Claude Code instructions and git workflow rule
+  ([`6c69688`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/6c69688a64b4c5ac86490b2a4168f5756681f4a5))
+
+- **bmad**: Mark story 1.6 done
+  ([`99f8dae`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/99f8daec11c2aae32be3c403e6bb8d04e82140da))
+
+- **config**: Apply 1.6 code review fixes
+  ([`c10b7fb`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/c10b7fb9291bc87a16ebd7192ca36c1135665fd4))
+
+- **config**: Ignore house apps.yaml backup for PID commission
+  ([`88e6d99`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/88e6d994c8775b345799b3b9ff0d54eefb6cfa8f))
+
+- **party**: Record 1.8 plan pressure-test outcomes
+  ([`5bf61a6`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/5bf61a62b35d99f739ef5c6985f54ed25119fb24))
+
+### Refactoring
+
+- **hvac**: Grid-snap SWT, guard non-finite e, report zone typos
+  ([`dbd56d3`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/dbd56d3112591d365b825bae08795225e8acf1ea))
+
+- **hvac**: Log written SWT without .1f rounding
+  ([`6e9cf00`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/6e9cf000f59d8c8908d9a50f6370850349d90a2d))
+
+- **hvac**: Route idle writes through _go_idle and drop _last_commanded
+  ([`8f09384`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/8f0938439a6b0a516c04a92307a3f99bbd3c0680))
+
+
 ## v3.0.0 (2026-11-08)
 
 ### Bug Fixes
