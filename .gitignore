@@ -162,6 +162,7 @@ appdaemon/secrets.yaml
 
 # Local house entity wiring (use apps.yaml.example at repo root)
 apps/apps.yaml
+apps/apps.yaml.pre-pid
 
 # BMad skill render snapshots (ephemeral)
 _bmad/render/

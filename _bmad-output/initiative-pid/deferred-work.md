@@ -39,6 +39,10 @@
 - Resolved: house yaml without `base_water_temp` and `setpoint_min: 42` (~3 h I-term lag) — an omitted `base_water_temp` now defaults to 40 clamped into `setpoint_min`…`setpoint_max`, so the house base becomes 42 and the lag is gone; an explicit base below `setpoint_min` is now a config error, so "accept the lag" is no longer an option.
 - Resolved: I-term range excluding 0 in `evaluate_demand` — `_parse_pid` (`apps/ha_smart_hvac/config.py`) rejects `not i_term_min <= 0 <= i_term_max` with `ConfigError`, so such a range never reaches the law.
 
+## Resolved in 1.6 commission house apps.yaml (2026-11-08)
+
+- Resolved: house `base_water_temp ≥ setpoint_min` (entry-5 party deferral, first closed by 1.7's default clamp) — the house `apps/apps.yaml` now sets `base_water_temp: 42` explicitly, with `pid`, `control_interval: 300`, and no legacy keys (`ignored_keys == ()`).
+
 ## Deferred from: code review of story-commission-parse-hardening-and-legacy-key-warning-plan (2026-11-08)
 
 - Huge finite zone `weight` (~1e307, or several near `1e308`) passes `_parse_zone`; in `weighted_error` (`apps/ha_smart_hvac/pid.py`) `w*tair` / the weight sum overflow to `inf`, `e` becomes `nan`, and `clamp(nan)` silently commands `setpoint_max`. Pre-existing; the plan-split entry above (runtime non-finite-`e` guard, owner entry 8) already covers it — entry 8's tests should include an overflowing-weight case.
