@@ -68,6 +68,11 @@
 
 - Resolved: `adrc.md` Related → ladrc/madrc still commission weather-curve under ADR 0004 — Project notes cite ADR 0005 fixed-PID; Related caveat removed.
 
+## Resolved in epic-pid-domain-docs (2026-11-09)
+
+- Resolved: ADR 0004 / CONTEXT.md CAP-8 (demand events writing `clamp(u_ff)`, Outdoor as control listener) — ADR 0005 accepted; AGENTS/CONTEXT/`knowledge/` rewritten in stories 2.1–2.5; 0004 superseded (deferred bullets under 1.2 / 1.3 / 1.4).
+- Resolved: ADR 0004, CONTEXT.md, and `knowledge/` still describing Outdoor / Weather Feedforward / CAP-7 / CAP-8 after 1.3 deleted them from the App — closed by epic `epic-pid-domain-docs` (Done when 1–3); live commissioning language is fixed-PID / ADR 0005.
+
 ## Deferred from: retrospective of epic-fixed-pid-swt (2026-11-08)
 
 - Two-tick plant-drift R7 test (VG5 / B4): `tests/test_hvac_app.py` `test_plant_drift_rewrites_command` is a single tick with plant already at 50; a restored `_last_commanded` short-circuit before `_write_setpoint` would still pass. Prefer echo plant → command 42, mutate plant to 50, second tick asserts rewrite. Optional test hygiene; not owned by a ticket — party locked defer (no new epic-1 story).

@@ -11,6 +11,7 @@ companions:
 after: []
 refined: true
 risk: high
+status: done
 ---
 
 # RLS retune of PID gains
@@ -35,7 +36,7 @@ Operators can enable RLS retune so Kp/Ki adapt under the same plant gates; with 
 
 1. **C1 (parent C2):** Implementation stays inside the AppDaemon `ha_smart_hvac` App writing the existing HA plant entity — no direct OpenTherm daemon or numpy process from the example.
 2. **C2 (parent C4):** Derivative gain stays 0; zone weights remain yaml-commissioned.
-3. **C3 (refine 2026-11-08):** RLS is ARX + forgetting RLS in pure Python per `rls-adaptive-algorithm.md`; `u` is last commanded SWT; `y` is commissioned boiler/plant water entity when present, else weight-normalized demand-zone air.
+3. **C3 (refine 2026-11-08; party B1):** RLS is ARX + forgetting RLS in pure Python per `rls-adaptive-algorithm.md`; `u` is last commanded SWT; `y` is top-level yaml `boiler_water` (required when `pid.adaptive` is on — ConfigError if missing/whitespace). Not demand-zone air.
 
 ## Done when
 
@@ -66,5 +67,6 @@ Owns adaptive gain retune and its persistence/commission flag on top of fixed PI
 
 - Waits on epic-fixed-pid-swt because: fixed PID module, yaml gains/weights, and tick-owned advance must exist to retune.
 - Decision: RLS docs stay in this epic when refined; no `after` on epic-pid-domain-docs (2026-11-07).
-- Decision: Refine accepted without spike/architecture/deep recon — product picks locked for Requirements (2026-11-08): RLS ARX pure Python; adapt Kp/Ki only; `u`=last SWT, `y`=boiler water entity if commissioned else weighted demand-zone air; separate JSON persistence; `pid.adaptive` default off with fixed-gain fallback; RLS step only on control tick when plant available; gain rails and legacy `ki` WARN left to stories.
+- Decision: Refine accepted without spike/architecture/deep recon — product picks locked for Requirements (2026-11-08): RLS ARX pure Python; adapt Kp/Ki only; `u`=last SWT; separate JSON persistence; `pid.adaptive` default off with fixed-gain fallback; RLS step only on control tick when plant available; gain rails and legacy `ki` WARN left to stories. Party B1 (2026-11-08) superseded refine `y` air fallback: adaptive on ⇒ required `boiler_water` (ConfigError otherwise); RLS `y` is never demand-zone air (see C3).
 - Decision: Tracer is entry 1 (config + RLS module + tick wiring, in-memory only); then 2 rails/unhealthy (least-certain; legacy-scale `ki` = WARN not ConfigError), 3 JSON persist, 4 RLS docs, 5 Refactor sweep; entry 1 waits on epic-fixed-pid-swt; declined opening refactor and closing e2e suite (pytest per story) (2026-11-08).
+- Decision: Closed 2026-11-09 after retrospective `accepted-with-open-items` (D1 C3/Notes + D2 deferred-work Resolved applied pre-close; D3 review:quick+high process open).
