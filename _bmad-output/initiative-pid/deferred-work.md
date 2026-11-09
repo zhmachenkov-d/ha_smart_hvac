@@ -82,6 +82,10 @@
 
 - Entry-1 `tickets.toml` description still says clears keep "last-good adapted gains" without the entry-2 IMC-invalid → YAML fixed override (verify/notes already updated); deferred because the fix edits a ticket file.
 
+## Resolved in epic-rls-pid-retune retrospective D3 (2026-11-09)
+
+- Resolved: refine/build discipline B3/D3 — do not pin `review: quick` when `risk: high`. Encoded in team overrides `_bmad/custom/bmad-build.toml` and `_bmad/custom/bmad-build-auto.toml`: `review = "auto"`, high-risk forces `route` full (thorough lenses), persistent_fact forbids pinned quick on high-risk plans.
+
 ## Resolved in 3.5 refactor sweep (2026-11-09)
 
 - Resolved: Entry-1 `tickets.toml` description — now says parked adapted gains across clears and points unhealthy/rails latch → YAML fixed at entry 2.

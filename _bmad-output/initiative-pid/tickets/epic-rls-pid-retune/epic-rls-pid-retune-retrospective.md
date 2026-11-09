@@ -101,8 +101,8 @@ Disposition key: **fix now** / **defer** / **accept**. Lens findings re-checked 
 
 ### Pattern divergence / process
 
-**PD1 — `review: quick` on high-risk 3.1 and 3.2.** *Defer (process) — carry B3/D3.*
-- Source: plan frontmatter `risk: high`, `review: quick` on tracer and rails plans.
+**PD1 — `review: quick` on high-risk 3.1 and 3.2.** *Fix now → applied (2026-11-09 process).*
+- Source: plan frontmatter `risk: high`, `review: quick` on tracer and rails plans (historical). Prevention: team `_bmad/custom/bmad-build{,-auto}.toml` — `review=auto`, high→full/thorough.
 
 **PD2 — Epic-2 deferred-work CAP-8/FF bullets still open.** *Fix now → applied (2026-11-09).*
 - Applied: `## Resolved in epic-pid-domain-docs (2026-11-09)` in `_bmad-output/initiative-pid/deferred-work.md` naming the 1.2/1.3/1.4 CAP-8/FF CONTEXT/ADR/`knowledge/` deferrals closed by 2.1–2.5.
@@ -157,7 +157,7 @@ Prior file: `epic-pid-domain-docs-retrospective.md` (2026-11-08, verdict accepte
 |---|--------|------|-------|--------|
 | D1 | Reconcile epic Constraint C3 (+ Notes) to boiler_water-required / no air-y | spec reconciliation | Sofia / this run | **applied** 2026-11-09 — `epic-rls-pid-retune.md` C3 + Notes |
 | D2 | Add **Resolved in epic-pid-domain-docs** to `deferred-work.md` | bookkeeping | Sofia / this run | **applied** 2026-11-09 |
-| D3 | At refine, do not pin `review: quick` when `risk=high` (carry B3) | process | team | open |
+| D3 | At refine/build, do not pin `review: quick` when `risk=high` (carry B3) | process | team | **applied** 2026-11-09 — `_bmad/custom/bmad-build.toml` + `bmad-build-auto.toml` (`review=auto`, high→full) |
 | D4 | Optional: test `initialize` adaptive-off with present `rls_state.json` leaves RAM cold | defer | future | open |
 | D5 | Optional: adaptive-path assert idle/plant-off write-0 does not update `last_u` | defer | future | open |
 | D6 | Optional: finish AGENTS `:36` shorthand vs `:32-33` (prior C1 remainder) | defer | docs | open |
@@ -185,7 +185,7 @@ Evidence criteria met:
 4. Done when 4 — tick-only RLS + pytest gates/fallback/persist (SR3; 319 passed).
 5. Done when 5 — AGENTS/CONTEXT/ADR 0006/knowledge match shipped path (SR6).
 
-Open items remaining after remediations: **D3**/B3 (review pin). Optional D4–D7. D1 and D2 applied before close as directed in party.
+Open items remaining after remediations: optional D4–D7. D1–D3 applied (D3 via bmad-build{,-auto} team customize 2026-11-09).
 
 Closing the epic remains Sofia’s (`bmad-agent-po`), confirmed by the user. This retrospective’s artifact is this document; remediations D1/D2 were applied to the epic file and `deferred-work.md` by explicit user direction during Phase 3/4. No ticket status changed.
 

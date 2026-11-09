@@ -1,0 +1,17 @@
+# Team: D3/B3 — never pin review:quick on high-risk (epic-rls-pid-retune retro 2026-11-09)
+[workflow]
+review = "auto"
+
+persistent_facts = [
+  "D3/B3: When plan or ticket risk is high, never pin review: quick. Use review auto (full→thorough) or pin thorough. Writing review: quick with review_source pinned on high-risk work is forbidden.",
+]
+
+route_selection = """
+Decide whether to use a coding subagent (full) or implement directly (oneshot).
+If plan or ticket risk is high: full (so thorough review runs under review=auto).
+Otherwise, using the information already gathered, with no further reading and minimal
+extra reasoning, estimate the lines of code to add or modify.
+100 lines or fewer: oneshot. Otherwise: full.
+If the change touches more than five files and is not simple or mechanical,
+consider upgrading to full.
+"""
