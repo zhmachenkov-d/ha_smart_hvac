@@ -3,7 +3,7 @@ title: 'Adapted-gain rails and unhealthy RLS fallback'
 type: 'feature'
 ticket: '2'
 created: '2026-11-09'
-status: 'built'
+status: done
 baseline_revision: 'a70c7e3e2fb487b85eb2636b5b3abf46f52cb429'
 route: 'full'
 route_source: 'auto'
