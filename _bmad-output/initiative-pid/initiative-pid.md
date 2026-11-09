@@ -13,6 +13,7 @@ assignee: ""
 risk: high
 ---
 
+
 # Multi-zone PID Set Water Temperature
 
 ## Description
@@ -29,8 +30,8 @@ The house holds zone comfort via `clamp(base_water_temp + u_pid)` on a 300s cont
 2. **R2 (D5):** Plant Management on and no Heating Demand writes `0` and clears PID ephemeral / water-path state.
 3. **R3 (D5):** Plant Management off does not write Set Water Temperature and clears ephemeral / water-path state.
 4. **R4 (D1):** Outdoor Temperature, Weather Feedforward, CAP-7 rise-rate auto-correct, and `ff_auto_correct_state.json` are removed from the SWT path and commissioning; CONTEXT/AGENTS and a new ADR supersede ADR 0004.
-5. **R5 (D8):** Periodic `control_interval` (default 300s) is the only schedule that advances PID state and issues a demand-path SWT write.
-6. **R6 (D8):** Event listeners may clear immediately on idle / plant-off / fail paths; they must not write a new demand SWT or advance PID state.
+5. **R5 (D25):** Periodic `control_interval` (default 300s) advances PID ∫ and issues a demand-path SWT write; `initialize` also runs one full `control_tick` (write + ∫ advance when gates allow) so the first demand command does not wait a full interval.
+6. **R6 (D26):** Event listeners may clear immediately on idle / plant-off / fail paths; on rising-edge into Heating Demand they may write demand SWT without advancing PID ∫; other demand-path events must not write demand SWT or advance ∫.
 7. **R7 (D9, D22):** After 0.1 °C rounding, the App skips the plant service call when the plant entity already reads that value; PID state does not advance while the plant entity is unavailable.
 8. **R8 (D2, D7):** Heating Demand stays as today; PID averages use only Zones with Heating Demand and per-zone yaml weights (omit → 1.0, then normalize); max Zone Error is not an SWT driver.
 9. **R9 (D4):** A later epic delivers RLS-based retune of PID gains without restoring Weather Feedforward.
@@ -48,14 +49,14 @@ The house holds zone comfort via `clamp(base_water_temp + u_pid)` on a 300s cont
 1. On Heating Demand with Plant Management on, SWT equals round-to-0.1(clamp(`base` + fixed `u_pid`)) with no outdoor/FF term.
 2. Idle writes `0` + clear; plant-off does not write + clear — same gate law as today.
 3. Weather Feedforward, CAP-7, and `ff_auto_correct_state.json` are gone from the water path; a new ADR supersedes 0004; CONTEXT/AGENTS match.
-4. Demand SWT writes and PID advances occur only on `control_interval` (default 300s); events clear without demand SWT writes.
+4. Demand SWT writes with ∫ advance occur on `control_interval` and on the initialize first tick; rising-edge into Heating Demand may write demand SWT without advancing ∫; other demand events clear or no-op without demand write / ∫ advance.
 5. Equal rounded SWT skips the plant call only when the plant already reads it; automated tests lock gates, rounding/skip, weighted demand averages, and absence of weather on the path.
 6. RLS remains a planned later epic, not required to close the fixed-PID delivery.
 7. Critical Zone remains selectable for diagnostics only; docs state it does not drive SWT.
 
 ## Boundaries
 
-Capability boundary: AppDaemon `ha_smart_hvac` Set Water Temperature path, zone weighting for PID averages, docs/ADR language. Not zone TRV percent, not MADRC/LADRC return, not direct OT hardware stacks, not RLS in the first closed-loop ship. Tracer path: epic-fixed-pid-swt → epic-pid-domain-docs → epic-rls-pid-retune (sequential).
+Capability boundary: AppDaemon `ha_smart_hvac` Set Water Temperature path, zone weighting for PID averages, docs/ADR language. Not zone TRV percent, not MADRC/LADRC return, not direct OT hardware stacks, not RLS in the first closed-loop ship. Tracer path: epic-fixed-pid-swt → epic-pid-domain-docs → epic-rls-pid-retune → epic-startup-demand-edge-swt (R5/R6 revision after close).
 
 - Touch point: `apps/ha_smart_hvac/` SWT path — replace FF with PID; owner: epic-fixed-pid-swt
 - Touch point: `apps/apps.yaml` / `apps.yaml.example` — `base_water_temp`, PID gains, zone weights, `control_interval` default 300; remove weather_feedforward nest; owner: epic-fixed-pid-swt
@@ -80,3 +81,7 @@ Capability boundary: AppDaemon `ha_smart_hvac` Set Water Temperature path, zone 
 - Decision: Operator HITL/note between epic 1 and 2 — do not live-commission Exclusive Session until epic 2 closes; not an epic-1 acceptance check (2026-11-07).
 - Decision: Declined fold of docs into epic 1; sequential ship kept (party 2026-11-07).
 - Decision: Replan from the epic-fixed-pid-swt retrospective (`tickets/epic-fixed-pid-swt/epic-fixed-pid-swt-retrospective.md`): D15 supersedes Q1/D12 defaults (∫ in °C·h, ki 1/h, I-term limits in °C, defaults kp 1.0 / ki 1.0 / I-term [−10, +15] °C); D16/D22 revise R7 (skip when the plant already reads the command; no ∫ advance while the plant is unavailable); D17 accepts event-clear latency up to `control_interval` as an ADR input; D18 puts `knowledge/` in epic 2 with AGENTS.md first; D19–D21 add epic-1 stories 5–8 (integral units and R7 skip; parse hardening per D20; hitl house yaml; closing sweep). Production stays on v1.5.1 until then (2026-11-07).
+- Decision: Closed 2026-11-09 after Closure check PASS on Done when 1–7, R1–R10, C1–C4 against App/ADR 0005–0006/tests; optional leftovers (two-tick plant-drift R7 test, RLS/AGENTS hygiene, R9/Done when 6 past-tense sync) accepted as non-blocking; live Exclusive Session not required to close.
+- Decision: Replan 2026-11-09 (user) — D25/D26 supersede D8: initialize first full tick; rising-edge Heating Demand writes demand SWT without ∫ advance; mid-demand zone/setpoint stay no-op. R5/R6 and Done when 4 re-rendered; done entry 1.2 covers stale; AGENTS/ADR 0005/CONTEXT need a follow-on story. Initiative reopen for re-slice.
+- Decision: Slice approved 2026-11-09 — epic-startup-demand-edge-swt (id 4) covers revised R5/R6: 4.1 tracer runtime, 4.2 docs; no refactor sweep; after epics 1–3 (runtime + docs + RLS coexist); shared R5/R6 with epic 1 (original vs D25/D26 revision). Initiative `status: done` cleared pending this epic.
+- Decision: Epic 4 refined 2026-11-09 — D28 gated-demand edge; D29 no RLS on edge; D30 no timer reset, weights-unusable → 0+clear, knowledge/ optional in 4.2.
