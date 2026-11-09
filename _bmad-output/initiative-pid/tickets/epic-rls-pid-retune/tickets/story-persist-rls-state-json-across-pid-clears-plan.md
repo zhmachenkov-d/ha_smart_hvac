@@ -102,22 +102,22 @@ context:
 ## Implementation map
 
 **`apps/ha_smart_hvac/rls.py`**
-- [ ] `STATE_FILENAME = "rls_state.json"`.
-- [ ] `load_rls_state(path)`: reject oversize; parse UTF-8 JSON; require `version is int and == 1`; coerce numbers with `float()`; require `last_u` key (null OK); finite θ/P/`last_u`; adapted null-pair or both finite; ignore unknown keys; return structured result or `None`.
-- [ ] `save_rls_state(path, state) -> bool`: reject non-finite / mismatched adapted; UTF-8 `*.tmp` + `os.replace`; on `OSError` best-effort unlink (WARNING if unlink fails) → False. No fsync. Keep `rls_step` / IMC / `gains_within_rails` unchanged.
+- [x] `STATE_FILENAME = "rls_state.json"`.
+- [x] `load_rls_state(path)`: reject oversize; parse UTF-8 JSON; require `version is int and == 1`; coerce numbers with `float()`; require `last_u` key (null OK); finite θ/P/`last_u`; adapted null-pair or both finite; ignore unknown keys; return structured result or `None`.
+- [x] `save_rls_state(path, state) -> bool`: reject non-finite / mismatched adapted; UTF-8 `*.tmp` + `os.replace`; on `OSError` best-effort unlink (WARNING if unlink fails) → False. No fsync. Keep `rls_step` / IMC / `gains_within_rails` unchanged.
 
 **`apps/ha_smart_hvac/hvac_app.py`**
-- [ ] `_state_path()`; adaptive-on load after `_rls = RlsState()`; IMC check with `control_interval`; OQ6 B via `gains_within_rails` + reason WARNING; INFO on successful load; deep-copy `_last_saved`; disk-rewrite force as locked; persist after write True when dirty or forced; clears never touch file/latch; latch never loaded/saved.
+- [x] `_state_path()`; adaptive-on load after `_rls = RlsState()`; IMC check with `control_interval`; OQ6 B via `gains_within_rails` + reason WARNING; INFO on successful load; deep-copy `_last_saved`; disk-rewrite force as locked; persist after write True when dirty or forced; clears never touch file/latch; latch never loaded/saved.
 
 **Durable snapshot helper**
-- [ ] Deep-copy + `==` on `theta`, `p`, `last_u`, `adapted_kp`, `adapted_ki` only.
+- [x] Deep-copy + `==` on `theta`, `p`, `last_u`, `adapted_kp`, `adapted_ki` only.
 
 **`apps.yaml.example` + `docs/house-calibration.md`**
-- [ ] Ops: with adaptive enabled, delete `rls_state.json` under the AppDaemon app directory to reset learned RLS state. Do not disable `adaptive` to reset.
+- [x] Ops: with adaptive enabled, delete `rls_state.json` under the AppDaemon app directory to reset learned RLS state. Do not disable `adaptive` to reset.
 
 **Tests**
-- [ ] `tests/test_rls.py` — save→load field equality via helpers; corrupt/oversize/bad version→None; extras ignored; int coerce; missing `last_u`→None; OSError→False; tmp absent or unlink-failure path; save rejects non-finite / mismatched adapted.
-- [ ] `tests/test_hvac_app.py` — restore after persist; no rewrite when equal; force rewrite after corrupt/adapted-drop; idle vs plant-off leave file+latch; adaptive off no I/O; adapted-drop reason WARNING; soft-fail episode WARNING; write False after RLS → no persist; IMC-invalid file → cold + force.
+- [x] `tests/test_rls.py` — save→load field equality via helpers; corrupt/oversize/bad version→None; extras ignored; int coerce; missing `last_u`→None; OSError→False; tmp absent or unlink-failure path; save rejects non-finite / mismatched adapted.
+- [x] `tests/test_hvac_app.py` — restore after persist; no rewrite when equal; force rewrite after corrupt/adapted-drop; idle vs plant-off leave file+latch; adaptive off no I/O; adapted-drop reason WARNING; soft-fail episode WARNING; write False after RLS → no persist; IMC-invalid file → cold + force.
 
 ## Design Notes
 
@@ -148,4 +148,37 @@ context:
 
 - 2026-11-09 · loop 1 · lenses adversarial, edge-case-hunter, structure, prose · **patch-all** applied into plan (this revision). Structure MOVE/MERGE/CUT absorbed into Read order + Implementation map + Decision index; empty Implementation Notes / Verification headings removed.
 - 2026-11-09 · code review quick · `_load_rls_overlay` IMC gate vs persist-after-reject · verdict `false` · route reject · evidence: frozen load rule requires IMC-invalid θ → WARNING + cold + force; persist-after-reject intentionally can write that θ, and the next initialize is the IMC-invalid matrix row — App-authored cold/reject θ failing reload is specified, not a deviation.
-- 2026-11-09 · code review quick · `load_rls_state` 64 KiB after full `read_bytes` · verdict `low` · route patch · evidence: size is checked before JSON parse but only after buffering the whole file; `stat().st_size` (or bounded read) before `read_bytes` is a direct fix for the plan's max-size-before-parse rule.
+- 2026-11-09 · code review quick · `load_rls_state` 64 KiB after full `read_bytes` · verdict `low` · route patch · **resolved** — `stat().st_size` before `read_bytes`; residual stat→read TOCTOU closed with post-read `len(data)` check in the 2026-11-09 code-review patch pass.
+
+## Code Review
+
+### 2026-11-09
+
+**Code review complete.** 0 `decision-needed`, 11 `patch`, 0 `defer`, 14 rejected.
+
+- [x] [Review][Patch] float() OverflowError on huge JSON ints aborts load/initialize [`apps/ha_smart_hvac/rls.py:139`]
+- [x] [Review][Patch] Soft-fail path untested for last_saved/force retention under force rewrite [`tests/test_hvac_app.py:2086`]
+- [x] [Review][Patch] Non-finite last_u rejection untested in load and save [`tests/test_rls.py:195`]
+- [x] [Review][Patch] Adapted-drop disk scrub write not exercised after force [`tests/test_hvac_app.py:1827`]
+- [x] [Review][Patch] JSON bools coerced into numeric durable fields [`apps/ha_smart_hvac/rls.py:136`]
+- [x] [Review][Patch] Latched-restore test never places the app in a latched episode [`tests/test_hvac_app.py:2171`]
+- [x] [Review][Patch] 64 KiB cap has stat→read TOCTOU residual [`apps/ha_smart_hvac/rls.py:176`]
+- [x] [Review][Patch] Missing-file race after is_file warns and force-rewrites [`apps/ha_smart_hvac/hvac_app.py:113`]
+- [x] [Review][Patch] Plan Implementation map checkboxes not marked done [`story-persist-rls-state-json-across-pid-clears-plan.md:105`]
+- [x] [Review][Patch] Plan triage log leaves pre-stat size finding open [`story-persist-rls-state-json-across-pid-clears-plan.md:151`]
+- [x] [Review][Patch] Unsavable RAM and I/O failures share one soft-fail message [`apps/ha_smart_hvac/hvac_app.py:152`]
+
+**Rejected**
+- R4 tmp-unlink via module `_LOG` — false: pure helper cannot use `HvacApp.log`; F3 only requires a WARNING
+- R8 mkdtemp without teardown — low / rarely visible in CI; call-site cleanup is more than a direct fix
+- R9 memlog fork 1 “not W1” — false: chronological fork then review renegotiation; plan is source of truth
+- R10 ops notes omit rewrite timing — false: matches locked Implementation map ops bullet
+- R11 frozen snapshot mutable lists — false: unreachable; callers replace snapshots wholesale
+- R19 save assumes 2×2 without shape guards — false: defensive for unreachable `RlsState` shapes
+- R22 description vs durable-field scope — false: descriptive; diff implements verify contract
+- R23 ambiguous “fail” — false: clears vs soft-fail I/O are separate surfaces
+- R24 pytest/ruff not in diff — false: gate outcomes live outside the patch text
+- R25 latch reload beyond verify wording — false: plan-locked acceptance
+- R26 ops docs beyond ticket text — false: plan Implementation map ops task
+- R27 schema/I/O beyond starting intent — false: locked Boundaries
+- R28 planning/ticket meta in diff — false: expected BMAD artifacts

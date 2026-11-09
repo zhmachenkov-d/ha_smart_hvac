@@ -133,16 +133,28 @@ def imc_gains(a1: float, b0: float, ts: float) -> tuple[float, float] | None:
     return kp, ki
 
 
+def _coerce_finite_float(value: object) -> float | None:
+    """Coerce a JSON number (int/float) to a finite float; reject bools."""
+    # bool is a subclass of int — reject before the int/float allow-list.
+    if type(value) is bool or type(value) not in (int, float):
+        return None
+    try:
+        out = float(value)
+    except (TypeError, ValueError, OverflowError):
+        return None
+    if not math.isfinite(out):
+        return None
+    return out
+
+
 def _finite_pair(values: object) -> list[float] | None:
     if not isinstance(values, list) or len(values) != 2:
         return None
-    try:
-        out = [float(values[0]), float(values[1])]
-    except (TypeError, ValueError):
+    a = _coerce_finite_float(values[0])
+    b = _coerce_finite_float(values[1])
+    if a is None or b is None:
         return None
-    if not all(math.isfinite(v) for v in out):
-        return None
-    return out
+    return [a, b]
 
 
 def _parse_adapted(
@@ -160,12 +172,9 @@ def _parse_adapted(
         return None, None, None
     if kp_raw is None or ki_raw is None:
         return None, None, "mismatch"
-    try:
-        kp = float(kp_raw)
-        ki = float(ki_raw)
-    except (TypeError, ValueError):
-        return None, None, "non_finite"
-    if not (math.isfinite(kp) and math.isfinite(ki)):
+    kp = _coerce_finite_float(kp_raw)
+    ki = _coerce_finite_float(ki_raw)
+    if kp is None or ki is None:
         return None, None, "non_finite"
     return kp, ki, None
 
@@ -177,6 +186,8 @@ def load_rls_state(path: Path) -> RlsDurableSnapshot | None:
             return None
         data = path.read_bytes()
     except OSError:
+        return None
+    if len(data) > MAX_STATE_BYTES:
         return None
     try:
         raw = json.loads(data.decode("utf-8"))
@@ -206,11 +217,8 @@ def load_rls_state(path: Path) -> RlsDurableSnapshot | None:
     if last_u_raw is None:
         last_u: float | None = None
     else:
-        try:
-            last_u = float(last_u_raw)
-        except (TypeError, ValueError):
-            return None
-        if not math.isfinite(last_u):
+        last_u = _coerce_finite_float(last_u_raw)
+        if last_u is None:
             return None
 
     adapted_kp, adapted_ki, adapted_issue = _parse_adapted(raw)
@@ -224,7 +232,7 @@ def load_rls_state(path: Path) -> RlsDurableSnapshot | None:
     )
 
 
-def _durable_fields_savable(state: RlsState) -> bool:
+def durable_fields_savable(state: RlsState) -> bool:
     if not all(math.isfinite(v) for v in state.theta):
         return False
     if not all(math.isfinite(v) for row in state.p for v in row):
@@ -241,7 +249,7 @@ def _durable_fields_savable(state: RlsState) -> bool:
 
 def save_rls_state(path: Path, state: RlsState) -> bool:
     """Atomically write durable RLS JSON. False on validation or OSError."""
-    if not _durable_fields_savable(state):
+    if not durable_fields_savable(state):
         return False
     payload = (
         json.dumps(

@@ -1839,6 +1839,40 @@ def test_initialize_adapted_drop_reason_and_force(tmp_path: Path) -> None:
     assert any("Loaded RLS state" in m for m in _info_msgs(app))
 
 
+def test_force_rewrite_after_adapted_drop_scrubs_disk(tmp_path: Path) -> None:
+    path = tmp_path / STATE_FILENAME
+    _write_valid_rls_json(path, adapted_kp=1.5, adapted_ki=None)
+    app = _init_app(args=_adaptive_args(), app_dir=tmp_path)
+    app.initialize()
+    assert app._rls_force_rewrite is True
+    assert app._rls.adapted_kp is None
+
+    app.get_state = MagicMock(
+        side_effect=lambda entity_id, attribute=None: {
+            _PLANT_MGMT: "on",
+            _ZONE_TEMP: 20.04,
+            _PLANT_SETPOINT: 42.0,
+            _BOILER_WATER: 50.0,
+            _CLIMATE: (
+                22.0
+                if attribute == "temperature"
+                else ("heating" if attribute == "hvac_action" else "heat")
+            ),
+        }.get(entity_id)
+    )
+    app.call_service = MagicMock()
+    app._rls.last_u = 42.0
+    app._rls_last_saved = copy_durable(app._rls)
+
+    app.control_tick({})
+
+    loaded = load_rls_state(path)
+    assert loaded is not None
+    assert loaded.adapted_kp is None
+    assert loaded.adapted_ki is None
+    assert app._rls_force_rewrite is False
+
+
 def test_initialize_adapted_out_of_rail_drop(tmp_path: Path) -> None:
     path = tmp_path / STATE_FILENAME
     _write_valid_rls_json(path, adapted_kp=999.0, adapted_ki=1.0)
@@ -2129,6 +2163,102 @@ def test_persist_soft_fail_episode_warning(
     assert len(asserts) == 1
 
 
+def test_persist_soft_fail_keeps_force_and_last_saved(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    path = tmp_path / STATE_FILENAME
+    path.write_text("{bad", encoding="utf-8")
+    app = _init_app(args=_adaptive_args(), app_dir=tmp_path)
+    app.initialize()
+    assert app._rls_force_rewrite is True
+
+    app.get_state = MagicMock(
+        side_effect=lambda entity_id, attribute=None: {
+            _PLANT_MGMT: "on",
+            _ZONE_TEMP: 20.04,
+            _PLANT_SETPOINT: 42.0,
+            _BOILER_WATER: 50.0,
+            _CLIMATE: (
+                22.0
+                if attribute == "temperature"
+                else ("heating" if attribute == "hvac_action" else "heat")
+            ),
+        }.get(entity_id)
+    )
+    app.call_service = MagicMock()
+    app._rls.last_u = 42.0
+    app._rls_last_saved = copy_durable(app._rls)
+    pre_saved = copy_durable(app._rls_last_saved)
+    calls = {"n": 0}
+
+    def _fail(*_a, **_k):
+        calls["n"] += 1
+        return False
+
+    monkeypatch.setattr("ha_smart_hvac.hvac_app.save_rls_state", _fail)
+
+    app.control_tick({})
+    assert calls["n"] == 1
+    assert app._rls_force_rewrite is True
+    assert durable_equal(app._rls_last_saved, pre_saved)
+    assert any("Failed to persist RLS state" in m for m in _warn_msgs(app))
+
+    app.log.reset_mock()
+    app.call_service.reset_mock()
+    app.control_tick({})
+    assert calls["n"] == 2
+    assert app._rls_force_rewrite is True
+    assert durable_equal(app._rls_last_saved, pre_saved)
+
+
+def test_persist_unsavable_warns_distinct_from_io(tmp_path: Path) -> None:
+    app = _tick_app(
+        zone_temp=20.0,
+        setpoint=22.0,
+        plant_setpoint=45.0,
+        boiler_water=50.0,
+        args=_adaptive_args(),
+        app_dir=tmp_path,
+    )
+    app._rls.last_u = 99.0
+    app._rls.theta = [float("nan"), 0.1]
+    # Let real save_rls_state reject unsavable fields.
+    app.control_tick({})
+    unsavable = [m for m in _warn_msgs(app) if "unsavable" in m]
+    io_fail = [m for m in _warn_msgs(app) if "Failed to persist RLS state" in m]
+    assert len(unsavable) == 1
+    assert io_fail == []
+    assert app._rls_persist_fail_warned is True
+
+
+def test_load_missing_race_after_is_file_is_silent_cold(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    path = tmp_path / STATE_FILENAME
+    path.write_text("{}", encoding="utf-8")
+    app = _init_app(args=_adaptive_args(), app_dir=tmp_path)
+
+    real_is_file = Path.is_file
+    seen = {"n": 0}
+
+    def _is_file(self: Path) -> bool:
+        if self == path:
+            seen["n"] += 1
+            if seen["n"] == 1:
+                return True
+            return False
+        return real_is_file(self)
+
+    monkeypatch.setattr(Path, "is_file", _is_file)
+    monkeypatch.setattr("ha_smart_hvac.hvac_app.load_rls_state", lambda *_a, **_k: None)
+
+    app.initialize()
+
+    assert app._rls.theta == [0.0, 0.0]
+    assert app._rls_force_rewrite is False
+    assert not any("Ignoring unusable" in m for m in _warn_msgs(app))
+
+
 def test_write_false_after_rls_does_not_persist(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -2175,5 +2305,11 @@ def test_initialize_after_latched_restores_adapted_clears_latch(
     _write_valid_rls_json(path)
     app = _init_app(args=_adaptive_args(), app_dir=tmp_path)
     app.initialize()
+    app._rls_fallback_latched = True
+    app._rls_fallback_reason = "out_of_band"
+    # Simulate App reload after a latched episode.
+    app.initialize()
     assert app._rls_fallback_latched is False
+    assert app._rls_fallback_reason is None
     assert app._rls.adapted_kp == pytest.approx(1.5)
+    assert app._rls.adapted_ki == pytest.approx(12.0)

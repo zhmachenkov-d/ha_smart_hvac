@@ -22,6 +22,7 @@ from ha_smart_hvac.rls import (
     RlsState,
     copy_durable,
     durable_equal,
+    durable_fields_savable,
     gains_within_rails,
     imc_gains,
     load_rls_state,
@@ -115,6 +116,10 @@ class HvacApp(hass.Hass):
             return
         loaded = load_rls_state(path)
         if loaded is None:
+            # Race: deleted between is_file and load → same as missing (silent cold).
+            if not path.is_file():
+                self._seed_last_saved()
+                return
             self.log(
                 f"Ignoring unusable RLS state file: {path}",
                 level="WARNING",
@@ -163,10 +168,17 @@ class HvacApp(hass.Hass):
             self._rls_persist_fail_warned = False
             return
         if not self._rls_persist_fail_warned:
-            self.log(
-                f"Failed to persist RLS state: {path}",
-                level="WARNING",
-            )
+            if not durable_fields_savable(self._rls):
+                self.log(
+                    f"RLS state unsavable (non-finite or mismatched adapted); "
+                    f"skip persist: {path}",
+                    level="WARNING",
+                )
+            else:
+                self.log(
+                    f"Failed to persist RLS state: {path}",
+                    level="WARNING",
+                )
             self._rls_persist_fail_warned = True
 
     def _register_control_listeners(self) -> None:

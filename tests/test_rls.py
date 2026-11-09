@@ -211,6 +211,41 @@ def _bad_payloads() -> list[str]:
                 "last_u": None,
             }
         ),
+        json.dumps(
+            {
+                "version": 1,
+                "theta": [0.9, 0.1],
+                "p": [[1, 0], [0, 1]],
+                "last_u": float("nan"),
+            }
+        ),
+        json.dumps(
+            {
+                "version": 1,
+                "theta": [0.9, 0.1],
+                "p": [[1, 0], [0, 1]],
+                "last_u": float("inf"),
+            }
+        ),
+        json.dumps(
+            {
+                "version": 1,
+                "theta": [True, 0.1],
+                "p": [[1, 0], [0, 1]],
+                "last_u": None,
+            }
+        ),
+        json.dumps(
+            {
+                "version": 1,
+                "theta": [0.9, 0.1],
+                "p": [[1, 0], [0, 1]],
+                "last_u": True,
+            }
+        ),
+        '{"version": 1, "theta": ['
+        + "1" * 400
+        + ', 0.1], "p": [[1, 0], [0, 1]], "last_u": null}',
     ]
 
 
@@ -321,6 +356,38 @@ def test_save_rejects_non_finite_and_mismatched_adapted(tmp_path: Path) -> None:
     mismatch.adapted_ki = None
     assert save_rls_state(path, mismatch) is False
     assert not path.exists()
+
+    bad_last_u = RlsState()
+    bad_last_u.last_u = float("nan")
+    assert save_rls_state(path, bad_last_u) is False
+    assert not path.exists()
+
+    bad_last_u_inf = RlsState()
+    bad_last_u_inf.last_u = float("inf")
+    assert save_rls_state(path, bad_last_u_inf) is False
+    assert not path.exists()
+
+
+def test_load_adapted_bool_sets_non_finite_issue(tmp_path: Path) -> None:
+    path = tmp_path / "rls_state.json"
+    path.write_text(
+        json.dumps(
+            {
+                "version": 1,
+                "theta": [0.9, 0.1],
+                "p": [[1.0, 0.0], [0.0, 1.0]],
+                "last_u": None,
+                "adapted_kp": True,
+                "adapted_ki": 1.0,
+            }
+        ),
+        encoding="utf-8",
+    )
+    loaded = load_rls_state(path)
+    assert loaded is not None
+    assert loaded.adapted_issue == "non_finite"
+    assert loaded.adapted_kp is None
+    assert loaded.adapted_ki is None
 
 
 def test_copy_durable_does_not_share_lists() -> None:
