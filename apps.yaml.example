@@ -17,6 +17,8 @@ hvac:
   # ki·∫ in °C of water — independent of control_interval.
   # When adaptive: true, also set boiler_water and all four adapted-gain rails
   # (kp_min / kp_max / ki_min / ki_max). Rails constrain adapted proposals only.
+  # With adaptive enabled, delete rls_state.json under the AppDaemon app
+  # directory to reset learned RLS state — do not disable adaptive to reset.
   # boiler_water: sensor.YOUR_BOILER_WATER
   pid:
     kp: 1.0
