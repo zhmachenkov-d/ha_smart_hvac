@@ -11,6 +11,7 @@ companions:
 after: []
 assignee: ""
 risk: high
+status: done
 ---
 
 # Multi-zone PID Set Water Temperature
@@ -80,3 +81,4 @@ Capability boundary: AppDaemon `ha_smart_hvac` Set Water Temperature path, zone 
 - Decision: Operator HITL/note between epic 1 and 2 — do not live-commission Exclusive Session until epic 2 closes; not an epic-1 acceptance check (2026-11-07).
 - Decision: Declined fold of docs into epic 1; sequential ship kept (party 2026-11-07).
 - Decision: Replan from the epic-fixed-pid-swt retrospective (`tickets/epic-fixed-pid-swt/epic-fixed-pid-swt-retrospective.md`): D15 supersedes Q1/D12 defaults (∫ in °C·h, ki 1/h, I-term limits in °C, defaults kp 1.0 / ki 1.0 / I-term [−10, +15] °C); D16/D22 revise R7 (skip when the plant already reads the command; no ∫ advance while the plant is unavailable); D17 accepts event-clear latency up to `control_interval` as an ADR input; D18 puts `knowledge/` in epic 2 with AGENTS.md first; D19–D21 add epic-1 stories 5–8 (integral units and R7 skip; parse hardening per D20; hitl house yaml; closing sweep). Production stays on v1.5.1 until then (2026-11-07).
+- Decision: Closed 2026-11-09 after Closure check PASS on Done when 1–7, R1–R10, C1–C4 against App/ADR 0005–0006/tests; optional leftovers (two-tick plant-drift R7 test, RLS/AGENTS hygiene, R9/Done when 6 past-tense sync) accepted as non-blocking; live Exclusive Session not required to close.
