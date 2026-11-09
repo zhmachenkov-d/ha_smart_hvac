@@ -73,7 +73,8 @@ Each of these logs `HVAC config error: …` at startup and the App does not run:
 - A fractional `control_interval` (`60.7`, `0.5`); `60.0` is accepted as `60`
 - A `control_interval` above `86400` (one day)
 - A negative `pid.kp` or `pid.ki` (`0` is accepted)
-- When `pid.adaptive` is true: a missing `boiler_water`, or any missing / negative / min>max adapted-gain rail (`kp_min` / `kp_max` / `ki_min` / `ki_max`)
+- When `pid.adaptive` is true: a missing `boiler_water`, or any missing adapted-gain rail (`kp_min` / `kp_max` / `ki_min` / `ki_max`)
+- A present adapted-gain rail that is negative or has min>max (even when `pid.adaptive` is false)
 - An I-term range that does not include `0` (`i_term_min` must be ≤ 0 ≤ `i_term_max`)
 - An explicit `base_water_temp` outside `setpoint_min`…`setpoint_max`
 

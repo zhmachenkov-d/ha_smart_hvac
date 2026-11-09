@@ -267,6 +267,15 @@ def test_parse_accepts_zero_gains() -> None:
     config = parse_config(args)
     assert config.pid.kp == 0.0
     assert config.pid.ki == 0.0
+    assert config.pid.legacy_ki_warning is False
+
+
+def test_parse_explicit_ki_one_no_legacy_warning() -> None:
+    args = _minimal_args()
+    args["pid"] = {"ki": 1.0}
+    config = parse_config(args)
+    assert config.pid.ki == pytest.approx(1.0)
+    assert config.pid.legacy_ki_warning is False
 
 
 @pytest.mark.parametrize("value", [60.7, 0.5])
@@ -531,11 +540,20 @@ def test_parse_adaptive_true_negative_rail_raises(key: str, value: float) -> Non
         parse_config(args)
 
 
-def test_parse_adaptive_true_rail_min_gt_max_raises() -> None:
+@pytest.mark.parametrize(
+    ("overrides", "match"),
+    [
+        ({"kp_min": 5.0, "kp_max": 1.0}, "pid.kp_min must be <= pid.kp_max"),
+        ({"ki_min": 5.0, "ki_max": 1.0}, "pid.ki_min must be <= pid.ki_max"),
+    ],
+)
+def test_parse_adaptive_true_rail_min_gt_max_raises(
+    overrides: dict, match: str
+) -> None:
     args = _minimal_args()
     args["boiler_water"] = "sensor.boiler_water"
-    args["pid"] = _adaptive_pid(kp_min=5.0, kp_max=1.0)
-    with pytest.raises(ConfigError, match="pid.kp_min must be <= pid.kp_max"):
+    args["pid"] = _adaptive_pid(**overrides)
+    with pytest.raises(ConfigError, match=match):
         parse_config(args)
 
 

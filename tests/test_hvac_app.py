@@ -1438,8 +1438,12 @@ def test_adaptive_nonfinite_imc_latches_imc_none(
     assert app._rls.theta[1] == pytest.approx(preview.theta[1])
     assert app._rls.p[0][0] == pytest.approx(preview.p[0][0])
     assert app._rls.p[1][1] == pytest.approx(preview.p[1][1])
+    assert app._rls.adapted_kp == pytest.approx(2.0)
+    assert app._rls.adapted_ki == pytest.approx(0.5)
+    assert app._rls_fallback_latched is True
     assert app._rls_fallback_reason == "imc_none"
     assert _set_value_writes(app) == [42.0]
+    assert sum(1 for m in _warn_msgs(app) if "imc_none" in m) == 1
 
 
 def test_adaptive_healthy_in_band_clears_latch(
@@ -1540,6 +1544,93 @@ def test_adaptive_skip_step_does_not_enter_or_refresh_latch(
     assert not any("RLS fallback latched" in m for m in _warn_msgs(app))
 
 
+def test_adaptive_skip_step_plant_unreadable_does_not_refresh_latch(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    stepped = _count_rls_steps(monkeypatch)
+    app = _tick_app(
+        zone_temp=20.0,
+        setpoint=22.0,
+        plant_setpoint="unavailable",
+        boiler_water=51.0,
+        args=_adaptive_args(),
+    )
+    app._rls_fallback_latched = True
+    app._rls_fallback_reason = "out_of_band"
+    app._rls.adapted_kp = 2.0
+    app._rls.adapted_ki = 0.5
+    app._rls.y_prev = 50.0
+    app._rls.last_u = 42.0
+
+    app.control_tick({})
+
+    assert stepped["n"] == 0
+    assert app._rls_fallback_latched is True
+    assert app._rls_fallback_reason == "out_of_band"
+    assert _set_value_writes(app) == []
+    assert not any("RLS fallback latched" in m for m in _warn_msgs(app))
+
+
+def test_adaptive_skip_step_boiler_unreadable_does_not_refresh_latch(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    stepped = _count_rls_steps(monkeypatch)
+    app = _tick_app(
+        zone_temp=20.0,
+        setpoint=22.0,
+        plant_setpoint=45.0,
+        boiler_water="unavailable",
+        args=_adaptive_args(),
+    )
+    app._rls_fallback_latched = True
+    app._rls_fallback_reason = "rls_noop"
+    app._rls.adapted_kp = 2.0
+    app._rls.adapted_ki = 0.5
+    app._rls.y_prev = 50.0
+    app._rls.last_u = 42.0
+
+    app.control_tick({})
+
+    assert stepped["n"] == 0
+    assert app._rls_fallback_latched is True
+    assert app._rls_fallback_reason == "rls_noop"
+    assert _set_value_writes(app) == [42.0]  # YAML fixed demand write
+    assert not any("RLS fallback latched" in m for m in _warn_msgs(app))
+    assert any("Boiler water unavailable" in m for m in _warn_msgs(app))
+
+
+def test_adaptive_rail_edge_publishes_adapted(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Inclusive rail edges must publish through `_maybe_rls_step`, not latch."""
+    real_step = __import__("ha_smart_hvac.rls", fromlist=["rls_step"]).rls_step
+    monkeypatch.setattr("ha_smart_hvac.hvac_app.rls_step", real_step)
+    edge = (10.0, 100.0)
+    monkeypatch.setattr("ha_smart_hvac.hvac_app.imc_gains", lambda *_a, **_k: edge)
+    app = _tick_app(
+        zone_temp=20.0,
+        setpoint=22.0,
+        plant_setpoint=45.0,
+        boiler_water=50.1,
+        args=_adaptive_args(kp_min=0.0, kp_max=10.0, ki_min=0.0, ki_max=100.0),
+    )
+    app._rls.theta = [0.9, 0.1]
+    app._rls.p = [[1e-12, 0.0], [0.0, 1e-12]]
+    app._rls.y_prev = 50.0
+    app._rls.last_u = 45.0
+    app._rls_fallback_latched = True
+    app._rls_fallback_reason = "imc_none"
+
+    app.control_tick({})
+
+    assert app._rls_fallback_latched is False
+    assert app._rls_fallback_reason is None
+    assert app._rls.adapted_kp == pytest.approx(edge[0])
+    assert app._rls.adapted_ki == pytest.approx(edge[1])
+    expected = _expected_command(zone_temp=20.0, setpoint=22.0, kp=edge[0], ki=edge[1])
+    assert _set_value_writes(app) == [expected]
+
+
 def test_adaptive_latch_survives_clear_seed_uses_yaml(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -1572,9 +1663,11 @@ def test_adaptive_latch_survives_clear_seed_uses_yaml(
     assert _set_value_writes(app) == [42.0]  # YAML fixed, not parked adapted
 
 
-def test_adaptive_after_clear_seed_then_last_good_gains(
+def test_adaptive_after_clear_seed_then_parked_gains_step(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    from ha_smart_hvac.rls import imc_gains
+
     stepped = _count_rls_steps(monkeypatch)
     app = _tick_app(
         zone_temp=20.0,
@@ -1592,6 +1685,7 @@ def test_adaptive_after_clear_seed_then_last_good_gains(
 
     assert stepped["n"] == 0
     assert app._rls.y_prev == pytest.approx(50.0)
+    assert app._rls_fallback_latched is False
     # e=2, u_pid = 2*2 + 0.5*0 = 4 → command 44.0
     assert _set_value_writes(app) == [44.0]
 
@@ -1599,6 +1693,19 @@ def test_adaptive_after_clear_seed_then_last_good_gains(
     app.control_tick({})
 
     assert stepped["n"] == 1
+    gains = imc_gains(app._rls.theta[0], app._rls.theta[1], float(_CONTROL_INTERVAL))
+    assert gains is not None
+    assert app._rls_fallback_latched is False
+    assert app._rls.adapted_kp == pytest.approx(gains[0])
+    assert app._rls.adapted_ki == pytest.approx(gains[1])
+    expected = _expected_command(
+        zone_temp=20.0,
+        setpoint=22.0,
+        integral=2.0 * _DT_HOURS,
+        kp=gains[0],
+        ki=gains[1],
+    )
+    assert _set_value_writes(app) == [expected]
 
 
 def test_equal_skip_demand_write_updates_last_u() -> None:

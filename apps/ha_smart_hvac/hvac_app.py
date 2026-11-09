@@ -75,7 +75,8 @@ class HvacApp(hass.Hass):
 
     def _clear_pid_ephemeral(self) -> None:
         self._integral = 0.0
-        # Wipe y_prev only among RLS bookkeeping; keep θ/P, last u, last-good.
+        # Wipe y_prev only among RLS bookkeeping; keep θ/P, last u, parked
+        # adapted_*, and the fallback latch (parked gains ignored while latched).
         self._rls.y_prev = None
 
     def _gate_prelude(self) -> list[ZoneSnapshot] | None:

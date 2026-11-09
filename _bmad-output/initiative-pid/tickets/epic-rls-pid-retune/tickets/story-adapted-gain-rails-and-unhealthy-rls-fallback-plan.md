@@ -151,11 +151,38 @@ context:
 - Runtime mid-flight YAML reload of rails — AppDaemon re-init; rails frozen at initialize.
 
 **Code review (quick, 2026-11-09):**
-- `medium` → patch — `tests/test_hvac_app.py` `_count_rls_steps` returns `True` without committing θ/P; any can_step call (e.g. second tick of `test_adaptive_after_clear_seed_then_last_good_gains`) takes the success path on default θ→`imc_none` latch. Evidence: stub body returns True only; `imc_gains(0,0,ts)` is None.
-- `medium` → patch — True+reject tests (`test_adaptive_imc_invalid_latches_yaml_fixed`, `test_adaptive_out_of_band_latches_yaml_fixed`, `test_adaptive_nonfinite_imc_latches_imc_none`) do not assert θ/P stayed committed after True step; OQ10/AC θ/P-keep clause unverified. Evidence: no before/after θ/P asserts; nonfinite stubs True with no mutation.
+- `medium` → patch — `tests/test_hvac_app.py` `_count_rls_steps` returns `True` without committing θ/P; any can_step call (e.g. second tick of `test_adaptive_after_clear_seed_then_last_good_gains`) takes the success path on default θ→`imc_none` latch. Evidence: stub body returns True only; `imc_gains(0,0,ts)` is None. **Resolved** — `_count_rls_steps` delegates to real `rls_step`.
+- `medium` → patch — True+reject tests (`test_adaptive_imc_invalid_latches_yaml_fixed`, `test_adaptive_out_of_band_latches_yaml_fixed`, `test_adaptive_nonfinite_imc_latches_imc_none`) do not assert θ/P stayed committed after True step; OQ10/AC θ/P-keep clause unverified. Evidence: no before/after θ/P asserts; nonfinite stubs True with no mutation. **Resolved** — True+reject tests assert θ/P before/after.
 
 ## Verification
 
 **Commands:**
 - `uv run pytest` -- expected: all tests pass
 - `uv run ruff check` -- expected: clean
+
+## Code Review
+
+### 2026-11-09
+
+**Code review complete.** 0 `decision-needed`, 9 `patch`, 1 `defer`, 8 rejected.
+
+- [x] [Review][Patch] ki_min > ki_max ConfigError has no test twin of kp [`tests/test_config.py:534`]
+- [x] [Review][Patch] legacy_ki_warning open-interval edges (ki=0, ki=1) unpinned [`apps/ha_smart_hvac/config.py:208`]
+- [x] [Review][Patch] Inclusive rail acceptance never hit through `_maybe_rls_step` [`apps/ha_smart_hvac/hvac_app.py:193`]
+- [x] [Review][Patch] Skip-step does-not-enter-latch locked only for seed, not plant_ok False / unreadable y [`tests/test_hvac_app.py:1516`]
+- [x] [Review][Patch] nonfinite IMC latch test under-asserts latched flag, park, and WARNING [`tests/test_hvac_app.py:1408`]
+- [x] [Review][Patch] house-calibration rejected-values understate rail validation when adaptive is false [`docs/house-calibration.md:76`]
+- [x] [Review][Patch] Plan Review Triage Log still lists patched medium items as open [`story-adapted-gain-rails-and-unhealthy-rls-fallback-plan.md` Review Triage Log]
+- [x] [Review][Patch] Clear-path comment still says last-good, omits latch lifetime [`apps/ha_smart_hvac/hvac_app.py:78`]
+- [x] [Review][Patch] after_clear_seed_then_last_good_gains stale name and weak second-tick asserts [`tests/test_hvac_app.py:1575`]
+- [x] [Review][Defer] Entry-1 tickets.toml description still says last-good without entry-2 override [`tickets.toml` entry 1] — deferred: fix edits a ticket file
+
+**Rejected**
+- R3 Operator docs omit latch behavior — deferred to entry 4 / out of this story plan Tasks scope
+- R4 CHANGELOG buries rails — false: CHANGELOG delta is 3.1.0 release only; rails commit does not touch it
+- R12 apps.yaml.example rail band guidance — low; speculative house bands add complexity
+- R13 Adaptive-off invalid rails underspec — false: fail-closed on present invalid rails is protective
+- R14 healthy clear no WARNING assert — low; negative assert rarely worth the noise
+- R18 Plan-only latch WARN beyond short intent — false: approved plan owns W1+
+- R19 pytest/ruff not in diff — false: gates are outside the patch text
+- R21 Latch-protocol vs control-law surface mismatch — false: descriptive observation only
