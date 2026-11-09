@@ -22,11 +22,12 @@ class RlsState:
     adapted_ki: float | None = None
 
 
-def rls_step(state: RlsState, *, y: float, y_prev: float, u_prev: float) -> None:
+def rls_step(state: RlsState, *, y: float, y_prev: float, u_prev: float) -> bool:
     """One forgetting-RLS update; mutates ``state.theta`` and ``state.p``.
 
-    Leaves ``theta``/``p`` unchanged when denom is unusable or the update
-    would produce non-finite values (no mid-tick poison / ZeroDivisionError).
+    Returns True when θ/P were committed. Leaves ``theta``/``p`` unchanged and
+    returns False when denom is unusable or the update would produce non-finite
+    values (no mid-tick poison / ZeroDivisionError).
     """
     phi = [y_prev, u_prev]
     theta = state.theta
@@ -39,7 +40,7 @@ def rls_step(state: RlsState, *, y: float, y_prev: float, u_prev: float) -> None
     ]
     denom = lam + phi[0] * p_phi[0] + phi[1] * p_phi[1]
     if not math.isfinite(denom) or abs(denom) <= EPS:
-        return
+        return False
     k = [p_phi[0] / denom, p_phi[1] / denom]
     e = y - (phi[0] * theta[0] + phi[1] * theta[1])
     new_theta = [theta[0] + k[0] * e, theta[1] + k[1] * e]
@@ -49,12 +50,25 @@ def rls_step(state: RlsState, *, y: float, y_prev: float, u_prev: float) -> None
         [(p[1][0] - k[1] * p_phi[0]) / lam, (p[1][1] - k[1] * p_phi[1]) / lam],
     ]
     if not all(math.isfinite(v) for v in new_theta):
-        return
+        return False
     if not all(math.isfinite(v) for row in new_p for v in row):
-        return
+        return False
     theta[0], theta[1] = new_theta
     p[0][0], p[0][1] = new_p[0]
     p[1][0], p[1][1] = new_p[1]
+    return True
+
+
+def gains_within_rails(
+    kp: float,
+    ki: float,
+    kp_min: float,
+    kp_max: float,
+    ki_min: float,
+    ki_max: float,
+) -> bool:
+    """Inclusive band check for adapted kp/ki proposals."""
+    return kp_min <= kp <= kp_max and ki_min <= ki <= ki_max
 
 
 def imc_gains(a1: float, b0: float, ts: float) -> tuple[float, float] | None:

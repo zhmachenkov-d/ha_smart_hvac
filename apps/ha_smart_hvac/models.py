@@ -57,6 +57,11 @@ class PidConfig:
     i_term_min: float = -10.0
     i_term_max: float = 15.0
     adaptive: bool = False
+    kp_min: float | None = None
+    kp_max: float | None = None
+    ki_min: float | None = None
+    ki_max: float | None = None
+    legacy_ki_warning: bool = False
 
 
 def plant_management_enabled(switch_state: str | None) -> bool:

@@ -15,13 +15,19 @@ hvac:
   base_water_temp: 40
   # kp: °C water per °C air error. ki: 1/h (∫ is °C·h). i_term_*: bounds on
   # ki·∫ in °C of water — independent of control_interval.
-  # boiler_water: sensor.YOUR_BOILER_WATER  # required when pid.adaptive is true
+  # When adaptive: true, also set boiler_water and all four adapted-gain rails
+  # (kp_min / kp_max / ki_min / ki_max). Rails constrain adapted proposals only.
+  # boiler_water: sensor.YOUR_BOILER_WATER
   pid:
     kp: 1.0
     ki: 1.0
     i_term_min: -10
     i_term_max: 15
     adaptive: false
+    # kp_min: 0.0
+    # kp_max: 10.0
+    # ki_min: 0.0
+    # ki_max: 100.0
   zones:
     - name: zone_one
       temperature: sensor.YOUR_ZONE_ONE_TEMPERATURE

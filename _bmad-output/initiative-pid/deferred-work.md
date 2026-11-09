@@ -72,3 +72,7 @@
 
 - Two-tick plant-drift R7 test (VG5 / B4): `tests/test_hvac_app.py` `test_plant_drift_rewrites_command` is a single tick with plant already at 50; a restored `_last_commanded` short-circuit before `_write_setpoint` would still pass. Prefer echo plant → command 42, mutate plant to 50, second tick asserts rewrite. Optional test hygiene; not owned by a ticket — party locked defer (no new epic-1 story).
 - Legacy-scale `pid.ki` footgun (SR8 / B6): an upgraded yaml that keeps a pre-migration numeric `ki` (e.g. `0.1` per-second) is accepted as 1/h with no ConfigError; only `integral_min`/`integral_max` land in `ignored_keys`. Documented in `docs/house-calibration.md`; this house was re-commissioned in 1.6. Optional WARN/migrate — candidate for a future tune story or epic 3; party locked defer.
+
+## Deferred from: code review of story-adapted-gain-rails-and-unhealthy-rls-fallback-plan (2026-11-09)
+
+- Entry-1 `tickets.toml` description still says clears keep "last-good adapted gains" without the entry-2 IMC-invalid → YAML fixed override (verify/notes already updated); deferred because the fix edits a ticket file.

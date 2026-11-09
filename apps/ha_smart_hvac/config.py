@@ -39,7 +39,19 @@ _KNOWN_KEYS = frozenset(
 )
 
 # Keys _parse_pid reads under ``pid``.
-_PID_KEYS = frozenset({"kp", "ki", "i_term_min", "i_term_max", "adaptive"})
+_PID_KEYS = frozenset(
+    {
+        "kp",
+        "ki",
+        "i_term_min",
+        "i_term_max",
+        "adaptive",
+        "kp_min",
+        "kp_max",
+        "ki_min",
+        "ki_max",
+    }
+)
 
 # Keys _parse_zone reads under each zone mapping.
 _ZONE_KEYS = frozenset({"name", "temperature", "thermostats", "weight"})
@@ -159,6 +171,19 @@ def _parse_boiler_water(args: dict[str, Any], *, adaptive: bool) -> str | None:
     return None
 
 
+def _parse_rail(raw: dict[str, Any], key: str, *, required: bool) -> float | None:
+    """Finite ≥0 rail; required when adaptive, else optional."""
+    label = f"pid.{key}"
+    if key not in raw:
+        if required:
+            raise ConfigError(f"{label} is required when pid.adaptive is true")
+        return None
+    value = _number(raw, key, label=label)
+    if value < 0:
+        raise ConfigError(f"{label} must be >= 0")
+    return value
+
+
 def _parse_pid(raw: Any) -> PidConfig:
     """Parse optional pid nest; missing keys → C4 starting commission defaults."""
     if raw is None:
@@ -179,8 +204,27 @@ def _parse_pid(raw: Any) -> PidConfig:
         raise ConfigError("pid.i_term_min must be less than i_term_max")
     if not i_term_min <= 0 <= i_term_max:
         raise ConfigError("pid.i_term_min must be <= 0 and pid.i_term_max must be >= 0")
+    # Explicit 0 < ki < 1 → legacy per-second scale WARNING flag (still parse).
+    legacy_ki_warning = "ki" in raw and 0.0 < ki < 1.0
+    kp_min = _parse_rail(raw, "kp_min", required=adaptive)
+    kp_max = _parse_rail(raw, "kp_max", required=adaptive)
+    ki_min = _parse_rail(raw, "ki_min", required=adaptive)
+    ki_max = _parse_rail(raw, "ki_max", required=adaptive)
+    if kp_min is not None and kp_max is not None and kp_min > kp_max:
+        raise ConfigError("pid.kp_min must be <= pid.kp_max")
+    if ki_min is not None and ki_max is not None and ki_min > ki_max:
+        raise ConfigError("pid.ki_min must be <= pid.ki_max")
     return PidConfig(
-        kp=kp, ki=ki, i_term_min=i_term_min, i_term_max=i_term_max, adaptive=adaptive
+        kp=kp,
+        ki=ki,
+        i_term_min=i_term_min,
+        i_term_max=i_term_max,
+        adaptive=adaptive,
+        kp_min=kp_min,
+        kp_max=kp_max,
+        ki_min=ki_min,
+        ki_max=ki_max,
+        legacy_ki_warning=legacy_ki_warning,
     )
 
 
