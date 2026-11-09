@@ -6,7 +6,15 @@ import math
 
 import pytest
 
-from ha_smart_hvac.rls import EPS, LAMBDA, P0, RlsState, imc_gains, rls_step
+from ha_smart_hvac.rls import (
+    EPS,
+    LAMBDA,
+    P0,
+    RlsState,
+    gains_within_rails,
+    imc_gains,
+    rls_step,
+)
 
 
 def test_rls_state_cold_start_defaults() -> None:
@@ -34,7 +42,7 @@ def test_rls_golden_first_step_from_zero_theta() -> None:
         [(0.0 - k[1] * p_phi[0]) / LAMBDA, (P0 - k[1] * p_phi[1]) / LAMBDA],
     ]
 
-    rls_step(state, y=y, y_prev=y_prev, u_prev=u_prev)
+    assert rls_step(state, y=y, y_prev=y_prev, u_prev=u_prev) is True
 
     assert state.theta[0] == pytest.approx(expected_theta[0])
     assert state.theta[1] == pytest.approx(expected_theta[1])
@@ -83,7 +91,31 @@ def test_rls_step_skips_when_denom_unusable() -> None:
     before_theta = state.theta[:]
     before_p = [row[:] for row in state.p]
 
-    rls_step(state, y=1.0, y_prev=1.0, u_prev=0.0)
+    assert rls_step(state, y=1.0, y_prev=1.0, u_prev=0.0) is False
 
     assert state.theta == before_theta
     assert state.p == before_p
+
+
+@pytest.mark.parametrize(
+    ("kp", "ki", "expected"),
+    [
+        (1.0, 2.0, True),  # interior
+        (0.0, 0.0, True),  # inclusive mins
+        (10.0, 100.0, True),  # inclusive maxes
+        (-0.1, 2.0, False),
+        (10.1, 2.0, False),
+        (1.0, -0.1, False),
+        (1.0, 100.1, False),
+    ],
+)
+def test_gains_within_rails(kp: float, ki: float, expected: bool) -> None:
+    assert (
+        gains_within_rails(kp, ki, kp_min=0.0, kp_max=10.0, ki_min=0.0, ki_max=100.0)
+        is expected
+    )
+
+
+def test_gains_within_rails_min_eq_max() -> None:
+    assert gains_within_rails(2.0, 3.0, 2.0, 2.0, 3.0, 3.0) is True
+    assert gains_within_rails(2.1, 3.0, 2.0, 2.0, 3.0, 3.0) is False

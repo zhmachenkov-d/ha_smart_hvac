@@ -446,18 +446,34 @@ def test_parse_adaptive_false_allows_omitted_boiler_water() -> None:
     assert config.boiler_water is None
 
 
+def _adaptive_pid(**overrides: object) -> dict:
+    pid: dict = {
+        "adaptive": True,
+        "kp_min": 0.0,
+        "kp_max": 10.0,
+        "ki_min": 0.0,
+        "ki_max": 100.0,
+    }
+    pid.update(overrides)
+    return pid
+
+
 def test_parse_adaptive_true_with_boiler_water() -> None:
     args = _minimal_args()
-    args["pid"] = {"adaptive": True}
+    args["pid"] = _adaptive_pid()
     args["boiler_water"] = "  sensor.boiler_water  "
     config = parse_config(args)
     assert config.pid.adaptive is True
     assert config.boiler_water == "sensor.boiler_water"
+    assert config.pid.kp_min == pytest.approx(0.0)
+    assert config.pid.kp_max == pytest.approx(10.0)
+    assert config.pid.ki_min == pytest.approx(0.0)
+    assert config.pid.ki_max == pytest.approx(100.0)
 
 
 def test_parse_adaptive_true_missing_boiler_water_raises() -> None:
     args = _minimal_args()
-    args["pid"] = {"adaptive": True}
+    args["pid"] = _adaptive_pid()
     with pytest.raises(ConfigError, match="boiler_water must be a non-empty entity id"):
         parse_config(args)
 
@@ -465,7 +481,7 @@ def test_parse_adaptive_true_missing_boiler_water_raises() -> None:
 @pytest.mark.parametrize("value", ["", "   ", None, 1, True])
 def test_parse_adaptive_true_invalid_boiler_water_raises(value: object) -> None:
     args = _minimal_args()
-    args["pid"] = {"adaptive": True}
+    args["pid"] = _adaptive_pid()
     args["boiler_water"] = value
     with pytest.raises(ConfigError, match="boiler_water must be a non-empty entity id"):
         parse_config(args)
@@ -485,3 +501,73 @@ def test_parse_adaptive_off_whitespace_boiler_water_omitted() -> None:
     args["boiler_water"] = "   "
     config = parse_config(args)
     assert config.boiler_water is None
+
+
+@pytest.mark.parametrize("missing", ["kp_min", "kp_max", "ki_min", "ki_max"])
+def test_parse_adaptive_true_missing_rail_raises(missing: str) -> None:
+    args = _minimal_args()
+    args["boiler_water"] = "sensor.boiler_water"
+    pid = _adaptive_pid()
+    del pid[missing]
+    args["pid"] = pid
+    with pytest.raises(ConfigError, match=f"pid\\.{missing} is required"):
+        parse_config(args)
+
+
+@pytest.mark.parametrize(
+    ("key", "value"),
+    [
+        ("kp_min", -0.1),
+        ("kp_max", -1.0),
+        ("ki_min", -0.01),
+        ("ki_max", -5.0),
+    ],
+)
+def test_parse_adaptive_true_negative_rail_raises(key: str, value: float) -> None:
+    args = _minimal_args()
+    args["boiler_water"] = "sensor.boiler_water"
+    args["pid"] = _adaptive_pid(**{key: value})
+    with pytest.raises(ConfigError, match=f"pid\\.{key} must be >= 0"):
+        parse_config(args)
+
+
+def test_parse_adaptive_true_rail_min_gt_max_raises() -> None:
+    args = _minimal_args()
+    args["boiler_water"] = "sensor.boiler_water"
+    args["pid"] = _adaptive_pid(kp_min=5.0, kp_max=1.0)
+    with pytest.raises(ConfigError, match="pid.kp_min must be <= pid.kp_max"):
+        parse_config(args)
+
+
+def test_parse_adaptive_true_rail_min_eq_max_ok() -> None:
+    args = _minimal_args()
+    args["boiler_water"] = "sensor.boiler_water"
+    args["pid"] = _adaptive_pid(kp_min=2.0, kp_max=2.0, ki_min=3.0, ki_max=3.0)
+    config = parse_config(args)
+    assert config.pid.kp_min == pytest.approx(2.0)
+    assert config.pid.kp_max == pytest.approx(2.0)
+    assert config.pid.ki_min == pytest.approx(3.0)
+    assert config.pid.ki_max == pytest.approx(3.0)
+
+
+def test_parse_explicit_legacy_scale_ki_sets_warning_flag() -> None:
+    args = _minimal_args()
+    args["pid"] = {"ki": 0.2}
+    config = parse_config(args)
+    assert config.pid.ki == pytest.approx(0.2)
+    assert config.pid.legacy_ki_warning is True
+
+
+def test_parse_omitted_ki_no_legacy_warning() -> None:
+    config = parse_config(_minimal_args())
+    assert config.pid.legacy_ki_warning is False
+
+
+def test_parse_adaptive_off_may_omit_rails() -> None:
+    args = _minimal_args()
+    args["pid"] = {"adaptive": False}
+    config = parse_config(args)
+    assert config.pid.kp_min is None
+    assert config.pid.kp_max is None
+    assert config.pid.ki_min is None
+    assert config.pid.ki_max is None

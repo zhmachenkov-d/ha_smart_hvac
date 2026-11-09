@@ -15,10 +15,15 @@ from ha_smart_hvac.models import (
     plant_management_enabled,
 )
 from ha_smart_hvac.pid import PidResult, evaluate_demand, weighted_error
-from ha_smart_hvac.rls import RlsState, imc_gains, rls_step
+from ha_smart_hvac.rls import RlsState, gains_within_rails, imc_gains, rls_step
 
 # Sentinel: _write_setpoint re-reads plant when plant_reading is omitted.
 _READ_PLANT = object()
+
+# Latch reason codes (mutually exclusive; evaluation order in _maybe_rls_step).
+_REASON_RLS_NOOP = "rls_noop"
+_REASON_IMC_NONE = "imc_none"
+_REASON_OUT_OF_BAND = "out_of_band"
 
 
 class HvacApp(hass.Hass):
@@ -34,9 +39,17 @@ class HvacApp(hass.Hass):
                 + ", ".join(self._config.ignored_keys),
                 level="WARNING",
             )
+        if self._config.pid.legacy_ki_warning:
+            self.log(
+                f"HVAC config: pid.ki={self._config.pid.ki:g} looks like legacy "
+                "per-second scale (0 < ki < 1); expected 1/h — not auto-migrated",
+                level="WARNING",
+            )
 
         self._integral = 0.0
         self._rls = RlsState()
+        self._rls_fallback_latched = False
+        self._rls_fallback_reason: str | None = None
 
         self._register_control_listeners()
         self.run_every(
@@ -105,14 +118,49 @@ class HvacApp(hass.Hass):
 
     def _gains_for_demand(self) -> tuple[float, float]:
         pid = self._config.pid
+        # Latched unhealthy/OOB → YAML fixed until healthy in-band publish.
+        if self._rls_fallback_latched:
+            return pid.kp, pid.ki
         rls = self._rls
         if pid.adaptive and rls.adapted_kp is not None and rls.adapted_ki is not None:
             return rls.adapted_kp, rls.adapted_ki
         return pid.kp, pid.ki
 
+    def _enter_rls_fallback(
+        self,
+        reason: str,
+        *,
+        proposed: tuple[float, float] | None = None,
+    ) -> None:
+        """Latch demand onto YAML fixed; WARN once on enter or reason change."""
+        prior = self._rls_fallback_reason if self._rls_fallback_latched else None
+        self._rls_fallback_latched = True
+        self._rls_fallback_reason = reason
+        if prior == reason:
+            return
+        pid = self._config.pid
+        if reason == _REASON_OUT_OF_BAND and proposed is not None:
+            kp, ki = proposed
+            self.log(
+                f"RLS fallback latched: {reason}; proposed kp={kp:g} ki={ki:g}; "
+                f"rails kp=[{pid.kp_min:g},{pid.kp_max:g}] "
+                f"ki=[{pid.ki_min:g},{pid.ki_max:g}]",
+                level="WARNING",
+            )
+        else:
+            self.log(
+                f"RLS fallback latched: {reason}; using yaml fixed kp/ki",
+                level="WARNING",
+            )
+
+    def _clear_rls_fallback(self) -> None:
+        self._rls_fallback_latched = False
+        self._rls_fallback_reason = None
+
     def _maybe_rls_step(self, *, plant_ok: bool) -> None:
         """Step RLS at most once on a demand tick when priors and y allow it."""
         config = self._config
+        pid = config.pid
         entity_id = config.boiler_water
         assert entity_id is not None  # parse requires it when adaptive
         y = self._read_float(entity_id)
@@ -124,13 +172,38 @@ class HvacApp(hass.Hass):
         y_prev = rls.y_prev
         can_step = plant_ok and y_prev is not None and rls.last_u is not None
         if can_step:
-            rls_step(rls, y=y, y_prev=y_prev, u_prev=rls.last_u)
-            gains = imc_gains(
-                rls.theta[0], rls.theta[1], float(config.control_interval)
-            )
-            if gains is not None:
-                rls.adapted_kp, rls.adapted_ki = gains
+            stepped = rls_step(rls, y=y, y_prev=y_prev, u_prev=rls.last_u)
+            if not stepped:
+                # Park adapted_* (leave as-is); latch → YAML fixed.
+                self._enter_rls_fallback(_REASON_RLS_NOOP)
+            else:
+                # θ/P committed; accept adapted only when IMC finite + in-band.
+                gains = imc_gains(
+                    rls.theta[0], rls.theta[1], float(config.control_interval)
+                )
+                if (
+                    gains is None
+                    or not math.isfinite(gains[0])
+                    or not math.isfinite(gains[1])
+                ):
+                    self._enter_rls_fallback(_REASON_IMC_NONE)
+                else:
+                    assert pid.kp_min is not None and pid.kp_max is not None
+                    assert pid.ki_min is not None and pid.ki_max is not None
+                    if not gains_within_rails(
+                        gains[0],
+                        gains[1],
+                        pid.kp_min,
+                        pid.kp_max,
+                        pid.ki_min,
+                        pid.ki_max,
+                    ):
+                        self._enter_rls_fallback(_REASON_OUT_OF_BAND, proposed=gains)
+                    else:
+                        rls.adapted_kp, rls.adapted_ki = gains
+                        self._clear_rls_fallback()
         # Finite y always seeds/refreshes; plant-unreadable / missing u only skip step.
+        # Skip-step paths do not enter or refresh the latch.
         rls.y_prev = y
 
     def _run_demand(self, zones: list[ZoneSnapshot]) -> None:

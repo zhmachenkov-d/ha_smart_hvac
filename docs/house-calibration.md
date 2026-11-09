@@ -57,6 +57,8 @@ Units:
 
 With `ki: 1.0`, a sustained 1 °C air error adds about 1 °C of water per hour (about 1/12 °C per tick at `control_interval: 300`). Changing `control_interval` does not rescale the effective Ki: each periodic tick that steps the integral adds the error times the configured interval in hours (not measured elapsed time), so one hour of ticks adds the same amount at 60 s or 300 s. Ticks where the integral is held (plant setpoint unavailable, or the freeze below) add nothing. The integral only advances on the periodic tick and freezes when the unclamped command (`base_water_temp` + Kp·e + I-term) is past `setpoint_min` / `setpoint_max` in the direction of the error.
 
+When `pid.adaptive` is true, commission `boiler_water` and all four adapted-gain rails (`kp_min` / `kp_max` / `ki_min` / `ki_max`, each ≥ 0 with min ≤ max). Rails constrain adapted Kp/Ki proposals only; YAML fixed `kp` / `ki` are not checked against them. An explicit `pid.ki` with `0 < ki < 1` still parses but logs one WARNING at startup (legacy per-second scale; expected unit is 1/h — not auto-migrated).
+
 When `base_water_temp` equals `setpoint_min` (as in the example), a negative error with a non-positive I-term already sits at `setpoint_min`, so the integral freezes and `i_term_min` is reachable only when `base_water_temp` is above `setpoint_min`.
 
 `base_water_temp` must lie within `setpoint_min`…`setpoint_max` (bounds inclusive); an explicit value outside them is a config error and the App does not start. When `base_water_temp` is omitted, the default `40` is clamped into the bounds (with `setpoint_min: 42` the base is `42`; with `setpoint_max: 35` it is `35`).
@@ -71,6 +73,7 @@ Each of these logs `HVAC config error: …` at startup and the App does not run:
 - A fractional `control_interval` (`60.7`, `0.5`); `60.0` is accepted as `60`
 - A `control_interval` above `86400` (one day)
 - A negative `pid.kp` or `pid.ki` (`0` is accepted)
+- When `pid.adaptive` is true: a missing `boiler_water`, or any missing / negative / min>max adapted-gain rail (`kp_min` / `kp_max` / `ki_min` / `ki_max`)
 - An I-term range that does not include `0` (`i_term_min` must be ≤ 0 ≤ `i_term_max`)
 - An explicit `base_water_temp` outside `setpoint_min`…`setpoint_max`
 

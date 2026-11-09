@@ -5,24 +5,24 @@ id = 1
 type = "story"
 title = "Tracer: RLS adaptive Kp/Ki on control tick"
 description = "Adds pure-Python ARX+RLS (per rls-adaptive-algorithm.md), yaml pid.adaptive default off, and top-level boiler_water as RLS y (required when adaptive on — ConfigError otherwise). On control_tick demand with plant available, steps RLS (prior demand u + prior y) and applies adapted Kp/Ki to clamp(base+u_pid); adaptive off uses yaml fixed kp/ki. In-memory RLS only (JSON = entry 3). Idle/plant-off/no-valid-zones/weights-unusable clears wipe y_prev and ∫ but keep θ/P, last demand u, and last-good adapted gains. Weather/FF stay absent. Rails/unhealthy = entry 2."
-verify = "With pid.adaptive omitted/false, demand ticks keep yaml gains and never step RLS. With adaptive true and missing/empty boiler_water, parse raises ConfigError. With adaptive true, plant available, prior demand u, prior y, and finite boiler_water y, a demand tick steps RLS once and a valid IMC map drives adapted kp/ki; no step when plant unavailable or y_prev not yet seeded; clears wipe y_prev but keep θ/P, last demand u, and last-good adapted gains (no RLS step on clear). uv run pytest and uv run ruff check clean."
+verify = "With pid.adaptive omitted/false, demand ticks keep yaml gains and never step RLS. With adaptive true and missing/empty boiler_water, parse raises ConfigError. With adaptive true, plant available, prior demand u, prior y, and finite boiler_water y, a demand tick steps RLS once and a valid IMC map drives adapted kp/ki; no step when plant unavailable or y_prev not yet seeded; clears wipe y_prev but keep θ/P, last demand u, and parked adapted gains (no RLS step on clear). Unhealthy/out-of-band → YAML fixed is entry 2 (overrides tracer last-good-on-IMC-invalid). uv run pytest and uv run ruff check clean."
 covers = ["R1", "R3", "R4", "R5"]
 after = ["epic-fixed-pid-swt"]
 hitl = false
 risk = "high"
-notes = ["Tracer runtime for R1 (adapted law), R3 (tick-only step), R4 (adaptive-off → yaml fixed), R5 (flag default off). Party 2026-11-08: no air-y (B1); rails stay entry 2; clears wipe y_prev; keep θ/P, last demand u, and last-good across clear. Docs → entry 4. JSON → entry 3."]
+notes = ["Tracer runtime for R1 (adapted law), R3 (tick-only step), R4 (adaptive-off → yaml fixed), R5 (flag default off). Party 2026-11-08: no air-y (B1); rails stay entry 2; clears wipe y_prev; keep θ/P, last demand u, and last-good across clear. Entry 2 overrides last-good-on-IMC-invalid with unhealthy/rails latch → YAML fixed. Docs → entry 4. JSON → entry 3."]
 
 [[entry]]
 id = 2
 type = "story"
 title = "Adapted-gain rails and unhealthy RLS fallback"
-description = "Hardens the adaptive path from entry 1: yaml min/max rails for adapted Kp/Ki; when RLS is unhealthy or a proposed gain is out of band, keep yaml fixed kp/ki in force (R4 unhealthy/rails slice). A legacy-scale pid.ki from pre-D15 commissions logs one WARNING (not ConfigError), matching other legacy-key handling."
-verify = "Adapted gain outside rails leaves yaml fixed gains applied; an unhealthy RLS step leaves fixed gains in force; a legacy-scale ki commission logs one WARNING and still parses; pytest and ruff clean."
+description = "Hardens the adaptive path from entry 1: YAML min/max rails for adapted Kp/Ki (required when adaptive on); when RLS is unhealthy (rls_step False / IMC None/non-finite) or a finite proposal is out of inclusive rails, latch demand onto YAML fixed kp/ki until healthy in-band publish (park adapted; latch survives clear). Legacy-scale pid.ki (0<ki<1) logs one WARNING (not ConfigError)."
+verify = "Out-of-band or unhealthy latch forces YAML fixed (θ/P keep on True+reject; unchanged on False); latch survives ephemeral clear; skip-step does not enter latch; missing/invalid rails ConfigError; legacy ki WARNING once; pytest and ruff clean."
 covers = ["R4"]
 after = [1]
 hitl = false
 risk = "high"
-notes = ["R4 part: unhealthy/out-of-band → yaml fixed (entry 1 owns adaptive-off fallback). Least-certain after tracer. Legacy ki = WARN (Decision 2026-11-08)."]
+notes = ["R4 unhealthy/rails. Plan approved 2026-11-09 (ready-for-dev): OQ1–14 incl. W1+ reason-change WARN, inclusive rails, keep θ/P on reject, no latch on skip. Overrides entry-1 last-good-on-IMC-invalid."]
 
 [[entry]]
 id = 3
