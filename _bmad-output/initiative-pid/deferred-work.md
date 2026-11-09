@@ -76,3 +76,11 @@
 ## Deferred from: code review of story-adapted-gain-rails-and-unhealthy-rls-fallback-plan (2026-11-09)
 
 - Entry-1 `tickets.toml` description still says clears keep "last-good adapted gains" without the entry-2 IMC-invalid → YAML fixed override (verify/notes already updated); deferred because the fix edits a ticket file.
+
+## Resolved in 3.5 refactor sweep (2026-11-09)
+
+- Resolved: Entry-1 `tickets.toml` description — now says parked adapted gains across clears and points unhealthy/rails latch → YAML fixed at entry 2.
+- Owned wontfix (entry-2 review): hysteresis/dwell before clearing latch — W1+ sufficient; no further work.
+- Owned wontfix (entry-2 review): parse INFO when fixed `kp`/`ki` sit outside rails — OQ7 R1 intentional; no further work.
+- Owned wontfix (entry-2 review): structure mega-MERGE of plan sections — clarity nits only; no further work.
+- Resolved: companion orphan `rls-adaptive-algorithm.md` Persistence — last-good → parked adapted + latch→YAML while latched.
