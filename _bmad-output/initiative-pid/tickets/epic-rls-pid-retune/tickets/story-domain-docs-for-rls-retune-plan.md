@@ -3,7 +3,7 @@ title: 'Domain docs for RLS retune'
 type: 'chore'
 ticket: '4'
 created: '2026-11-09'
-status: 'built'
+status: done
 baseline_revision: '30e500e2f0dac5602786271aca345b0e8f63484d'
 route: 'full'
 route_source: 'auto'
