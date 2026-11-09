@@ -4,7 +4,7 @@ status: accepted
 
 # Fixed-gain PID Set Water Temperature
 
-The HVAC App commands Set Water Temperature from a fixed-gain PI term on weighted demand-zone air error under Plant Management and Heating Demand gates. Demand command is `round-to-0.1(clamp(base_water_temp + u_pid))`. This supersedes ADR 0004 (weather-curve / CAP-7 SWT). Outdoor Temperature, Weather Feedforward, CAP-7 rise-rate auto-correct, and `ff_auto_correct_state.json` are not on the water path or live commissioning. RLS retune of PID gains is planned (initiative epic 3), not current commissioning.
+The HVAC App commands Set Water Temperature from a fixed-gain PI term on weighted demand-zone air error under Plant Management and Heating Demand gates. Demand command is `round-to-0.1(clamp(base_water_temp + u_pid))`. This supersedes ADR 0004 (weather-curve / CAP-7 SWT). Outdoor Temperature, Weather Feedforward, CAP-7 rise-rate auto-correct, and `ff_auto_correct_state.json` are not on the water path or live commissioning. Optional online RLS retune of Kp/Ki is ADR 0006.
 
 ## SWT gates
 
@@ -37,4 +37,4 @@ Anti-windup: I-term clamps plus same-sign SWT-saturation freeze (no ∫ step whe
 
 ## Out of scope
 
-Weather Feedforward / CAP-7 commissioning, Outdoor as a control listener, Critical Zone closed-loop air→water tracking, and shipping RLS gain retune in this ADR’s commissioning story.
+Weather Feedforward / CAP-7 commissioning, Outdoor as a control listener, and Critical Zone closed-loop air→water tracking. Optional RLS adaptive gains: ADR 0006.

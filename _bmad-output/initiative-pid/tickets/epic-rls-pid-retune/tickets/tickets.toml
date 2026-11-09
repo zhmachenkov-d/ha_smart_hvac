@@ -46,7 +46,7 @@ covers = ["R1", "R2", "R4", "R5"]
 after = [3]
 hitl = false
 risk = "medium"
-notes = ["Docs-only for R1/R2/R4/R5; runtime remains entries 1–3."]
+notes = ["Docs-only for R1/R2/R4/R5; runtime remains entries 1–3. Plan approved 2026-11-09 (ready-for-dev): party S/F/N/T/H/S/P — surgical 0005, AGENTS four facts, house-cal λ/IMC narrow, CONTEXT tail-only, 0006 House MUST + latch RAM-only, short knowledge concept."]
 
 [[entry]]
 id = 5
