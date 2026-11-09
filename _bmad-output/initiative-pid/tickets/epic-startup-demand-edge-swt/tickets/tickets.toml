@@ -4,23 +4,24 @@
 id = 1
 type = "story"
 title = "Tracer: initialize first tick and demand-edge SWT write"
-description = "After initialize, run one full control_tick (demand SWT write + ∫ advance when gates allow). On rising-edge into Heating Demand, write demand SWT without advancing ∫. Mid-demand zone air / setpoint events stay no-op; idle / plant-off / fail clears unchanged. Plant equal-float skip still applies on both new write paths."
-verify = "Initialize under plant-on + demand writes rounded SWT and advances ∫ once without waiting control_interval. Idle→demand event writes SWT with ∫ unchanged. Already-in-demand zone/setpoint events neither write nor advance ∫. Idle/plant-off clears still work. uv run pytest and uv run ruff check clean."
-covers = ["R5", "R6"]
+description = "After initialize, run one full control_tick (demand SWT write + ∫ advance when gates allow; RLS per ADR 0006 on that tick). On rising-edge into gated demand (Plant on ∧ Heating Demand, including plant-on while already demand), write demand SWT without advancing ∫ and without stepping RLS. Mid-demand zone air / setpoint stay no-op; weights-unusable on edge → write 0 + clear; timer not reset; idle / plant-off clears unchanged."
+verify = "Initialize under plant-on + demand writes rounded SWT and advances ∫ once without waiting control_interval. Idle→gated-demand and plant-off→on-with-demand events write SWT with ∫ and RLS unchanged. Already-in-demand zone/setpoint events neither write nor advance ∫. Weights-unusable on edge writes 0 + clears. Idle/plant-off clears still work. uv run pytest and uv run ruff check clean."
+covers = ["R1", "R2"]
 after = ["epic-fixed-pid-swt", "epic-rls-pid-retune"]
 hitl = false
 risk = "high"
-notes = ["Tracer for D25/D26. Docs → entry 2. High risk: wrong edge detection or accidental ∫ advance on event. after epic-rls so initialize/control_event coexist with RLS tick step."]
+notes = ["Tracer for epic R1/R2 (parent R5/R6, D28–D30). Docs → entry 2. High risk: wrong gated-demand edge or accidental ∫/RLS step on event."]
+
 
 
 [[entry]]
 id = 2
 type = "story"
 title = "Docs: AGENTS ADR CONTEXT for startup and demand-edge"
-description = "Updates AGENTS.md, ADR 0005, and CONTEXT.md so the live tick/event law matches D25/D26: initialize first full tick; rising-edge Heating Demand may write demand SWT without ∫ advance; mid-demand events no-op; periodic control_interval still advances ∫."
-verify = "AGENTS, ADR 0005, and CONTEXT state initialize first tick, demand-edge write without ∫, and mid-demand no-op; no leftover 'events never write demand SWT' wording."
-covers = ["R5", "R6"]
+description = "Updates AGENTS.md, ADR 0005, and CONTEXT.md for D25–D30: initialize first full tick; gated-demand edge write without ∫/RLS step; mid-demand no-op; timer not reset; fix knowledge/ only if a page contradicts."
+verify = "AGENTS, ADR 0005, and CONTEXT state initialize first tick, gated-demand edge write without ∫/RLS, and mid-demand no-op; no leftover 'events never write demand SWT' wording."
+covers = ["R1", "R2"]
 after = [1, "epic-pid-domain-docs"]
 hitl = false
 risk = "medium"
-notes = ["Docs-only; runtime remains entry 1. Revises AGENTS/ADR/CONTEXT tick/event law shipped by epic-pid-domain-docs."]
+notes = ["Docs-only; runtime remains entry 1. Epic covers R1/R2."]
