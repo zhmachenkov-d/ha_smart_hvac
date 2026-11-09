@@ -2,6 +2,24 @@
 
 <!-- version list -->
 
+## v3.2.0 (2026-11-09)
+
+### Bug Fixes
+
+- **rls**: Harden adapted-gain rails after code review
+  ([`5846eef`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/5846eef5979cf71ddc007ff29fb5f70654fcbee1))
+
+### Chores
+
+- **bmad**: Mark story 3.2 done
+  ([`45a7d16`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/45a7d168c41cee8a9302c2162b4d91672cd36ae5))
+
+### Features
+
+- **rls**: Add adapted-gain rails and unhealthy fallback
+  ([`e178291`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/e178291ca387ba94cde12325abea9deccb2e3bbe))
+
+
 ## v3.1.0 (2026-11-09)
 
 ### Bug Fixes
