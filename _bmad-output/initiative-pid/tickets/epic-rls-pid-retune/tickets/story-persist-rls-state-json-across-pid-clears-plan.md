@@ -3,7 +3,7 @@ title: 'Persist RLS state JSON across PID clears'
 type: 'feature'
 ticket: '3'
 created: '2026-11-09'
-status: built
+status: done
 baseline_revision: '6c8e2404ee3aae7704beb17cc922de1c5cf6388c'
 route: 'full'
 route_source: 'auto'
