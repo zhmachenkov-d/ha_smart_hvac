@@ -17,6 +17,9 @@ from ha_smart_hvac.models import (
 from ha_smart_hvac.pid import PidResult, evaluate_demand, weighted_error
 from ha_smart_hvac.rls import RlsState, imc_gains, rls_step
 
+# Sentinel: _write_setpoint re-reads plant when plant_reading is omitted.
+_READ_PLANT = object()
+
 
 class HvacApp(hass.Hass):
     def initialize(self) -> None:
@@ -107,7 +110,7 @@ class HvacApp(hass.Hass):
             return rls.adapted_kp, rls.adapted_ki
         return pid.kp, pid.ki
 
-    def _maybe_rls_step(self) -> None:
+    def _maybe_rls_step(self, *, plant_ok: bool) -> None:
         """Step RLS at most once on a demand tick when priors and y allow it."""
         config = self._config
         entity_id = config.boiler_water
@@ -119,7 +122,6 @@ class HvacApp(hass.Hass):
 
         rls = self._rls
         y_prev = rls.y_prev
-        plant_ok = self._read_float(config.plant_setpoint) is not None
         can_step = plant_ok and y_prev is not None and rls.last_u is not None
         if can_step:
             rls_step(rls, y=y, y_prev=y_prev, u_prev=rls.last_u)
@@ -138,8 +140,10 @@ class HvacApp(hass.Hass):
         if weighted_error(zones) is None:
             self._go_idle("Demand zone weights unusable; setpoint 0")
             return
+        # One plant snapshot per demand tick: RLS gate and write share it (no TOCTOU).
+        plant_current = self._read_float(config.plant_setpoint)
         if pid.adaptive:
-            self._maybe_rls_step()
+            self._maybe_rls_step(plant_ok=plant_current is not None)
         kp, ki = self._gains_for_demand()
         result = evaluate_demand(
             zones,
@@ -160,7 +164,7 @@ class HvacApp(hass.Hass):
         critical = select_max_error_demand_zone(zones)
         # R7: skip the plant call only when the plant already reads the command
         # (_write_setpoint); ∫ advances only when the plant entity is readable.
-        if not self._write_setpoint(result.command):
+        if not self._write_setpoint(result.command, plant_reading=plant_current):
             return
         self._integral = result.integral
         # Last demand u: write True only (incl. equal-float skip); never idle 0.
@@ -254,9 +258,16 @@ class HvacApp(hass.Hass):
             return None
         return str(value)
 
-    def _write_setpoint(self, value: float) -> bool:
+    def _write_setpoint(
+        self, value: float, *, plant_reading: object = _READ_PLANT
+    ) -> bool:
+        """Write plant setpoint; pass ``plant_reading`` to reuse a demand snapshot."""
         entity_id = self._config.plant_setpoint
-        current = self._read_float(entity_id)
+        current = (
+            self._read_float(entity_id)
+            if plant_reading is _READ_PLANT
+            else plant_reading  # float | None from caller snapshot
+        )
         if current is None:
             self.log(
                 f"Plant setpoint unavailable: {entity_id}",

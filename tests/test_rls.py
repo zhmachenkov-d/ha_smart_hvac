@@ -66,7 +66,24 @@ def test_imc_gains_valid_arx() -> None:
         (0.9, -0.1, 300.0),  # K < 0
         (0.9, 0.1, 0.0),
         (0.9, 0.1, -1.0),
+        (1.0 - EPS / 2, 0.1, 300.0),  # |1−a1|≤eps inside (0,1)
     ],
 )
 def test_imc_gains_rejects_invalid(a1: float, b0: float, ts: float) -> None:
     assert imc_gains(a1, b0, ts) is None
+
+
+def test_rls_step_skips_when_denom_unusable() -> None:
+    """Zero/near-zero denom must not mutate θ/P (no ZeroDivision / poison)."""
+    state = RlsState()
+    state.theta = [0.5, 0.2]
+    state.p = [[0.0, 0.0], [0.0, 0.0]]  # φᵀPφ = 0 → denom = λ only is fine…
+    # Force denom ≤ EPS: P such that φᵀPφ = −λ (with φ=[1,0]).
+    state.p = [[-LAMBDA, 0.0], [0.0, 0.0]]
+    before_theta = state.theta[:]
+    before_p = [row[:] for row in state.p]
+
+    rls_step(state, y=1.0, y_prev=1.0, u_prev=0.0)
+
+    assert state.theta == before_theta
+    assert state.p == before_p

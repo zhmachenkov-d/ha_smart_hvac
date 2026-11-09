@@ -1127,6 +1127,7 @@ def test_adaptive_plant_unreadable_no_rls_no_integral(
     assert stepped["n"] == 0
     assert app._integral == pytest.approx(0.5)
     assert app._rls.y_prev == pytest.approx(51.0)
+    assert app._rls.last_u == pytest.approx(42.0)
 
 
 def test_adaptive_control_event_no_rls_no_write(
@@ -1199,7 +1200,10 @@ def test_clear_wipes_y_prev_keeps_rls_bookkeeping(
         assert _set_value_writes(app) == []
 
 
-def test_weights_unusable_clear_wipes_y_prev_keeps_last_u() -> None:
+def test_weights_unusable_clear_wipes_y_prev_keeps_last_u(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    stepped = _count_rls_steps(monkeypatch)
     args = _adaptive_args()
     args["zones"][0]["weight"] = 0.0
     app = _tick_app(
@@ -1211,15 +1215,56 @@ def test_weights_unusable_clear_wipes_y_prev_keeps_last_u() -> None:
     )
     app._rls.y_prev = 50.0
     app._rls.last_u = 42.0
+    app._rls.theta = [0.8, 0.2]
+    app._rls.p = [[1.0, 0.1], [0.1, 2.0]]
     app._rls.adapted_kp = 2.0
     app._rls.adapted_ki = 0.5
 
     app.control_tick({})
 
+    assert stepped["n"] == 0
     assert app._rls.y_prev is None
     assert app._rls.last_u == pytest.approx(42.0)
+    assert app._rls.theta == [0.8, 0.2]
+    assert app._rls.p == [[1.0, 0.1], [0.1, 2.0]]
     assert app._rls.adapted_kp == pytest.approx(2.0)
     assert _set_value_writes(app) == [0.0]
+
+
+def test_adaptive_imc_invalid_keeps_last_good_gains(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """RLS may step; IMC-invalid map must keep last-good gains and SWT."""
+    stepped = {"n": 0}
+    real_step = __import__("ha_smart_hvac.rls", fromlist=["rls_step"]).rls_step
+
+    def _counting_step(state, **kwargs):
+        stepped["n"] += 1
+        real_step(state, **kwargs)
+
+    monkeypatch.setattr("ha_smart_hvac.hvac_app.rls_step", _counting_step)
+    monkeypatch.setattr("ha_smart_hvac.hvac_app.imc_gains", lambda *_a, **_k: None)
+    app = _tick_app(
+        zone_temp=20.0,
+        setpoint=22.0,
+        plant_setpoint=45.0,
+        boiler_water=50.1,
+        args=_adaptive_args(),
+    )
+    app._rls.theta = [0.9, 0.1]
+    app._rls.p = [[1e-12, 0.0], [0.0, 1e-12]]
+    app._rls.y_prev = 50.0
+    app._rls.last_u = 45.0
+    app._rls.adapted_kp = 2.0
+    app._rls.adapted_ki = 0.5
+
+    app.control_tick({})
+
+    assert stepped["n"] == 1
+    assert app._rls.adapted_kp == pytest.approx(2.0)
+    assert app._rls.adapted_ki == pytest.approx(0.5)
+    # e=2, u_pid = 2*2 + 0.5*0 = 4 → command 44.0
+    assert _set_value_writes(app) == [44.0]
 
 
 def test_adaptive_after_clear_seed_then_last_good_gains(

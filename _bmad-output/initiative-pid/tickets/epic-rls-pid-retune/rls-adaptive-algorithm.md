@@ -22,7 +22,7 @@ Spec-authored companion for `epic-rls-pid-retune`. Requirements name outcomes; t
 ## Persistence
 
 - Separate JSON under the App data dir (same class of artifact as the removed `ff_auto_correct_state.json`).
-- Clearing PID ephemeral / water-path state (idle / plant-off) must not delete or rewrite this file; in-memory θ/P and last-good gains likewise survive clears, but `y_prev` is cleared so the next tick is seed-only (no idle-spanning RLS sample).
+- Clearing PID ephemeral / water-path state (idle / plant-off / no-valid-zones / weights-unusable) must not delete or rewrite this file; in-memory θ/P and last-good gains likewise survive clears, but `y_prev` is cleared so the next tick is seed-only (no idle-spanning RLS sample).
 
 ## Tick and gates
 

@@ -83,7 +83,7 @@ context:
 ## Design Notes
 
 - **Plant available (write/∫):** plant **setpoint** readable (`_read_float(plant_setpoint)`), matching R7. **Identification:** separate — needs finite `boiler_water` y; unreadable y does not by itself skip ∫.
-- **Tick order (demand path):** If adaptive on and plant setpoint readable and `y` finite: if `y_prev` missing → seed `y_prev←y`, skip RLS; elif prior `u` exists → step RLS with φ=`[y_prev,u_prev]` *before* `evaluate_demand`, then `y_prev←y`; else (no u) → `y_prev←y`, skip RLS. If `y` non-finite → no step, leave `y_prev`. After demand `_write_setpoint(command)` returns True → update last demand SWT. On any clear → wipe `y_prev` only among RLS sample bookkeeping.
+- **Tick order (demand path):** One plant-setpoint snapshot per demand tick shared by the RLS gate and the demand write (no mid-tick re-read divergence). If adaptive on and `y` finite: always seed/refresh `y_prev←y` after the gate checks (including when plant is unreadable). Step RLS only when that snapshot shows plant readable **and** prior `u` **and** prior `y_prev` exist — φ=`[y_prev,u_prev]` *before* `evaluate_demand`. If `y` non-finite → no step, leave `y_prev`. After demand `_write_setpoint(command)` returns True → update last demand SWT. On any clear → wipe `y_prev` only among RLS sample bookkeeping.
 - Entry 2 owns rails/unhealthy. This story: reject non-finite or IMC-invalid maps (keep yaml until first success, else last-good). Gains outside future min/max rails stay out of scope.
 - Persistence APIs out of scope; keep RLS fields on the App instance for entry 3.
 
@@ -139,7 +139,34 @@ ki = kp * 3600 / τ
 - 2026-11-08 review A: idle-spanning φ blocked (clear y_prev); y_prev refresh on non-step; last u on write True incl. equal-skip; boiler_water unreadable vs plant; RLS equations locked; IMC τ/finite guards; whitespace + bool parse; no-valid-zones/weights clear; control_event AC; structure/prose condense.
 
 ## Review Triage Log
+- 2026-11-09 code review: applied 8 patches — rls_step denom/finite guards; one plant snapshot per demand tick for RLS+write; Design Notes tick-order; IMC-invalid keeps last-good test; plant-unreadable last_u assert; weights-unusable no-step assert; imc |1−a1|≤eps case; companion clear list.
 
 - 2026-11-08 plan review (adversarial, edge-case-hunter, structure, prose): user chose **A** — apply items 1–7 + structure/prose into plan. Patched: idle reseed; y_prev refresh; equal-skip last u; boiler_water unreadable row; RLS update equations; IMC finite/τ/Ts guards; whitespace/bool ConfigError; clear-path completeness; control_event AC; Design Notes before Tasks; Decisions own section; Change Log condensed; Verification folded into AC; Approach/tick-order prose clarified. Deferred none for this tracer (rails remain entry 2 by fork1 A).
 - 2026-11-08 code review (quick): `hvac_app._maybe_rls_step` early-returns on unreadable plant before reading `boiler_water` — **medium** / **patch**. Evidence: frozen Always requires `y_prev←y` on finite y when not stepping; plant-unreadable matrix/AC forbid only step+∫; code returned before y read so seed/refresh never ran. Patched: read y first; always seed/refresh; skip step only when plant unreadble or missing last_u.
 - 2026-11-08 code review (quick): `tickets.toml` entry 1 description/verify/notes claim clears keep `y_prev` — **low** / **patch**. Evidence: frozen Always/matrix clear `y_prev`; runtime already matched plan. Patched: entry 1 text now says clears wipe `y_prev`, keep θ/P, last u, last-good.
+
+
+## Code Review
+
+### 2026-11-09
+**Code review complete.** 0 `decision-needed`, 8 `patch`, 0 `defer`, 9 rejected. Decision F2 → patch (A).
+
+- [x] [Review][Patch] Plant readability TOCTOU — snapshot plant once per demand tick for RLS gate + write [`apps/ha_smart_hvac/hvac_app.py:122`] — resolved decision: A
+- [x] [Review][Patch] rls_step lacks numerical guards (denom / non-finite θ,P) [`apps/ha_smart_hvac/rls.py:37`]
+- [x] [Review][Patch] Design Notes tick-order prose contradicts Always/code on y_prev refresh when plant unreadable [`story-tracer-rls-adaptive-kp-ki-on-control-tick-plan.md` Design Notes]
+- [x] [Review][Patch] Missing app test — IMC-invalid step keeps last-good/yaml gains and SWT [`tests/test_hvac_app.py`]
+- [x] [Review][Patch] Missing assertion — plant-unreadable demand tick leaves last_u unchanged [`tests/test_hvac_app.py:1110`]
+- [x] [Review][Patch] Missing assertion — weights-unusable clear does not step RLS [`tests/test_hvac_app.py:1202`]
+- [x] [Review][Patch] Missing unit case — imc_gains rejects |1−a1|≤eps inside (0,1) [`tests/test_rls.py`]
+- [x] [Review][Patch] Companion Persistence clear list incomplete (omits no-valid-zones / weights-unusable) [`rls-adaptive-algorithm.md:25`]
+
+Rejected:
+- R2 apps.yaml.example boiler_water comment placement — low; fail-closed when enabling adaptive; comment reshuffle low value now.
+- R3 assert boiler_water under -O — false; parse invariant; unreachable.
+- R7 empty Implementation Notes — low; cosmetic plan hygiene.
+- R8 companion JSON persistence framing — false; epic-scoped HOW; entry 3 owns JSON.
+- R9 water-ARX IMC vs air-error PI rationale — false; agreed algorithm shape.
+- R10 non-string boiler_water silent drop when adaptive off — low; unused key; later ConfigError.
+- R12 no log when IMC refuses — low; entry 2 is the natural unhealthy signal place.
+- R19 epic R4 unhealthy vs entry 2 deferral — false; intentional tracer scope.
+- R20/R21 Verify subset / singular plant language — false; intentional supersets/splits.
