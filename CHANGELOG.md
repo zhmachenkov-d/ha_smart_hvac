@@ -2,6 +2,95 @@
 
 <!-- version list -->
 
+## v3.1.0 (2026-11-09)
+
+### Bug Fixes
+
+- Harden RLS tracer after code review
+  ([`b2ccfc4`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/b2ccfc41915568edf960d8219df3bb02b59c881b))
+
+### Chores
+
+- **bmad**: Close epic-fixed-pid-swt after retrospective
+  ([`4bff74b`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/4bff74bdc89bcad7b4d983b3b7b0ff0ac1736456))
+
+- **bmad**: Close epic-pid-domain-docs after retrospective
+  ([`a25ba47`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/a25ba475f5c1b120aeb87af21271b3160db697b0))
+
+- **bmad**: Mark story 2.1 done
+  ([`25a4a59`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/25a4a599d3f6bf706154d8a28d874aa416b3419a))
+
+- **bmad**: Mark story 2.2 done
+  ([`8c0128d`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/8c0128dc2d12460beeb52cde7f3224fb2b6399a2))
+
+- **bmad**: Mark story 2.3 done
+  ([`1369051`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/1369051a40e1be187f7916ccd46c6d3242f22efb))
+
+- **bmad**: Mark story 2.4 done
+  ([`d4bba2c`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/d4bba2c4d3816a0958bbff85bc837351f94c061f))
+
+- **bmad**: Mark story 2.5 done
+  ([`ae730a9`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/ae730a9698f7774334da16fbdf40aef071045683))
+
+- **bmad**: Mark story 3.1 done
+  ([`09acec7`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/09acec73b0ae25394c06cbdb4e818b49a58d6f61))
+
+- **bmad**: Plan epic-rls-pid-retune stories
+  ([`750ee79`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/750ee792f7359a31dcfb6b9403b5b732cd4c1c57))
+
+- **bmad**: Refine epic-pid-domain-docs from R4+R10
+  ([`27595c3`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/27595c30664b01c1ad4a067c9d9c753583436759))
+
+- **bmad**: Refine epic-rls-pid-retune requirements
+  ([`3b1f755`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/3b1f755178e0e65649ae09f51fe63c32d6539062))
+
+- **bmad**: Slice epic-pid-domain-docs into five stories
+  ([`88e0192`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/88e01928cfa0de823a24d810b35caa2eed70aa24))
+
+- **cursor**: Drop Claude dual-install and legacy skills
+  ([`11f30d6`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/11f30d6573e9782c9a44ac7cd54d6e3960c02588))
+
+- **party**: Note epic-fixed-pid-swt closed
+  ([`602e499`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/602e499ce67e94e37482082def758333e302152a))
+
+### Documentation
+
+- **adr**: Close code-review findings for story 2.2
+  ([`07e4a07`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/07e4a0725667b3929dda6d0f2f6bc79013f0250a))
+
+- **adr**: Supersede weather-curve SWT with fixed-PID ADR 0005
+  ([`e519ad9`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/e519ad9b8d19ef7985e9f4445e846fb3209cfc00))
+
+- **agents**: Align conventions with fixed-PID SWT law
+  ([`67b29ba`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/67b29ba5a5223f4ff8e88f4842ec69b41e761c9e))
+
+- **agents**: Close code-review findings for story 2.1
+  ([`70e19bc`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/70e19bc17f1b35040f2fa17a188807c74ecfa5a6))
+
+- **context**: Close code-review findings for story 2.3
+  ([`1a68f5b`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/1a68f5bdf96ba596eabcb836553bfe598d8a6d73))
+
+- **context**: Rewrite glossary for fixed-PID SWT law
+  ([`f62f5ef`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/f62f5efe58eb3ff3d5900ccd51e61ab29146d16f))
+
+- **knowledge**: Align concept pages with fixed-PID SWT law
+  ([`6260887`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/626088799f1347a40f773df81e8bf965e34a992f))
+
+- **knowledge**: Clear leftover weather-curve commissioning after ADR 0005
+  ([`d7e855b`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/d7e855b5d69787f8dc44f0c118a988956ff030b1))
+
+- **knowledge**: Close code-review findings for story 2.4
+  ([`c40838c`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/c40838cdbb286a75002b3cdb892df93995a8d098))
+
+- **knowledge**: Close code-review findings for story 2.5
+  ([`a31c57e`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/a31c57e990f697ea3d9c7479688d0fd0a82da055))
+
+### Features
+
+- Add optional ARX+RLS adaptive Kp/Ki on demand ticks
+  ([`c9989be`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/c9989be1c0844444cb3c81ddd604657a73c24223))
+
+
 ## v3.0.1 (2026-11-08)
 
 ### Bug Fixes
