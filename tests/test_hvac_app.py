@@ -1,5 +1,8 @@
 """Tests for fixed-gain PID Set Water Temperature control loop."""
 
+import json
+import tempfile
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
@@ -8,7 +11,13 @@ import pytest
 from ha_smart_hvac.config import parse_config
 from ha_smart_hvac.hvac_app import HvacApp
 from ha_smart_hvac.pid import clamp
-from ha_smart_hvac.rls import RlsState
+from ha_smart_hvac.rls import (
+    STATE_FILENAME,
+    RlsState,
+    copy_durable,
+    durable_equal,
+    load_rls_state,
+)
 
 _SETPOINT_MIN = 40.0
 _SETPOINT_MAX = 55.0
@@ -75,6 +84,7 @@ def _tick_app(
     plant_management: str = "on",
     boiler_water: object = 50.0,
     args: dict | None = None,
+    app_dir: str | Path | None = None,
 ) -> HvacApp:
     """Hass-stubbed HvacApp for control_tick (_config only)."""
     app = object.__new__(HvacApp)
@@ -83,6 +93,12 @@ def _tick_app(
     app._rls = RlsState()
     app._rls_fallback_latched = False
     app._rls_fallback_reason = None
+    app._rls_last_saved = copy_durable(app._rls)
+    app._rls_force_rewrite = False
+    app._rls_persist_fail_warned = False
+    app.AD = SimpleNamespace(
+        app_dir=Path(app_dir) if app_dir is not None else Path(tempfile.mkdtemp())
+    )
     app.call_service = MagicMock()
     app.log = MagicMock()
     app.set_state = MagicMock()
@@ -152,10 +168,15 @@ def _warn_msgs(app: HvacApp) -> list[str]:
     ]
 
 
-def _init_app(args: dict | None = None) -> HvacApp:
+def _init_app(
+    args: dict | None = None, *, app_dir: str | Path | None = None
+) -> HvacApp:
     """Hass-stubbed app ready for initialize() (run_every + listen_state)."""
     app = object.__new__(HvacApp)
     app.args = args if args is not None else _tick_args()
+    app.AD = SimpleNamespace(
+        app_dir=Path(app_dir) if app_dir is not None else Path(tempfile.mkdtemp())
+    )
     app.log = MagicMock()
     app.run_every = MagicMock()
     app.listen_state = MagicMock()
@@ -1721,3 +1742,438 @@ def test_equal_skip_demand_write_updates_last_u() -> None:
 
     assert _set_value_writes(app) == []
     assert app._rls.last_u == pytest.approx(42.0)
+
+
+# --- RLS state JSON persistence ----------------------------------------------
+
+
+def _rls_path(app: HvacApp) -> Path:
+    return Path(app.app_dir) / STATE_FILENAME
+
+
+def _write_valid_rls_json(
+    path: Path,
+    *,
+    theta: list[float] | None = None,
+    p: list[list[float]] | None = None,
+    last_u: float | None = 45.0,
+    adapted_kp: float | None = 1.5,
+    adapted_ki: float | None = 12.0,
+    extra: dict | None = None,
+) -> None:
+    payload = {
+        "version": 1,
+        "theta": theta if theta is not None else [0.9, 0.1],
+        "p": p if p is not None else [[1.0, 0.0], [0.0, 1.0]],
+        "last_u": last_u,
+        "adapted_kp": adapted_kp,
+        "adapted_ki": adapted_ki,
+    }
+    if extra:
+        payload.update(extra)
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+
+def test_initialize_loads_valid_rls_state(tmp_path: Path) -> None:
+    path = tmp_path / STATE_FILENAME
+    _write_valid_rls_json(path)
+    app = _init_app(args=_adaptive_args(), app_dir=tmp_path)
+    app.initialize()
+
+    assert app._rls.theta == [0.9, 0.1]
+    assert app._rls.p == [[1.0, 0.0], [0.0, 1.0]]
+    assert app._rls.last_u == pytest.approx(45.0)
+    assert app._rls.adapted_kp == pytest.approx(1.5)
+    assert app._rls.adapted_ki == pytest.approx(12.0)
+    assert app._rls.y_prev is None
+    assert app._rls_fallback_latched is False
+    assert app._rls_force_rewrite is False
+    assert durable_equal(app._rls_last_saved, copy_durable(app._rls))
+    assert any("Loaded RLS state" in m for m in _info_msgs(app))
+
+
+def test_initialize_missing_rls_state_silent_cold(tmp_path: Path) -> None:
+    app = _init_app(args=_adaptive_args(), app_dir=tmp_path)
+    app.initialize()
+
+    assert app._rls.theta == [0.0, 0.0]
+    assert app._rls_force_rewrite is False
+    assert not any("RLS state" in m for m in _warn_msgs(app))
+    assert not any("Loaded RLS state" in m for m in _info_msgs(app))
+
+
+def test_initialize_corrupt_rls_sets_force(tmp_path: Path) -> None:
+    path = tmp_path / STATE_FILENAME
+    path.write_text("{not json", encoding="utf-8")
+    app = _init_app(args=_adaptive_args(), app_dir=tmp_path)
+    app.initialize()
+
+    assert app._rls.theta == [0.0, 0.0]
+    assert app._rls_force_rewrite is True
+    assert any("unusable RLS state" in m for m in _warn_msgs(app))
+
+
+def test_initialize_imc_invalid_theta_sets_force(tmp_path: Path) -> None:
+    path = tmp_path / STATE_FILENAME
+    _write_valid_rls_json(path, theta=[0.0, 0.1])  # a1 not in (0,1)
+    app = _init_app(args=_adaptive_args(), app_dir=tmp_path)
+    app.initialize()
+
+    assert app._rls.theta == [0.0, 0.0]
+    assert app._rls_force_rewrite is True
+    assert any("IMC-invalid" in m for m in _warn_msgs(app))
+
+
+def test_initialize_adapted_drop_reason_and_force(tmp_path: Path) -> None:
+    path = tmp_path / STATE_FILENAME
+    _write_valid_rls_json(path, adapted_kp=1.5, adapted_ki=None)
+    app = _init_app(args=_adaptive_args(), app_dir=tmp_path)
+    app.initialize()
+
+    assert app._rls.theta == [0.9, 0.1]
+    assert app._rls.adapted_kp is None
+    assert app._rls.adapted_ki is None
+    assert app._rls_force_rewrite is True
+    assert app._rls_fallback_latched is False
+    assert sum(1 for m in _warn_msgs(app) if "mismatch" in m) == 1
+    assert any("Loaded RLS state" in m for m in _info_msgs(app))
+
+
+def test_initialize_adapted_out_of_rail_drop(tmp_path: Path) -> None:
+    path = tmp_path / STATE_FILENAME
+    _write_valid_rls_json(path, adapted_kp=999.0, adapted_ki=1.0)
+    app = _init_app(
+        args=_adaptive_args(kp_min=0.0, kp_max=10.0, ki_min=0.0, ki_max=100.0),
+        app_dir=tmp_path,
+    )
+    app.initialize()
+
+    assert app._rls.adapted_kp is None
+    assert app._rls_force_rewrite is True
+    assert sum(1 for m in _warn_msgs(app) if "out_of_rail" in m) == 1
+
+
+def test_initialize_unknown_keys_ignored(tmp_path: Path) -> None:
+    path = tmp_path / STATE_FILENAME
+    _write_valid_rls_json(path, extra={"y_prev": 50.0, "noise": True})
+    app = _init_app(args=_adaptive_args(), app_dir=tmp_path)
+    app.initialize()
+
+    assert app._rls.y_prev is None
+    assert app._rls.theta == [0.9, 0.1]
+    assert any("Loaded RLS state" in m for m in _info_msgs(app))
+
+
+def test_initialize_adaptive_off_skips_load(tmp_path: Path) -> None:
+    path = tmp_path / STATE_FILENAME
+    _write_valid_rls_json(path)
+    app = _init_app(args=_tick_args(), app_dir=tmp_path)
+    app.initialize()
+
+    assert app._rls.theta == [0.0, 0.0]
+    assert not any("Loaded RLS state" in m for m in _info_msgs(app))
+
+
+def test_demand_persist_after_dirty_write(tmp_path: Path) -> None:
+    app = _tick_app(
+        zone_temp=20.0,
+        setpoint=22.0,
+        plant_setpoint=45.0,
+        boiler_water=50.1,
+        args=_adaptive_args(),
+        app_dir=tmp_path,
+    )
+    app._rls.theta = [0.9, 0.1]
+    app._rls.p = [[1e-12, 0.0], [0.0, 1e-12]]
+    app._rls.y_prev = 50.0
+    app._rls.last_u = 45.0
+    app._rls_last_saved = copy_durable(app._rls)
+
+    app.control_tick({})
+
+    path = _rls_path(app)
+    assert path.is_file()
+    loaded = load_rls_state(path)
+    assert loaded is not None
+    assert durable_equal(loaded, copy_durable(app._rls))
+    assert durable_equal(app._rls_last_saved, copy_durable(app._rls))
+    assert app._rls_force_rewrite is False
+
+
+def test_demand_no_rewrite_when_equal_and_not_forced(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    app = _tick_app(
+        zone_temp=20.04,
+        setpoint=22.0,
+        plant_setpoint=42.0,
+        boiler_water=50.0,
+        args=_adaptive_args(),
+        app_dir=tmp_path,
+    )
+    # Equal-float skip: command 42.0, last_u already 42 → snapshot can match.
+    app._rls.last_u = 42.0
+    app._rls_last_saved = copy_durable(app._rls)
+    path = _rls_path(app)
+    path.write_text("sentinel", encoding="utf-8")
+    called = {"n": 0}
+
+    def _count(*_a, **_k):
+        called["n"] += 1
+        return True
+
+    monkeypatch.setattr("ha_smart_hvac.hvac_app.save_rls_state", _count)
+
+    app.control_tick({})
+
+    assert called["n"] == 0
+    assert path.read_text(encoding="utf-8") == "sentinel"
+
+
+def test_force_rewrite_after_corrupt_load(tmp_path: Path) -> None:
+    path = tmp_path / STATE_FILENAME
+    path.write_text("{bad", encoding="utf-8")
+    app = _init_app(args=_adaptive_args(), app_dir=tmp_path)
+    app.initialize()
+    assert app._rls_force_rewrite is True
+
+    # Demand tick with equal snapshot still rewrites when forced.
+    app.get_state = MagicMock(
+        side_effect=lambda entity_id, attribute=None: {
+            _PLANT_MGMT: "on",
+            _ZONE_TEMP: 20.04,
+            _PLANT_SETPOINT: 42.0,
+            _BOILER_WATER: 50.0,
+            _CLIMATE: (
+                22.0
+                if attribute == "temperature"
+                else ("heating" if attribute == "hvac_action" else "heat")
+            ),
+        }.get(entity_id)
+    )
+    app.call_service = MagicMock()
+    app._rls.last_u = 42.0
+    app._rls_last_saved = copy_durable(app._rls)
+
+    app.control_tick({})
+
+    assert path.is_file()
+    assert load_rls_state(path) is not None
+    assert app._rls_force_rewrite is False
+
+
+def test_clear_paths_leave_file_and_latch(tmp_path: Path) -> None:
+    path = tmp_path / STATE_FILENAME
+    _write_valid_rls_json(path)
+    prior = path.read_text(encoding="utf-8")
+
+    zero_weight = _adaptive_args()
+    zero_weight["zones"] = [
+        {
+            "name": _ZONE_NAME,
+            "temperature": _ZONE_TEMP,
+            "weight": 0.0,
+            "thermostats": [_CLIMATE],
+        }
+    ]
+    cases: list[dict] = [
+        {"hvac_action": "idle"},
+        {"plant_management": "off"},
+        {"zone_temp": "unavailable"},
+        {"args": zero_weight},
+    ]
+
+    for clear_kwargs in cases:
+        tick_kwargs: dict = {
+            "zone_temp": 20.0,
+            "setpoint": 22.0,
+            "plant_setpoint": 45.0,
+            "boiler_water": 50.0,
+            "args": _adaptive_args(),
+            "app_dir": tmp_path,
+        }
+        tick_kwargs.update(clear_kwargs)
+        app = _tick_app(**tick_kwargs)
+        app._rls_fallback_latched = True
+        app._rls_fallback_reason = "imc_none"
+        app._rls.y_prev = 50.0
+        app._integral = 3.0
+
+        app.control_tick({})
+
+        assert path.read_text(encoding="utf-8") == prior
+        assert app._rls_fallback_latched is True
+        assert app._rls.y_prev is None
+        assert app._integral == 0.0
+
+
+def test_persist_after_imc_reject_write_true(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Demand write True after IMC reject still persists dirty θ/P when dirty."""
+    real_step = __import__("ha_smart_hvac.rls", fromlist=["rls_step"]).rls_step
+    monkeypatch.setattr("ha_smart_hvac.hvac_app.imc_gains", lambda *_a, **_k: None)
+    app = _tick_app(
+        zone_temp=20.0,
+        setpoint=22.0,
+        plant_setpoint=45.0,
+        boiler_water=50.1,
+        args=_adaptive_args(),
+        app_dir=tmp_path,
+    )
+    app._rls.theta = [0.9, 0.1]
+    app._rls.p = [[1e-12, 0.0], [0.0, 1e-12]]
+    app._rls.y_prev = 50.0
+    app._rls.last_u = 45.0
+    app._rls.adapted_kp = 2.0
+    app._rls.adapted_ki = 0.5
+    app._rls_last_saved = copy_durable(app._rls)
+    preview = RlsState()
+    preview.theta = app._rls.theta[:]
+    preview.p = [row[:] for row in app._rls.p]
+    assert real_step(preview, y=50.1, y_prev=50.0, u_prev=45.0) is True
+
+    app.control_tick({})
+
+    assert app._rls_fallback_latched is True
+    assert _set_value_writes(app) == [42.0]
+    path = _rls_path(app)
+    assert path.is_file()
+    loaded = load_rls_state(path)
+    assert loaded is not None
+    assert durable_equal(loaded, copy_durable(app._rls))
+    assert loaded.theta[0] == pytest.approx(preview.theta[0])
+
+
+def test_unsaved_dirty_lost_on_reload(tmp_path: Path) -> None:
+    """Accepted loss: dirty RAM without a successful persist is gone on reload."""
+    path = tmp_path / STATE_FILENAME
+    _write_valid_rls_json(path, last_u=45.0, adapted_kp=1.5, adapted_ki=12.0)
+    app = _init_app(args=_adaptive_args(), app_dir=tmp_path)
+    app.initialize()
+    app._rls.theta = [0.5, 0.5]
+    app._rls.last_u = 99.0
+    # No demand persist — simulate App stop with dirty RAM.
+    app2 = _init_app(args=_adaptive_args(), app_dir=tmp_path)
+    app2.initialize()
+    assert app2._rls.theta == [0.9, 0.1]
+    assert app2._rls.last_u == pytest.approx(45.0)
+    assert app2._rls.adapted_kp == pytest.approx(1.5)
+
+
+def test_adaptive_off_demand_does_not_save(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    called = {"n": 0}
+
+    def _count(*_a, **_k):
+        called["n"] += 1
+        return True
+
+    monkeypatch.setattr("ha_smart_hvac.hvac_app.save_rls_state", _count)
+    app = _tick_app(
+        zone_temp=20.0,
+        setpoint=22.0,
+        plant_setpoint=45.0,
+        args=_tick_args(),
+        app_dir=tmp_path,
+    )
+    app.control_tick({})
+    assert called["n"] == 0
+    assert not _rls_path(app).exists()
+
+
+def test_persist_soft_fail_episode_warning(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    app = _tick_app(
+        zone_temp=20.0,
+        setpoint=22.0,
+        plant_setpoint=45.0,
+        boiler_water=50.0,
+        args=_adaptive_args(),
+        app_dir=tmp_path,
+    )
+    app._rls.last_u = 99.0  # dirty vs cold last_saved
+    monkeypatch.setattr(
+        "ha_smart_hvac.hvac_app.save_rls_state", lambda *_a, **_k: False
+    )
+
+    app.control_tick({})
+    warns1 = [m for m in _warn_msgs(app) if "Failed to persist RLS state" in m]
+    assert len(warns1) == 1
+    assert app._rls_force_rewrite is False
+    assert app._rls_persist_fail_warned is True
+    # Tick still wrote SWT.
+    assert _set_value_writes(app) == [_expected_command(zone_temp=20.0, setpoint=22.0)]
+
+    app.log.reset_mock()
+    app.call_service.reset_mock()
+    app.control_tick({})
+    warns2 = [m for m in _warn_msgs(app) if "Failed to persist RLS state" in m]
+    assert warns2 == []
+
+    # Successful save ends episode; later fail re-WARNs.
+    monkeypatch.setattr("ha_smart_hvac.hvac_app.save_rls_state", lambda *_a, **_k: True)
+    app.control_tick({})
+    assert app._rls_persist_fail_warned is False
+    monkeypatch.setattr(
+        "ha_smart_hvac.hvac_app.save_rls_state", lambda *_a, **_k: False
+    )
+    # Force dirty again after successful save updated last_saved.
+    app._rls.adapted_kp = 3.0
+    app._rls.adapted_ki = 4.0
+    app.log.reset_mock()
+    app.control_tick({})
+    asserts = [m for m in _warn_msgs(app) if "Failed to persist RLS state" in m]
+    assert len(asserts) == 1
+
+
+def test_write_false_after_rls_does_not_persist(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    stepped = {"n": 0}
+    real_step = __import__("ha_smart_hvac.rls", fromlist=["rls_step"]).rls_step
+
+    def _counting_step(state, **kwargs):
+        stepped["n"] += 1
+        return real_step(state, **kwargs)
+
+    called = {"n": 0}
+
+    def _count_save(*_a, **_k):
+        called["n"] += 1
+        return True
+
+    monkeypatch.setattr("ha_smart_hvac.hvac_app.rls_step", _counting_step)
+    monkeypatch.setattr("ha_smart_hvac.hvac_app.save_rls_state", _count_save)
+    monkeypatch.setattr(HvacApp, "_write_setpoint", lambda *_a, **_k: False)
+    app = _tick_app(
+        zone_temp=20.0,
+        setpoint=22.0,
+        plant_setpoint=45.0,
+        boiler_water=50.1,
+        args=_adaptive_args(),
+        app_dir=tmp_path,
+    )
+    app._rls.theta = [0.9, 0.1]
+    app._rls.p = [[1e-12, 0.0], [0.0, 1e-12]]
+    app._rls.y_prev = 50.0
+    app._rls.last_u = 45.0
+
+    app.control_tick({})
+
+    assert stepped["n"] == 1
+    assert called["n"] == 0
+    assert not _rls_path(app).exists()
+
+
+def test_initialize_after_latched_restores_adapted_clears_latch(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / STATE_FILENAME
+    _write_valid_rls_json(path)
+    app = _init_app(args=_adaptive_args(), app_dir=tmp_path)
+    app.initialize()
+    assert app._rls_fallback_latched is False
+    assert app._rls.adapted_kp == pytest.approx(1.5)

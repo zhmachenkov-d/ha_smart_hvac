@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+from pathlib import Path
 
 import appdaemon.plugins.hass.hassapi as hass
 
@@ -15,7 +16,18 @@ from ha_smart_hvac.models import (
     plant_management_enabled,
 )
 from ha_smart_hvac.pid import PidResult, evaluate_demand, weighted_error
-from ha_smart_hvac.rls import RlsState, gains_within_rails, imc_gains, rls_step
+from ha_smart_hvac.rls import (
+    STATE_FILENAME,
+    RlsDurableSnapshot,
+    RlsState,
+    copy_durable,
+    durable_equal,
+    gains_within_rails,
+    imc_gains,
+    load_rls_state,
+    rls_step,
+    save_rls_state,
+)
 
 # Sentinel: _write_setpoint re-reads plant when plant_reading is omitted.
 _READ_PLANT = object()
@@ -50,6 +62,11 @@ class HvacApp(hass.Hass):
         self._rls = RlsState()
         self._rls_fallback_latched = False
         self._rls_fallback_reason: str | None = None
+        self._rls_last_saved = copy_durable(self._rls)
+        self._rls_force_rewrite = False
+        self._rls_persist_fail_warned = False
+        if self._config.pid.adaptive:
+            self._load_rls_overlay()
 
         self._register_control_listeners()
         self.run_every(
@@ -58,6 +75,99 @@ class HvacApp(hass.Hass):
             self._config.control_interval,
         )
         self.log("HVAC fixed-gain PID app initialized")
+
+    def _state_path(self) -> Path:
+        return Path(self.app_dir) / STATE_FILENAME
+
+    def _seed_last_saved(self) -> None:
+        self._rls_last_saved = copy_durable(self._rls)
+
+    def _apply_loaded_adapted(self, loaded: RlsDurableSnapshot) -> None:
+        """OQ6 B: overlay adapted or drop with reason WARNING + force."""
+        pid = self._config.pid
+        issue = loaded.adapted_issue
+        kp, ki = loaded.adapted_kp, loaded.adapted_ki
+        if issue is None and kp is not None and ki is not None:
+            assert pid.kp_min is not None and pid.kp_max is not None
+            assert pid.ki_min is not None and pid.ki_max is not None
+            if not gains_within_rails(
+                kp, ki, pid.kp_min, pid.kp_max, pid.ki_min, pid.ki_max
+            ):
+                issue = "out_of_rail"
+                kp, ki = None, None
+        if issue is not None:
+            self._rls.adapted_kp = None
+            self._rls.adapted_ki = None
+            self._rls_force_rewrite = True
+            self.log(
+                f"RLS state adapted gains dropped on load ({issue})",
+                level="WARNING",
+            )
+            return
+        self._rls.adapted_kp = kp
+        self._rls.adapted_ki = ki
+
+    def _load_rls_overlay(self) -> None:
+        """Adaptive-on initialize: overlay durable fields from rls_state.json."""
+        path = self._state_path()
+        if not path.is_file():
+            self._seed_last_saved()
+            return
+        loaded = load_rls_state(path)
+        if loaded is None:
+            self.log(
+                f"Ignoring unusable RLS state file: {path}",
+                level="WARNING",
+            )
+            self._rls_force_rewrite = True
+            self._seed_last_saved()
+            return
+        if (
+            imc_gains(
+                loaded.theta[0],
+                loaded.theta[1],
+                float(self._config.control_interval),
+            )
+            is None
+        ):
+            self.log(
+                f"Ignoring RLS state with IMC-invalid theta: {path}",
+                level="WARNING",
+            )
+            self._rls_force_rewrite = True
+            self._seed_last_saved()
+            return
+
+        self._rls.theta = [loaded.theta[0], loaded.theta[1]]
+        self._rls.p = [
+            [loaded.p[0][0], loaded.p[0][1]],
+            [loaded.p[1][0], loaded.p[1][1]],
+        ]
+        self._rls.last_u = loaded.last_u
+        # y_prev stays None; latch stays False (process-local).
+        self._apply_loaded_adapted(loaded)
+        self.log(f"Loaded RLS state from {path}")
+        self._seed_last_saved()
+
+    def _maybe_persist_rls(self) -> None:
+        """Save durable RLS after successful demand write when dirty or forced."""
+        if not self._config.pid.adaptive:
+            return
+        snap = copy_durable(self._rls)
+        if not self._rls_force_rewrite and durable_equal(snap, self._rls_last_saved):
+            return
+        path = self._state_path()
+        if save_rls_state(path, self._rls):
+            self._rls_last_saved = snap
+            self._rls_force_rewrite = False
+            self._rls_persist_fail_warned = False
+            return
+        if not self._rls_persist_fail_warned:
+            self.log(
+                f"Failed to persist RLS state: {path}",
+                level="WARNING",
+            )
+            self._rls_persist_fail_warned = True
 
     def _register_control_listeners(self) -> None:
         """Re-evaluate gate on plant / zone air / thermostat attrs."""
@@ -243,6 +353,7 @@ class HvacApp(hass.Hass):
         self._integral = result.integral
         # Last demand u: write True only (incl. equal-float skip); never idle 0.
         self._rls.last_u = result.command
+        self._maybe_persist_rls()
         self._log_demand_success(result, critical)
 
     def _log_demand_success(

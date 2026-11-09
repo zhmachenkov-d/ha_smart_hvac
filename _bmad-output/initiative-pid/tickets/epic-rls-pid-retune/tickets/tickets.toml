@@ -29,12 +29,12 @@ id = 3
 type = "story"
 title = "Persist RLS state JSON across PID clears"
 description = "Persists the RLS model/covariance produced by entries 1–2 to a separate App JSON file; load on initialize; clearing PID ephemeral / water-path state on idle/plant-off/fail must not delete or rewrite that file (R2 runtime)."
-verify = "After a demand tick with adaptive on, reloading App state restores RLS coefficients; idle and plant-off clear ∫ but leave the JSON file intact; pytest and ruff clean."
+verify = "Adaptive on: demand write True + dirty/forced persists rls_state.json; initialize restores durable fields (adapted drop+reason WARN+force; IMC-invalid/corrupt → cold+force); idle and plant-off leave file and latch untouched; adaptive off no load/save; soft-fail episode WARN; pytest and ruff clean."
 covers = ["R2"]
 after = [2]
 hitl = false
 risk = "medium"
-notes = ["R2 runtime persistence; docs for R2 → entry 4."]
+notes = ["R2 runtime persistence; docs for R2 → entry 4. Plan approved 2026-11-09 (ready-for-dev): level-dirty+force, deep-copy last-saved, W1 soft-fail WARN, latch RAM-only, 64KiB/IMC/load OSError guards."]
 
 [[entry]]
 id = 4

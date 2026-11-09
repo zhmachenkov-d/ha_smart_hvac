@@ -1,13 +1,22 @@
-"""ARX + forgetting RLS with IMC map for adaptive Kp/Ki (in-memory)."""
+"""ARX + forgetting RLS with IMC map for adaptive Kp/Ki."""
 
 from __future__ import annotations
 
+import json
+import logging
 import math
+import os
 from dataclasses import dataclass, field
+from pathlib import Path
 
 LAMBDA = 0.98
 P0 = 1e4
 EPS = 1e-9
+
+STATE_FILENAME = "rls_state.json"
+MAX_STATE_BYTES = 64 * 1024
+
+_LOG = logging.getLogger(__name__)
 
 
 @dataclass
@@ -20,6 +29,40 @@ class RlsState:
     last_u: float | None = None
     adapted_kp: float | None = None
     adapted_ki: float | None = None
+
+
+@dataclass(frozen=True)
+class RlsDurableSnapshot:
+    """Deep-copied durable fields for dirty compare and JSON I/O."""
+
+    theta: list[float]
+    p: list[list[float]]
+    last_u: float | None
+    adapted_kp: float | None
+    adapted_ki: float | None
+    adapted_issue: str | None = None  # missing | non_finite | mismatch (load only)
+
+
+def copy_durable(state: RlsState) -> RlsDurableSnapshot:
+    """Deep-copy durable fields; never share list refs with ``state``."""
+    return RlsDurableSnapshot(
+        theta=[state.theta[0], state.theta[1]],
+        p=[[state.p[0][0], state.p[0][1]], [state.p[1][0], state.p[1][1]]],
+        last_u=state.last_u,
+        adapted_kp=state.adapted_kp,
+        adapted_ki=state.adapted_ki,
+    )
+
+
+def durable_equal(a: RlsDurableSnapshot, b: RlsDurableSnapshot) -> bool:
+    """Field equality on durable snapshot (ignores ``adapted_issue``)."""
+    return (
+        a.theta == b.theta
+        and a.p == b.p
+        and a.last_u == b.last_u
+        and a.adapted_kp == b.adapted_kp
+        and a.adapted_ki == b.adapted_ki
+    )
 
 
 def rls_step(state: RlsState, *, y: float, y_prev: float, u_prev: float) -> bool:
@@ -88,3 +131,147 @@ def imc_gains(a1: float, b0: float, ts: float) -> tuple[float, float] | None:
     if not (math.isfinite(kp) and math.isfinite(ki)):
         return None
     return kp, ki
+
+
+def _finite_pair(values: object) -> list[float] | None:
+    if not isinstance(values, list) or len(values) != 2:
+        return None
+    try:
+        out = [float(values[0]), float(values[1])]
+    except (TypeError, ValueError):
+        return None
+    if not all(math.isfinite(v) for v in out):
+        return None
+    return out
+
+
+def _parse_adapted(
+    raw: dict,
+) -> tuple[float | None, float | None, str | None]:
+    """Return (kp, ki, issue). issue is set when adapted must be dropped."""
+    has_kp = "adapted_kp" in raw
+    has_ki = "adapted_ki" in raw
+    if not has_kp or not has_ki:
+        return None, None, "missing"
+
+    kp_raw = raw["adapted_kp"]
+    ki_raw = raw["adapted_ki"]
+    if kp_raw is None and ki_raw is None:
+        return None, None, None
+    if kp_raw is None or ki_raw is None:
+        return None, None, "mismatch"
+    try:
+        kp = float(kp_raw)
+        ki = float(ki_raw)
+    except (TypeError, ValueError):
+        return None, None, "non_finite"
+    if not (math.isfinite(kp) and math.isfinite(ki)):
+        return None, None, "non_finite"
+    return kp, ki, None
+
+
+def load_rls_state(path: Path) -> RlsDurableSnapshot | None:
+    """Load durable RLS JSON; None on missing/unusable whole file."""
+    try:
+        if path.stat().st_size > MAX_STATE_BYTES:
+            return None
+        data = path.read_bytes()
+    except OSError:
+        return None
+    try:
+        raw = json.loads(data.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return None
+    if not isinstance(raw, dict):
+        return None
+
+    version = raw.get("version")
+    if type(version) is not int or version != 1:
+        return None
+    if "last_u" not in raw:
+        return None
+
+    theta = _finite_pair(raw.get("theta"))
+    if theta is None:
+        return None
+    p_raw = raw.get("p")
+    if not isinstance(p_raw, list) or len(p_raw) != 2:
+        return None
+    p0 = _finite_pair(p_raw[0])
+    p1 = _finite_pair(p_raw[1])
+    if p0 is None or p1 is None:
+        return None
+
+    last_u_raw = raw["last_u"]
+    if last_u_raw is None:
+        last_u: float | None = None
+    else:
+        try:
+            last_u = float(last_u_raw)
+        except (TypeError, ValueError):
+            return None
+        if not math.isfinite(last_u):
+            return None
+
+    adapted_kp, adapted_ki, adapted_issue = _parse_adapted(raw)
+    return RlsDurableSnapshot(
+        theta=theta,
+        p=[p0, p1],
+        last_u=last_u,
+        adapted_kp=adapted_kp,
+        adapted_ki=adapted_ki,
+        adapted_issue=adapted_issue,
+    )
+
+
+def _durable_fields_savable(state: RlsState) -> bool:
+    if not all(math.isfinite(v) for v in state.theta):
+        return False
+    if not all(math.isfinite(v) for row in state.p for v in row):
+        return False
+    if state.last_u is not None and not math.isfinite(state.last_u):
+        return False
+    kp, ki = state.adapted_kp, state.adapted_ki
+    if (kp is None) ^ (ki is None):
+        return False
+    if kp is not None and (not math.isfinite(kp) or not math.isfinite(ki)):  # type: ignore[arg-type]
+        return False
+    return True
+
+
+def save_rls_state(path: Path, state: RlsState) -> bool:
+    """Atomically write durable RLS JSON. False on validation or OSError."""
+    if not _durable_fields_savable(state):
+        return False
+    payload = (
+        json.dumps(
+            {
+                "version": 1,
+                "theta": [float(state.theta[0]), float(state.theta[1])],
+                "p": [
+                    [float(state.p[0][0]), float(state.p[0][1])],
+                    [float(state.p[1][0]), float(state.p[1][1])],
+                ],
+                "last_u": None if state.last_u is None else float(state.last_u),
+                "adapted_kp": (
+                    None if state.adapted_kp is None else float(state.adapted_kp)
+                ),
+                "adapted_ki": (
+                    None if state.adapted_ki is None else float(state.adapted_ki)
+                ),
+            },
+            indent=2,
+        )
+        + "\n"
+    )
+    tmp = path.with_name(path.name + ".tmp")
+    try:
+        tmp.write_text(payload, encoding="utf-8")
+        os.replace(tmp, path)
+        return True
+    except OSError:
+        try:
+            tmp.unlink(missing_ok=True)
+        except OSError:
+            _LOG.warning("RLS state tmp may remain after save failure: %s", tmp)
+        return False
