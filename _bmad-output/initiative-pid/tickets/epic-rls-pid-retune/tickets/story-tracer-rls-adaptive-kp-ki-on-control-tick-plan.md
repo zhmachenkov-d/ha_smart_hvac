@@ -3,7 +3,7 @@ title: 'Tracer: RLS adaptive Kp/Ki on control tick'
 type: 'feature'
 ticket: '1'
 created: '2026-11-08'
-status: 'built'
+status: done
 baseline_revision: '4568fac2332a66eda2748c08808cde5aac52f100'
 route: 'full'
 route_source: 'auto'
