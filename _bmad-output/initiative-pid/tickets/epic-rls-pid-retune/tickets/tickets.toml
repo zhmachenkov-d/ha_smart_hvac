@@ -10,7 +10,7 @@ covers = ["R1", "R3", "R4", "R5"]
 after = ["epic-fixed-pid-swt"]
 hitl = false
 risk = "high"
-notes = ["Tracer runtime for R1 (adapted law), R3 (tick-only step), R4 (adaptive-off → yaml fixed), R5 (flag default off). Party 2026-11-08: no air-y (B1); rails stay entry 2; clears wipe y_prev; keep θ/P, last demand u, and last-good across clear. Entry 2 overrides last-good-on-IMC-invalid with unhealthy/rails latch → YAML fixed. Docs → entry 4. JSON → entry 3."]
+notes = ["Tracer runtime for R1 (adapted law), R3 (tick-only step), R4 (adaptive-off → yaml fixed), R5 (flag default off). Party 2026-11-08: no air-y (B1); rails stay entry 2; clears wipe y_prev; keep θ/P, last demand u, and parked adapted gains across clear. Entry 2 overrides last-good-on-IMC-invalid with unhealthy/rails latch → YAML fixed. Docs → entry 4. JSON → entry 3."]
 
 [[entry]]
 id = 2

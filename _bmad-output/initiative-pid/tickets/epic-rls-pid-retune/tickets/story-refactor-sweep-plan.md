@@ -3,7 +3,7 @@ title: 'Refactor sweep (RLS retune)'
 type: 'chore'
 ticket: '5'
 created: '2026-11-09'
-status: 'built'
+status: done
 baseline_revision: 'f4e47b614a0af440f80ccd92f3325a2afbd41358'
 route: 'oneshot'
 route_source: 'auto'
@@ -54,3 +54,24 @@ Done: applied all three touches on branch `chore/rls-refactor-sweep-3-5`. No App
 - `uv run pytest` -- expected: all green
 - `uv run ruff check .` -- expected: clean
 - Grep/audit -- expected: no entry 1–4 deferral left without Resolved or owned-wontfix ownership in `deferred-work.md`; entry-1 description no longer claims last-good without latch override
+
+## Code Review
+
+### 2026-11-09
+**Code review complete.** 0 `decision-needed`, 1 `patch`, 0 `defer`, 15 rejected.
+
+- [x] [Review][Patch] Entry-1 notes still use last-good while description says parked [`tickets.toml`:13]
+
+#### Rejected
+- R1/R11/R12/R14: Remaining Deferred bullet beside Resolved — false; ledger keeps history, ownership is Resolved (same as 1.4/1.7/1.8/2.5).
+- R3: `last-good-on-IMC-invalid` in description/verify — false; names superseded behavior entry 2 overrides.
+- R4: Empty Plan Change Log — low; rarely visible; Review Triage Log already records the patch.
+- R5: `review_loop_iteration: 0` — low; rarely visible plan meta.
+- R6: Verification over-weights pytest/ruff — false; Grep/audit line covers wording/ownership.
+- R7: Plan type/title vs tickets.toml entry 5 — low; tickets.toml is source of truth.
+- R8: Entry 5 stays generic — false; concrete outcomes live in the frozen plan.
+- R9: Wontfixes only under Resolved — false; intentional Owned wontfix bookkeeping.
+- R10: Companion omits latch RAM-only — false; out of frozen sweep scope.
+- R13: pytest/ruff vs docs-only surface — false; regression bar + Grep/audit, not a defect.
+- R15: Title “Refactor” vs docs-only — false; plan Approach forbids App edits.
+- R16: Scoped orphans vs “from 1–4” — false; matches frozen problem statement.
