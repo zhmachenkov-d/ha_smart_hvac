@@ -56,6 +56,7 @@ class PidConfig:
     ki: float = 1.0
     i_term_min: float = -10.0
     i_term_max: float = 15.0
+    adaptive: bool = False
 
 
 def plant_management_enabled(switch_state: str | None) -> bool:
@@ -72,4 +73,5 @@ class HvacConfig:
     base_water_temp: float
     pid: PidConfig
     zones: tuple[ZoneConfig, ...]
+    boiler_water: str | None = None
     ignored_keys: tuple[str, ...] = ()

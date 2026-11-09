@@ -32,13 +32,14 @@ _KNOWN_KEYS = frozenset(
         "setpoint_max",
         "control_interval",
         "base_water_temp",
+        "boiler_water",
         "pid",
         "zones",
     }
 )
 
 # Keys _parse_pid reads under ``pid``.
-_PID_KEYS = frozenset({"kp", "ki", "i_term_min", "i_term_max"})
+_PID_KEYS = frozenset({"kp", "ki", "i_term_min", "i_term_max", "adaptive"})
 
 # Keys _parse_zone reads under each zone mapping.
 _ZONE_KEYS = frozenset({"name", "temperature", "thermostats", "weight"})
@@ -130,6 +131,34 @@ def _parse_zone(raw: Any) -> ZoneConfig:
     )
 
 
+def _parse_adaptive(raw: dict[str, Any]) -> bool:
+    """YAML bool only; omitted → False. Rejects strings/ints/None."""
+    if "adaptive" not in raw:
+        return False
+    value = raw["adaptive"]
+    if not isinstance(value, bool):
+        raise ConfigError("pid.adaptive must be a boolean")
+    return value
+
+
+def _parse_boiler_water(args: dict[str, Any], *, adaptive: bool) -> str | None:
+    """Top-level boiler_water; required (strip nonempty) when adaptive is on."""
+    if "boiler_water" not in args:
+        if adaptive:
+            raise ConfigError(
+                "boiler_water must be a non-empty entity id when pid.adaptive is true"
+            )
+        return None
+    raw = args["boiler_water"]
+    if isinstance(raw, str) and raw.strip():
+        return raw.strip()
+    if adaptive:
+        raise ConfigError(
+            "boiler_water must be a non-empty entity id when pid.adaptive is true"
+        )
+    return None
+
+
 def _parse_pid(raw: Any) -> PidConfig:
     """Parse optional pid nest; missing keys → C4 starting commission defaults."""
     if raw is None:
@@ -141,6 +170,7 @@ def _parse_pid(raw: Any) -> PidConfig:
     ki = _number(raw, "ki", defaults.ki, label="pid.ki")
     i_term_min = _number(raw, "i_term_min", defaults.i_term_min, label="pid.i_term_min")
     i_term_max = _number(raw, "i_term_max", defaults.i_term_max, label="pid.i_term_max")
+    adaptive = _parse_adaptive(raw)
     if kp < 0:
         raise ConfigError("pid.kp must be >= 0")
     if ki < 0:
@@ -149,7 +179,9 @@ def _parse_pid(raw: Any) -> PidConfig:
         raise ConfigError("pid.i_term_min must be less than i_term_max")
     if not i_term_min <= 0 <= i_term_max:
         raise ConfigError("pid.i_term_min must be <= 0 and pid.i_term_max must be >= 0")
-    return PidConfig(kp=kp, ki=ki, i_term_min=i_term_min, i_term_max=i_term_max)
+    return PidConfig(
+        kp=kp, ki=ki, i_term_min=i_term_min, i_term_max=i_term_max, adaptive=adaptive
+    )
 
 
 def _is_appdaemon_key(key: str) -> bool:
@@ -214,6 +246,7 @@ def parse_config(args: dict[str, Any]) -> HvacConfig:
     else:
         base_water_temp = min(max(_DEFAULT_BASE_WATER_TEMP, setpoint_min), setpoint_max)
     pid = _parse_pid(args.get("pid"))
+    boiler_water = _parse_boiler_water(args, adaptive=pid.adaptive)
 
     zones_raw = _require(args, "zones")
     if not isinstance(zones_raw, list) or not zones_raw:
@@ -228,5 +261,6 @@ def parse_config(args: dict[str, Any]) -> HvacConfig:
         base_water_temp=base_water_temp,
         pid=pid,
         zones=tuple(_parse_zone(z) for z in zones_raw),
+        boiler_water=boiler_water,
         ignored_keys=_ignored_keys(args),
     )

@@ -51,6 +51,8 @@ def test_parse_omitted_pid_defaults() -> None:
     assert config.pid.ki == pytest.approx(1.0)
     assert config.pid.i_term_min == pytest.approx(-10.0)
     assert config.pid.i_term_max == pytest.approx(15.0)
+    assert config.pid.adaptive is False
+    assert config.boiler_water is None
     assert config.zones[0].weight == pytest.approx(1.0)
 
 
@@ -92,7 +94,10 @@ def test_parse_apps_yaml_example() -> None:
     assert config.setpoint_min == 40.0
     assert config.control_interval == 300
     assert config.base_water_temp == pytest.approx(40.0)
-    assert config.pid == PidConfig(kp=1.0, ki=1.0, i_term_min=-10.0, i_term_max=15.0)
+    assert config.pid == PidConfig(
+        kp=1.0, ki=1.0, i_term_min=-10.0, i_term_max=15.0, adaptive=False
+    )
+    assert config.boiler_water is None
     assert config.zones[0].weight == pytest.approx(1.0)
     assert config.ignored_keys == ()
 
@@ -428,3 +433,55 @@ def test_appdaemon_keys_match_app_config_fields() -> None:
     fields = AppConfig.model_fields | GlobalModule.model_fields
     expected = {field.alias or name for name, field in fields.items()} | {"name"}
     assert expected == _APPDAEMON_KEYS
+
+
+# --- RLS adaptive commission (tracer) ----------------------------------------
+
+
+def test_parse_adaptive_false_allows_omitted_boiler_water() -> None:
+    args = _minimal_args()
+    args["pid"] = {"adaptive": False}
+    config = parse_config(args)
+    assert config.pid.adaptive is False
+    assert config.boiler_water is None
+
+
+def test_parse_adaptive_true_with_boiler_water() -> None:
+    args = _minimal_args()
+    args["pid"] = {"adaptive": True}
+    args["boiler_water"] = "  sensor.boiler_water  "
+    config = parse_config(args)
+    assert config.pid.adaptive is True
+    assert config.boiler_water == "sensor.boiler_water"
+
+
+def test_parse_adaptive_true_missing_boiler_water_raises() -> None:
+    args = _minimal_args()
+    args["pid"] = {"adaptive": True}
+    with pytest.raises(ConfigError, match="boiler_water must be a non-empty entity id"):
+        parse_config(args)
+
+
+@pytest.mark.parametrize("value", ["", "   ", None, 1, True])
+def test_parse_adaptive_true_invalid_boiler_water_raises(value: object) -> None:
+    args = _minimal_args()
+    args["pid"] = {"adaptive": True}
+    args["boiler_water"] = value
+    with pytest.raises(ConfigError, match="boiler_water must be a non-empty entity id"):
+        parse_config(args)
+
+
+@pytest.mark.parametrize("value", ["true", "false", 1, 0, None, "yes"])
+def test_parse_rejects_non_bool_adaptive(value: object) -> None:
+    args = _minimal_args()
+    args["pid"] = {"adaptive": value}
+    with pytest.raises(ConfigError, match="pid.adaptive must be a boolean"):
+        parse_config(args)
+
+
+def test_parse_adaptive_off_whitespace_boiler_water_omitted() -> None:
+    args = _minimal_args()
+    args["pid"] = {"adaptive": False}
+    args["boiler_water"] = "   "
+    config = parse_config(args)
+    assert config.boiler_water is None
