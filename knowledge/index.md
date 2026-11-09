@@ -1,13 +1,13 @@
 ---
 okf_version: "0.1"
 title: Smart HVAC knowledge
-description: Domain depth for AppDaemon HVAC control — OpenTherm plant, fixed-PID SWT, multi-zone coordination; ADRC literature retained as prior art.
-timestamp: 2026-11-08T22:38:00Z
+description: Domain depth for AppDaemon HVAC control — OpenTherm plant, fixed-PID SWT with optional RLS adaptive Kp/Ki, multi-zone coordination; ADRC literature retained as prior art.
+timestamp: 2026-11-09T15:30:00Z
 ---
 
 # Smart HVAC knowledge
 
-OKF bundle for this repo. Short glossary terms live in [`CONTEXT.md`](../CONTEXT.md); irreversible choices in [`docs/adr/`](../docs/adr/) (live water path: **ADR 0005**); depth here. ADRC/LADRC/MADRC notes are literature — not the live SWT stack.
+OKF bundle for this repo. Short glossary terms live in [`CONTEXT.md`](../CONTEXT.md); irreversible choices in [`docs/adr/`](../docs/adr/) (live water path: **ADR 0005**, optional RLS adaptive: **ADR 0006**); depth here. ADRC/LADRC/MADRC notes are literature — not the live SWT stack.
 
 ## Start here
 

@@ -16,7 +16,8 @@ description: Index of concepts in the knowledge bundle.
 | [Multi-Zone Coordinator](/concepts/multi-zone-coordinator.md) | App logic that computes Zone Error, Heating Demand, and Critical Zone selection; Critical Zone selection is diagnostics-only. Does not own the OpenTherm Set Water Temperature write. |
 | [Outdoor Temperature](/concepts/outdoor-temperature.md) | Measured outdoor air temperature; not on the Set Water Temperature path or live commissioning. |
 | [Plant](/concepts/plant.md) | Boiler and primary water circuit supplying heat to Zones, commanded via OpenTherm. |
-| [Set Water Temperature](/concepts/set-water-temperature.md) | OpenTherm boiler water setpoint from fixed-gain PID demand `round-to-0.1(clamp(base_water_temp + u_pid))`. |
+| [RLS adaptive PID](/concepts/rls-adaptive-pid.md) | Optional online retune of PID Kp/Ki via Recursive Least Squares; defaults off; yaml fixed gains when off or unhealthy. |
+| [Set Water Temperature](/concepts/set-water-temperature.md) | OpenTherm boiler water setpoint from PID demand `round-to-0.1(clamp(base_water_temp + u_pid))`; gains may be yaml-fixed or optionally RLS-adapted (ADR 0006). |
 | [Total disturbance](/concepts/total-disturbance.md) | ADRC’s lumped unknown — internal model error plus external loads — estimated by the ESO and cancelled in the control law. |
 | [Zone](/concepts/zone.md) | Controllable heating area with a temperature reading and one or more HA climate thermostats, sharing boiler demand. |
 | [Zone Error](/concepts/zone-error.md) | Difference between a Zone’s thermostat setpoint and that Zone’s current temperature. |

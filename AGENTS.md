@@ -1,5 +1,5 @@
 <!-- bmad:context -->
-<!-- Verified 2026-11-08 against ae26c32. Managed by bmad-project-context; edits inside this block are replaced on refresh. Keep anything you want preserved outside the markers. -->
+<!-- Verified 2026-11-09 against 30e500e2f0dac5602786271aca345b0e8f63484d. Managed by bmad-project-context; edits inside this block are replaced on refresh. Keep anything you want preserved outside the markers. -->
 
 ## ha_smart_hvac
 
@@ -15,7 +15,7 @@ AppDaemon Apps that control multi-zone OpenTherm HVAC through Home Assistant. Py
 ## Where things are
 
 - Domain terms and avoid-list: `CONTEXT.md`
-- Architecture decisions: `docs/adr/` (0001 Exclusive Session; 0005 fixed-PID SWT — do not follow superseded 0004 for live SWT)
+- Architecture decisions: `docs/adr/` (0001 Exclusive Session; 0005 fixed-PID SWT; 0006 optional RLS adaptive Kp/Ki — do not follow superseded 0004 for live SWT)
 - App package: `apps/ha_smart_hvac/`; entity wiring: `apps/apps.yaml` (gitignored; start from `apps.yaml.example` at repo root)
 - Algorithm depth / citations: `knowledge/`
 - In-flight planning artifacts: `_bmad-output/`
@@ -32,6 +32,7 @@ AppDaemon Apps that control multi-zone OpenTherm HVAC through Home Assistant. Py
 - Plant Management off means no Set Water Temperature write and cleared PID ephemeral state (∫) — not “write 0”.
 - Heating Demand idle writes 0 and clears PID ephemeral state; that path is only when Plant Management is on.
 - On demand, Set Water Temperature is round-to-0.1(clamp(`base_water_temp` + `u_pid`)) from weighted demand-zone averages. Outdoor Temperature, Weather Feedforward, CAP-7 rise-rate auto-correct, and `ff_auto_correct_state.json` are not on the water path or live commissioning.
+- Optional `pid.adaptive` defaults off (ADR 0006); off or unhealthy RLS uses yaml fixed `kp`/`ki`. `rls_state.json` is separate from PID ∫ / `y_prev` clears — idle / plant-off / no-valid-zones / weights-unusable do not wipe the file; unhealthy/rails latch is RAM-only (JSON may restore adapted gains with latch false after reload).
 - Only periodic `control_interval` (`control_tick`) advances PID and writes demand SWT. Event listeners (Plant Management, zone air, thermostat `hvac_action` / setpoint — not Outdoor) re-evaluate gates via `control_event` and may clear on idle / plant-off / no-valid-zones without a demand write or PID advance. No debounce; equal-float plant readback skip is the write throttle (∫ still advances); unreadable or non-finite plant readback skips the write and does not advance ∫. Changing Heating Demand inputs must update those listeners in the same change.
 - Critical Zone is diagnostics / logging only and must not drive Set Water Temperature.
 - Do not mark an initiative `done` until every epic in its `tickets.toml` is done.

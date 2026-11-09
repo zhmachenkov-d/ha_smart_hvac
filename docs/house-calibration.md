@@ -102,4 +102,4 @@ An explicit `base_water_temp` outside `setpoint_min`…`setpoint_max`, or any va
 
 - Relay or open-loop step commissioning
 - Air→SWT tracking / LADRC on water — removed from this path (not dormant)
-- Online retuning of PID gains
+- Deep RLS λ / IMC design knobs — not commissioned here; online Kp/Ki via `pid.adaptive` is §3 above
