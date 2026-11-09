@@ -22,3 +22,15 @@ title = "RLS retune of PID gains"
 description = "Kp/Ki (and agreed RLS state) adapt online from plant/zone signals without restoring Weather Feedforward or CAP-7; fixed-gain yaml remains the fallback commission."
 covers = ["R9"]
 after = [{ epic = 1, needs = "fixed PID module, yaml gains/weights, and tick-owned advance exist to retune" }]
+
+[[epic]]
+id = 4
+slug = "epic-startup-demand-edge-swt"
+title = "Startup tick and demand-edge SWT"
+description = "Initialize runs one full control_tick; rising-edge into Heating Demand writes demand SWT without advancing ∫; mid-demand zone/setpoint events stay no-op; AGENTS/ADR 0005/CONTEXT match D25/D26. (Epic 1 delivered the original tick-only R5/R6; this epic owns the revision.)"
+covers = ["R5", "R6"]
+after = [
+  { epic = 1, needs = "fixed PID demand path, control_tick / control_event split, and plant equal-float skip exist to extend" },
+  { epic = 2, needs = "AGENTS/ADR/CONTEXT fixed-PID tick/event language exists to revise" },
+  { epic = 3, needs = "RLS adaptive path shipped so initialize and demand-edge coexist with RLS tick step" },
+]
