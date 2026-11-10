@@ -9,6 +9,7 @@ companions: []
 after: []
 refined: true
 risk: high
+status: done
 ---
 
 # Startup tick and demand-edge SWT
