@@ -60,6 +60,7 @@ class HvacApp(hass.Hass):
             )
 
         self._integral = 0.0
+        self._gated_demand = False
         self._rls = RlsState()
         self._rls_fallback_latched = False
         self._rls_fallback_reason: str | None = None
@@ -75,6 +76,9 @@ class HvacApp(hass.Hass):
             "now",
             self._config.control_interval,
         )
+        # Explicit first tick: AD "now" schedules the first periodic fire at
+        # now+interval, not immediately.
+        self.control_tick({})
         self.log("HVAC fixed-gain PID app initialized")
 
     def _state_path(self) -> Path:
@@ -224,6 +228,7 @@ class HvacApp(hass.Hass):
     def control_tick(self, kwargs: dict) -> None:
         zones = self._gate_prelude()
         if zones is None:
+            self._gated_demand = False
             return
         self._run_demand(zones)
 
@@ -235,9 +240,18 @@ class HvacApp(hass.Hass):
         new: object,
         kwargs: dict,
     ) -> None:
-        """Event entry: shared prelude clears; demand is tick-owned (no write / ∫)."""
+        """Event entry: prelude clears; rising-edge demand write when not gated."""
         # listen_state args ignored — re-read current Hass state in prelude.
-        self._gate_prelude()
+        zones = self._gate_prelude()
+        if zones is None:
+            self._gated_demand = False
+            return
+        if self._gated_demand:
+            return
+        if self._run_demand_edge(zones):
+            self._gated_demand = True
+        else:
+            self._gated_demand = False
 
     def _gains_for_demand(self) -> tuple[float, float]:
         pid = self._config.pid
@@ -361,12 +375,47 @@ class HvacApp(hass.Hass):
         # R7: skip the plant call only when the plant already reads the command
         # (_write_setpoint); ∫ advances only when the plant entity is readable.
         if not self._write_setpoint(result.command, plant_reading=plant_current):
+            self._gated_demand = False
             return
         self._integral = result.integral
         # Last demand u: write True only (incl. equal-float skip); never idle 0.
         self._rls.last_u = result.command
         self._maybe_persist_rls()
         self._log_demand_success(result, critical)
+        self._gated_demand = True
+
+    def _run_demand_edge(self, zones: list[ZoneSnapshot]) -> bool:
+        """Rising-edge demand write: current gains; no ∫; no RLS step/persist."""
+        config = self._config
+        pid = config.pid
+        if weighted_error(zones) is None:
+            self._go_idle("Demand zone weights unusable; setpoint 0")
+            return False
+        plant_current = self._read_float(config.plant_setpoint)
+        kp, ki = self._gains_for_demand()
+        result = evaluate_demand(
+            zones,
+            integral=self._integral,
+            kp=kp,
+            ki=ki,
+            base_water_temp=config.base_water_temp,
+            setpoint_min=config.setpoint_min,
+            setpoint_max=config.setpoint_max,
+            i_term_min=pid.i_term_min,
+            i_term_max=pid.i_term_max,
+            dt_hours=config.control_interval / 3600.0,
+        )
+        if result is None:
+            self._go_idle("Demand zone weights unusable; setpoint 0")
+            return False
+
+        critical = select_max_error_demand_zone(zones)
+        if not self._write_setpoint(result.command, plant_reading=plant_current):
+            return False
+        # Do not assign ∫; do not step or persist RLS.
+        self._rls.last_u = result.command
+        self._log_demand_success(result, critical)
+        return True
 
     def _log_demand_success(
         self, result: PidResult, critical: ZoneSnapshot | None
@@ -386,6 +435,7 @@ class HvacApp(hass.Hass):
     def _go_idle(self, message: str, *, level: str = "WARNING") -> None:
         self._write_setpoint(0.0)
         self._clear_pid_ephemeral()
+        self._gated_demand = False
         self.log(message, level=level)
 
     def _read_zones(self, config: HvacConfig) -> list[ZoneSnapshot]:

@@ -90,6 +90,8 @@ def _tick_app(
     app = object.__new__(HvacApp)
     app._config = parse_config(args if args is not None else _tick_args())
     app._integral = 0.0
+    # Mid-demand by default so existing event no-op tests stay no-ops.
+    app._gated_demand = True
     app._rls = RlsState()
     app._rls_fallback_latched = False
     app._rls_fallback_reason = None
@@ -171,7 +173,11 @@ def _warn_msgs(app: HvacApp) -> list[str]:
 def _init_app(
     args: dict | None = None, *, app_dir: str | Path | None = None
 ) -> HvacApp:
-    """Hass-stubbed app ready for initialize() (run_every + listen_state)."""
+    """Hass-stubbed app ready for initialize() (run_every + listen_state).
+
+    Default plant-off so the explicit initialize control_tick is hands-off
+    (∫ stays 0, no SWT write). Override get_state for gated-demand init tests.
+    """
     app = object.__new__(HvacApp)
     app.args = args if args is not None else _tick_args()
     app.AD = SimpleNamespace(
@@ -180,7 +186,58 @@ def _init_app(
     app.log = MagicMock()
     app.run_every = MagicMock()
     app.listen_state = MagicMock()
+    app.call_service = MagicMock()
+
+    def get_state(entity_id: str, attribute: str | None = None):
+        if entity_id == _PLANT_MGMT:
+            return "off"
+        if entity_id == _ZONE_TEMP:
+            return 20.0
+        if entity_id == _PLANT_SETPOINT:
+            return 45.0
+        if entity_id == _BOILER_WATER:
+            return 50.0
+        if entity_id == _CLIMATE:
+            if attribute == "temperature":
+                return 22.0
+            if attribute == "hvac_action":
+                return "heating"
+            return "heat"
+        return None
+
+    app.get_state = MagicMock(side_effect=get_state)
     return app
+
+
+def _init_gated_get_state(
+    *,
+    plant_management: str = "on",
+    zone_temp: object = 20.0,
+    setpoint: float = 22.0,
+    hvac_action: str = "heating",
+    plant_setpoint: object = 45.0,
+    boiler_water: object = 50.0,
+):
+    """get_state side_effect for initialize under gated demand."""
+
+    def get_state(entity_id: str, attribute: str | None = None):
+        if entity_id == _PLANT_MGMT:
+            return plant_management
+        if entity_id == _ZONE_TEMP:
+            return zone_temp
+        if entity_id == _PLANT_SETPOINT:
+            return plant_setpoint
+        if entity_id == _BOILER_WATER:
+            return boiler_water
+        if entity_id == _CLIMATE:
+            if attribute == "temperature":
+                return setpoint
+            if attribute == "hvac_action":
+                return hvac_action
+            return "heat"
+        return None
+
+    return get_state
 
 
 def _fire_control_event(app: HvacApp) -> None:
@@ -193,9 +250,40 @@ def test_initialize_schedules_control_tick() -> None:
     app.initialize()
 
     assert app._integral == 0.0
+    assert app._gated_demand is False
+    assert _set_value_writes(app) == []
     app.run_every.assert_called_once()
     assert app.run_every.call_args.args[0].__func__ is HvacApp.control_tick
+    assert app.run_every.call_args.args[1] == "now"
     assert app.run_every.call_args.args[2] == _CONTROL_INTERVAL
+
+
+def test_initialize_under_demand_runs_first_tick() -> None:
+    app = _init_app()
+    app.get_state = MagicMock(side_effect=_init_gated_get_state())
+    expected = _expected_command(zone_temp=20.0, setpoint=22.0)
+
+    app.initialize()
+
+    assert _set_value_writes(app) == [expected]
+    assert app._integral == pytest.approx(2.0 * _DT_HOURS)
+    assert app._gated_demand is True
+    app.run_every.assert_called_once()
+    assert app.run_every.call_args.args[1] == "now"
+    assert app.run_every.call_args.args[2] == _CONTROL_INTERVAL
+
+
+def test_initialize_under_demand_plant_unreadable_leaves_latch_false() -> None:
+    app = _init_app()
+    app.get_state = MagicMock(
+        side_effect=_init_gated_get_state(plant_setpoint="unavailable")
+    )
+
+    app.initialize()
+
+    assert _set_value_writes(app) == []
+    assert app._integral == pytest.approx(0.0)
+    assert app._gated_demand is False
 
 
 def _err_msgs(app: HvacApp) -> list[str]:
@@ -253,9 +341,11 @@ def test_initialize_warns_once_on_legacy_keys() -> None:
 
     app.initialize()
 
+    # Default _init_app plant-off → initialize tick hands-off WARNING.
     assert _warn_msgs(app) == [
         "HVAC config: ignoring legacy or unknown keys: "
-        "foo, outdoor_temperature, pid.integral_min, weather_feedforward"
+        "foo, outdoor_temperature, pid.integral_min, weather_feedforward",
+        "Plant Management disabled",
     ]
     app.run_every.assert_called_once()
 
@@ -275,7 +365,8 @@ def test_initialize_warns_on_misspelled_zone_key() -> None:
     app.initialize()
 
     assert _warn_msgs(app) == [
-        "HVAC config: ignoring legacy or unknown keys: zones[living].weigth"
+        "HVAC config: ignoring legacy or unknown keys: zones[living].weigth",
+        "Plant Management disabled",
     ]
     assert app._config.zones[0].weight == pytest.approx(1.0)
     app.run_every.assert_called_once()
@@ -288,7 +379,8 @@ def test_initialize_clean_args_no_warning() -> None:
 
     app.initialize()
 
-    assert _warn_msgs(app) == []
+    # No config warnings; plant-off initialize tick still hands-off.
+    assert _warn_msgs(app) == ["Plant Management disabled"]
     app.run_every.assert_called_once()
 
 
@@ -362,11 +454,13 @@ def test_demand_tick_integral_uses_control_interval_in_hours() -> None:
 
 def test_demand_event_no_write_no_integral_change() -> None:
     app = _tick_app(zone_temp=20.0, setpoint=22.0, plant_setpoint=45.0)
+    assert app._gated_demand is True
 
     _fire_control_event(app)
 
     assert _set_value_writes(app) == []
     assert app._integral == pytest.approx(0.0)
+    assert app._gated_demand is True
 
 
 def test_tick_then_demand_event_leaves_integral() -> None:
@@ -375,12 +469,204 @@ def test_tick_then_demand_event_leaves_integral() -> None:
     app.control_tick({})
     integral_after_tick = app._integral
     assert integral_after_tick == pytest.approx(2.0 * _DT_HOURS)
+    assert app._gated_demand is True
 
     app.call_service.reset_mock()
     _fire_control_event(app)
 
     assert _set_value_writes(app) == []
     assert app._integral == pytest.approx(integral_after_tick)
+    assert app._gated_demand is True
+
+
+def test_rising_edge_idle_to_demand_writes_without_integral() -> None:
+    app = _tick_app(zone_temp=20.0, setpoint=22.0, plant_setpoint=45.0)
+    app._gated_demand = False
+    app._integral = 0.5
+    expected = _expected_command(zone_temp=20.0, setpoint=22.0, integral=0.5)
+
+    _fire_control_event(app)
+
+    assert _set_value_writes(app) == [expected]
+    assert app._integral == pytest.approx(0.5)
+    assert app._rls.last_u == pytest.approx(expected)
+    assert app._gated_demand is True
+
+
+def test_rising_edge_plant_on_with_demand_writes() -> None:
+    """Plant-off → on while zones already heat: latch was False → edge write."""
+    app = _tick_app(zone_temp=20.0, setpoint=22.0, plant_setpoint=45.0)
+    app._gated_demand = False
+    expected = _expected_command(zone_temp=20.0, setpoint=22.0)
+
+    _fire_control_event(app)
+
+    assert _set_value_writes(app) == [expected]
+    assert app._integral == pytest.approx(0.0)
+    assert app._gated_demand is True
+
+
+def test_edge_equal_float_latches_and_updates_last_u() -> None:
+    app = _tick_app(zone_temp=20.04, setpoint=22.0, plant_setpoint=42.0)
+    app._gated_demand = False
+    app._rls.last_u = 40.0
+
+    _fire_control_event(app)
+
+    assert _set_value_writes(app) == []
+    assert app._integral == pytest.approx(0.0)
+    assert app._rls.last_u == pytest.approx(42.0)
+    assert app._gated_demand is True
+
+
+def test_edge_plant_unreadable_keeps_latch_false() -> None:
+    app = _tick_app(zone_temp=20.0, setpoint=22.0, plant_setpoint="unavailable")
+    app._gated_demand = False
+    app._integral = 0.5
+    app._rls.last_u = 40.0
+
+    _fire_control_event(app)
+
+    assert _set_value_writes(app) == []
+    assert app._integral == pytest.approx(0.5)
+    assert app._rls.last_u == pytest.approx(40.0)
+    assert app._gated_demand is False
+    assert any("Plant setpoint unavailable" in m for m in _warn_msgs(app))
+
+
+def test_edge_weights_unusable_clears_and_unlatches() -> None:
+    args = _tick_args()
+    args["zones"] = [
+        {
+            "name": _ZONE_NAME,
+            "temperature": _ZONE_TEMP,
+            "weight": 0.0,
+            "thermostats": [_CLIMATE],
+        }
+    ]
+    app = _tick_app(zone_temp=20.0, setpoint=22.0, plant_setpoint=45.0, args=args)
+    app._gated_demand = False
+    app._integral = 3.0
+
+    _fire_control_event(app)
+
+    assert _set_value_writes(app) == [0.0]
+    assert app._integral == 0.0
+    assert app._gated_demand is False
+
+
+def test_tick_weights_unusable_unlatches() -> None:
+    args = _tick_args()
+    args["zones"] = [
+        {
+            "name": _ZONE_NAME,
+            "temperature": _ZONE_TEMP,
+            "weight": 0.0,
+            "thermostats": [_CLIMATE],
+        }
+    ]
+    app = _tick_app(zone_temp=20.0, setpoint=22.0, plant_setpoint=45.0, args=args)
+    assert app._gated_demand is True
+    app._integral = 3.0
+
+    app.control_tick({})
+
+    assert _set_value_writes(app) == [0.0]
+    assert app._integral == 0.0
+    assert app._gated_demand is False
+
+
+def test_demand_edge_no_rls_no_persist(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    stepped = {"n": 0}
+    real_step = __import__("ha_smart_hvac.rls", fromlist=["rls_step"]).rls_step
+
+    def _count_step(state, **kwargs):
+        stepped["n"] += 1
+        return real_step(state, **kwargs)
+
+    persisted = {"n": 0}
+
+    def _count_save(*_a, **_k):
+        persisted["n"] += 1
+        return True
+
+    monkeypatch.setattr("ha_smart_hvac.hvac_app.rls_step", _count_step)
+    monkeypatch.setattr("ha_smart_hvac.hvac_app.save_rls_state", _count_save)
+    app = _tick_app(
+        zone_temp=20.0,
+        setpoint=22.0,
+        plant_setpoint=45.0,
+        boiler_water=50.1,
+        args=_adaptive_args(),
+        app_dir=tmp_path,
+    )
+    app._gated_demand = False
+    app._integral = 1.0
+    app._rls.y_prev = 50.0
+    app._rls.last_u = 40.0
+    app._rls.theta = [0.9, 0.1]
+    app._rls.p = [[1e-12, 0.0], [0.0, 1e-12]]
+    expected = _expected_command(zone_temp=20.0, setpoint=22.0, integral=1.0)
+
+    _fire_control_event(app)
+
+    assert stepped["n"] == 0
+    assert persisted["n"] == 0
+    assert _set_value_writes(app) == [expected]
+    assert app._integral == pytest.approx(1.0)
+    assert app._rls.last_u == pytest.approx(expected)
+    assert app._rls.y_prev == pytest.approx(50.0)
+    assert app._gated_demand is True
+
+
+def test_demand_edge_uses_adapted_gains() -> None:
+    adapted_kp, adapted_ki = 2.0, 0.5
+    app = _tick_app(
+        zone_temp=20.0,
+        setpoint=22.0,
+        plant_setpoint=45.0,
+        args=_adaptive_args(),
+    )
+    app._gated_demand = False
+    app._integral = 1.0
+    app._rls_fallback_latched = False
+    app._rls.adapted_kp = adapted_kp
+    app._rls.adapted_ki = adapted_ki
+    expected = _expected_command(
+        zone_temp=20.0,
+        setpoint=22.0,
+        integral=1.0,
+        kp=adapted_kp,
+        ki=adapted_ki,
+    )
+
+    _fire_control_event(app)
+
+    assert _set_value_writes(app) == [expected]
+    assert app._integral == pytest.approx(1.0)
+    assert app._gated_demand is True
+
+
+def test_tick_after_edge_advances_integral() -> None:
+    app = _tick_app(zone_temp=20.0, setpoint=22.0, plant_setpoint=45.0)
+    app._gated_demand = False
+
+    _fire_control_event(app)
+    assert app._integral == pytest.approx(0.0)
+    assert app._gated_demand is True
+    edge_command = _set_value_writes(app)[0]
+
+    app.call_service.reset_mock()
+    app.control_tick({})
+
+    assert app._integral == pytest.approx(2.0 * _DT_HOURS)
+    assert app._gated_demand is True
+    # Full tick may rewrite (plant still at prior) or equal-skip; ∫ advanced once.
+    assert edge_command == pytest.approx(
+        _expected_command(zone_temp=20.0, setpoint=22.0)
+    )
 
 
 def test_saturation_freeze_on_tick() -> None:
@@ -667,8 +953,29 @@ def test_plant_unavailable_no_integral_step() -> None:
     assert _set_value_writes(app) == []
     app.call_service.assert_not_called()
     assert app._integral == pytest.approx(0.5)
+    assert app._gated_demand is False
     assert any("Plant setpoint unavailable" in m for m in _warn_msgs(app))
     assert not any("command=" in m for m in _info_msgs(app))
+
+
+def test_tick_r7_then_event_edge_writes_without_integral() -> None:
+    """Sticky-open: tick R7 leaves latch False; later event edge writes, ∫ frozen."""
+    app = _tick_app(zone_temp=20.0, setpoint=22.0, plant_setpoint="unavailable")
+    app._integral = 0.5
+
+    app.control_tick({})
+    assert app._gated_demand is False
+    assert app._integral == pytest.approx(0.5)
+
+    app.call_service.reset_mock()
+    app.get_state = MagicMock(side_effect=_init_gated_get_state(plant_setpoint=45.0))
+    expected = _expected_command(zone_temp=20.0, setpoint=22.0, integral=0.5)
+
+    _fire_control_event(app)
+
+    assert _set_value_writes(app) == [expected]
+    assert app._integral == pytest.approx(0.5)
+    assert app._gated_demand is True
 
 
 def _echo_plant(app: HvacApp, initial: float) -> dict:
@@ -802,6 +1109,7 @@ def test_plant_off_no_write_clears() -> None:
     assert _set_value_writes(app) == []
     app.call_service.assert_not_called()
     assert app._integral == 0.0
+    assert app._gated_demand is False
 
 
 def test_no_valid_zones_writes_zero_and_clears() -> None:
@@ -915,6 +1223,7 @@ def test_event_plant_off_no_write_clears() -> None:
 
     assert _set_value_writes(app) == []
     assert app._integral == 0.0
+    assert app._gated_demand is False
 
 
 def test_event_idle_writes_zero_clears() -> None:
@@ -925,6 +1234,7 @@ def test_event_idle_writes_zero_clears() -> None:
 
     assert _set_value_writes(app) == [0.0]
     assert app._integral == 0.0
+    assert app._gated_demand is False
 
 
 def test_event_idle_write_fail_still_clears() -> None:
@@ -940,6 +1250,7 @@ def test_event_idle_write_fail_still_clears() -> None:
 
     assert _set_value_writes(app) == []
     assert app._integral == 0.0
+    assert app._gated_demand is False
     assert any("Plant setpoint unavailable" in m for m in _warn_msgs(app))
 
 
@@ -951,6 +1262,7 @@ def test_event_no_valid_zones_writes_zero_and_clears() -> None:
 
     assert _set_value_writes(app) == [0.0]
     assert app._integral == 0.0
+    assert app._gated_demand is False
 
 
 def _write_stub(raw_state: object) -> HvacApp:
@@ -1200,6 +1512,7 @@ def test_adaptive_control_event_no_rls_no_write(
         boiler_water=50.0,
         args=_adaptive_args(),
     )
+    assert app._gated_demand is True
     app._rls.y_prev = 50.0
     app._rls.last_u = 42.0
     app._integral = 1.0
@@ -1209,6 +1522,7 @@ def test_adaptive_control_event_no_rls_no_write(
     assert stepped["n"] == 0
     assert _set_value_writes(app) == []
     assert app._integral == pytest.approx(1.0)
+    assert app._gated_demand is True
 
 
 @pytest.mark.parametrize(

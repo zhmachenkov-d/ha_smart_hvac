@@ -93,13 +93,14 @@ def evaluate_demand(
     i_term_max: float,
     dt_hours: float,
 ) -> PidResult | None:
-    """Compute PI command and step ∫ (tick-owned; saturation freeze applies).
+    """Compute PI command and the candidate stepped ∫ (saturation freeze applies).
 
     The command uses ``integral`` (°C·h) as passed in (before this step); the
     returned ``integral`` is the stepped value: ``∫ + e·dt_hours`` with the
     I-term ``ki·∫`` clamped to ``[i_term_min, i_term_max]`` °C water. With
-    ``ki == 0`` the returned ∫ is 0. Call only from the periodic control tick:
-    event paths must not call this, since every call advances ∫.
+    ``ki == 0`` the returned ∫ is 0. This function is pure: the caller owns
+    whether to apply the returned ∫ (periodic tick does; rising-edge demand
+    write uses the command only and must not assign it).
 
     Returns None when there are no demand contributions or weight sum ≤ 0
     (caller should take the idle path).

@@ -93,3 +93,13 @@
 - Owned wontfix (entry-2 review): parse INFO when fixed `kp`/`ki` sit outside rails — OQ7 R1 intentional; no further work.
 - Owned wontfix (entry-2 review): structure mega-MERGE of plan sections — clarity nits only; no further work.
 - Resolved: companion orphan `rls-adaptive-algorithm.md` Persistence — last-good → parked adapted + latch→YAML while latched.
+
+## Deferred from: code review of story-tracer-initialize-first-tick-and-demand-edge-swt-write-plan (2026-11-09)
+
+- source_plan: `_bmad-output/initiative-pid/tickets/epic-startup-demand-edge-swt/tickets/story-tracer-initialize-first-tick-and-demand-edge-swt-write-plan.md`
+  summary: AGENTS.md / CONTEXT.md (and ADR 0005) still say only `control_tick` writes demand SWT / weight-unusable is tick-only, but rising-edge `control_event` now writes demand SWT and can take the weights-unusable idle path.
+  evidence: Intent Never defers docs to story 4.2; fix edits agent-context / docs owned by that story.
+
+## Deferred from: code review of story-tracer-initialize-first-tick-and-demand-edge-swt-write-plan (2026-11-10)
+
+- Agent/ADR docs still describe tick-only demand SWT after rising-edge write shipped — deferred: ok — leave for story 4.2 (plan Never / story split).
