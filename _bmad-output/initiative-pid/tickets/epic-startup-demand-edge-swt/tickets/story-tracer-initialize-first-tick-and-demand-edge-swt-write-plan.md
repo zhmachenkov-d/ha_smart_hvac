@@ -3,7 +3,7 @@ title: 'Tracer: initialize first tick and demand-edge SWT write'
 type: 'feature'
 ticket: '1'
 created: '2026-11-09'
-status: 'built'
+status: done
 baseline_revision: '3e56f8dc761cac18489587c70fcb80aac75a23f5'
 route: 'full'
 route_source: 'auto'
@@ -120,3 +120,14 @@ context:
 **Commands:**
 - `uv run pytest` -- expected: all tests pass
 - `uv run ruff check apps/ha_smart_hvac tests` -- expected: clean
+
+## Code Review
+
+### 2026-11-10
+**Code review complete.** 0 `decision-needed`, 2 `patch`, 1 `defer`, 17 rejected.
+
+- [x] [Review][Defer] Agent/ADR docs still describe tick-only demand SWT after rising-edge write shipped [AGENTS.md; CONTEXT.md; docs/adr/0005-fixed-pid-swt.md] — deferred: ok — leave for story 4.2 (plan Never / story split)
+- [ ] [Review][Patch] Rising-edge test names/docstrings overclaim Hass state transitions [tests/test_hvac_app.py:482]
+- [ ] [Review][Patch] Rising-edge demand success logs are indistinguishable from full ticks [apps/ha_smart_hvac/hvac_app.py:_run_demand_edge]
+
+Rejected: R2 false — memlog is historical party snapshot, not current status; R3 low — empty Implementation Notes is plan hygiene; R5 low — tick-after-edge intentionally asserts ∫ only; R6 low — latch pinned by sibling tests; R7 false — only tick/event call prelude and both unlatch on None; R9 false — ticket verify is pytest+ruff only; R10 low — review metadata is plan hygiene; R11 false — thin sibling is plan lock S; R12 false — init hands-off WARNING is by-design matrix path; R13 false — sticky latch is approved edge mechanism; R14 false — last_u update is plan lock A; R15 low — edge never reschedules run_every; R16 low — init uses same control_tick RLS path; R17 low — control_event ignores entity by design; R19 false — equal-float/R7/adapted are approved plan elaborations; R20 false — diff cannot evidence pytest/ruff runs.
