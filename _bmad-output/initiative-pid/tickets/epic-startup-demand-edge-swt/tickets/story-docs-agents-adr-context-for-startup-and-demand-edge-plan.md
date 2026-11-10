@@ -3,7 +3,7 @@ title: 'Docs: AGENTS ADR CONTEXT for startup and demand-edge'
 type: 'chore'
 ticket: '2'
 created: '2026-11-10'
-status: 'built'
+status: done
 baseline_revision: '05958533b73ac8150da10990e85947a984682d2d'
 route: 'oneshot'
 route_source: 'auto'
