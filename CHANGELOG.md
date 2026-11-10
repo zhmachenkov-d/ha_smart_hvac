@@ -2,6 +2,54 @@
 
 <!-- version list -->
 
+## v3.4.0 (2026-11-10)
+
+### Chores
+
+- **bmad**: Close 3.5 review patch and mark story done
+  ([`276e015`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/276e0154150412608f0cb6fc207509cc8ac8a45c))
+
+- **bmad**: Close epic-rls-pid-retune after retrospective
+  ([`6a0ca4e`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/6a0ca4e2eaedaa7cdc2386091c7a5c2652f044d7))
+
+- **bmad**: Close initiative-pid after closure check
+  ([`42f8f5a`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/42f8f5a4a6d3261ddf7312ac93557006d12d0946))
+
+- **bmad**: Encode D3 no quick review on high risk
+  ([`cb8a029`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/cb8a029e42de1028e7106b1a2c6b25a8f0eb65c9))
+
+- **bmad**: Mark story 3.4 done
+  ([`5e3a9f1`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/5e3a9f102ebeacde0d9f0e073a95b8f75bfedbc3))
+
+- **bmad**: Record 4.1 review findings and mark done
+  ([`31498ea`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/31498eaaa6c0399e6a586b0f8111bee29f4a4a2f))
+
+- **bmad**: Record epic-3 close in party memlog
+  ([`cf479b9`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/cf479b98aae28ecb6e5233393668083f0c077967))
+
+- **bmad**: Record party-mode notes for story 3.4
+  ([`e38113f`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/e38113ff67a5a8fb3d5087c1c0646f0be3194702))
+
+- **bmad**: Refine epic-startup-demand-edge-swt
+  ([`7fd22cc`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/7fd22cce0a29bb2ffb38d14cc1250a44a0e7405e))
+
+- **bmad**: Replan initiative-pid for startup and demand-edge SWT
+  ([`a967798`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/a96779894bb7fe4984ede300662883db2253cdd6))
+
+- **rls**: Close epic-3 deferred ownership in sweep 3.5
+  ([`d7c3aa2`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/d7c3aa2063a2d6b2c5bbef0faf6e9e8e5ed276d6))
+
+### Documentation
+
+- **rls**: Document optional adaptive PID path
+  ([`e3cdd53`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/e3cdd530c8130dfcec207015cc31f6543e33a5c7))
+
+### Features
+
+- **hvac**: Initialize first tick and demand-edge SWT write
+  ([`16bb563`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/16bb563942b39f06e11e549e5124ac5c2bdb1b81))
+
+
 ## v3.3.0 (2026-11-09)
 
 
