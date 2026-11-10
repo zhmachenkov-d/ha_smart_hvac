@@ -11,6 +11,7 @@ companions:
 after: []
 assignee: ""
 risk: high
+status: done
 ---
 
 
@@ -85,3 +86,4 @@ Capability boundary: AppDaemon `ha_smart_hvac` Set Water Temperature path, zone 
 - Decision: Replan 2026-11-09 (user) — D25/D26 supersede D8: initialize first full tick; rising-edge Heating Demand writes demand SWT without ∫ advance; mid-demand zone/setpoint stay no-op. R5/R6 and Done when 4 re-rendered; done entry 1.2 covers stale; AGENTS/ADR 0005/CONTEXT need a follow-on story. Initiative reopen for re-slice.
 - Decision: Slice approved 2026-11-09 — epic-startup-demand-edge-swt (id 4) covers revised R5/R6: 4.1 tracer runtime, 4.2 docs; no refactor sweep; after epics 1–3 (runtime + docs + RLS coexist); shared R5/R6 with epic 1 (original vs D25/D26 revision). Initiative `status: done` cleared pending this epic.
 - Decision: Epic 4 refined 2026-11-09 — D28 gated-demand edge; D29 no RLS on edge; D30 no timer reset, weights-unusable → 0+clear, knowledge/ optional in 4.2.
+- Decision: Re-closed 2026-11-10 after epic-startup-demand-edge-swt done (4.1/4.2): Done when 4 / R5–R6 match initialize first tick + gated-demand edge write; AGENTS/CONTEXT/tests lock it; epics 1–4 and all 20 tickets done. Done when 6 still past-tense stale (RLS shipped in epic 3) — same non-blocking leftover as 2026-11-09 close.
