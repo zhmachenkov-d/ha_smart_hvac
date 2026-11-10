@@ -14,14 +14,15 @@ The HVAC App owns the OpenTherm Set Water Temperature write. The Multi-Zone Coor
 
 ## Tick vs event
 
-The same Plant Management / Heating Demand gate law runs on two schedules; only the periodic path advances PID and writes demand SWT:
+The same Plant Management / Heating Demand gate law runs on the periodic `control_tick` path and the event path. `initialize` invokes one explicit first `control_tick` (same tick path). Only `control_tick` (init or periodic) advances PID ∫ and steps RLS per ADR 0006 when adaptive. Demand SWT may also write on a gated-demand rising edge without advancing ∫ or stepping RLS.
 
-- **Periodic `control_interval`** (`control_tick`): on demand, evaluates PI, may write the demand command, and may advance ∫. Weight-unusable demand fail is tick-only: write `0` and clear ∫.
-- **Event path** (`listen_state` → `control_event`): re-evaluates on change of Plant Management, any configured zone air temperature, or any configured thermostat’s `hvac_action` or setpoint (`temperature` attribute) — not Outdoor. Events only run the shared gate prelude: they may clear on idle / plant-off / no-valid-zones without a demand write or PID advance. Weight-unusable demand fail stays tick-only (events do not take that idle path).
+- **Initialize:** after a successful schedule, `initialize` runs one full `control_tick` so the first demand command does not wait a full `control_interval`.
+- **Periodic `control_interval`** (`control_tick`): on demand, evaluates PI, may write the demand command, and may advance ∫. Weight-unusable demand fail: write `0` and clear ∫.
+- **Event path** (`listen_state` → `control_event`): re-evaluates on change of Plant Management, any configured zone air temperature, or any configured thermostat’s `hvac_action` or setpoint (`temperature` attribute) — not Outdoor. Shared gate prelude may clear on idle / plant-off / no-valid-zones. Rising-edge into **gated demand** (Plant Management on **and** Heating Demand — including plant turning on while zones already demand) may write demand SWT with current gains **without** advancing ∫ and **without** stepping RLS; the edge does not reset `control_interval`. After a successful demand-path write, further zone air / setpoint events neither write demand SWT nor advance ∫ until idle / plant-off / fail clear (a skipped write, e.g. unreadable plant, leaves the edge open for a later event). Weight-unusable on the demand-edge path takes the same fail as a tick: write `0` and clear ∫.
 
-Accepted consequence: an idle or no-valid-zones clear on the event path writes `0` and resets ∫ immediately, so demand cannot resume until the next `control_tick` (≤ `control_interval`). Plant-off on the event path clears ∫ and does not write (plant may remain at the last demand command until a later write).
+Accepted consequence: an idle or no-valid-zones clear on the event path writes `0` and resets ∫ immediately; demand SWT can resume on the next rising-edge into gated demand or the next `control_tick` (≤ `control_interval`) without waiting solely for the timer. Plant-off on the event path clears ∫ and does not write (plant may remain at the last demand command until a later write).
 
-There is no debounce. The write throttle is the equal-float skip on Set Water Temperature plant readback. Unreadable or non-finite plant readback skips the write and does not advance ∫; when the plant already reads the command, the service call is skipped and ∫ still advances (R7). Changing Heating Demand inputs must update those listeners in the same change. Periodic cadence remains; an event-only loop is a non-goal.
+There is no debounce. The write throttle is the equal-float skip on Set Water Temperature plant readback. Unreadable or non-finite plant readback skips the write and does not advance ∫; when the plant already reads the command, the service call is skipped and ∫ still advances on the tick path (R7). Changing Heating Demand inputs must update those listeners in the same change. Periodic cadence remains; an event-only loop is a non-goal.
 
 ## PI law and anti-windup
 
