@@ -1,9 +1,8 @@
 ---
 title: 'Detach PID/RLS from live SWT and example commissioning'
-type: 'story'
 ticket: '2'
 created: '2026-11-11'
-status: 'built'
+status: 'done'
 risk: 'high'
 route: 'full'
 route_source: 'auto'
