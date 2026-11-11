@@ -13,7 +13,8 @@ import pytest
 from ha_smart_hvac.config import parse_config
 from ha_smart_hvac.feedforward import quantize_command
 from ha_smart_hvac.hvac_app import HvacApp
-from ha_smart_hvac.rls import STATE_FILENAME
+
+_RLS_STATE_FILENAME = "rls_state.json"
 
 _SETPOINT_MIN = 40.0
 _SETPOINT_MAX = 55.0
@@ -33,6 +34,7 @@ _ZONE_NAME = "zone_one"
 _HVAC_APP_PATH = (
     Path(__file__).resolve().parents[1] / "apps" / "ha_smart_hvac" / "hvac_app.py"
 )
+_PID_PATH = Path(__file__).resolve().parents[1] / "apps" / "ha_smart_hvac" / "pid.py"
 
 
 def _tick_args() -> dict:
@@ -208,7 +210,7 @@ def _fire_control_event(app: HvacApp, entity: str = _PLANT_MGMT) -> None:
 
 
 def test_hvac_app_does_not_import_rls_or_pid_quantize() -> None:
-    """Import-lock: live App must not pull rls or quantize_command from pid."""
+    """Import-lock: live App must not pull rls or pid (quantize/clamp or module)."""
     source = _HVAC_APP_PATH.read_text(encoding="utf-8")
     tree = ast.parse(source)
     for node in ast.walk(tree):
@@ -217,6 +219,9 @@ def test_hvac_app_does_not_import_rls_or_pid_quantize() -> None:
                 assert alias.name != "ha_smart_hvac.rls"
                 assert not alias.name.startswith("ha_smart_hvac.rls.")
                 assert alias.name != "rls"
+                assert alias.name != "ha_smart_hvac.pid"
+                assert not alias.name.startswith("ha_smart_hvac.pid.")
+                assert alias.name != "pid"
         elif isinstance(node, ast.ImportFrom):
             mod = node.module or ""
             names = {alias.name for alias in node.names}
@@ -232,11 +237,42 @@ def test_hvac_app_does_not_import_rls_or_pid_quantize() -> None:
                 mod == "ha_smart_hvac" or (node.level > 0 and mod == "")
             ):
                 raise AssertionError("rls import forbidden: import rls from package")
-            pid_mod = mod == "ha_smart_hvac.pid" or (node.level > 0 and mod == "pid")
+            pid_mod = (
+                mod == "ha_smart_hvac.pid"
+                or mod.startswith("ha_smart_hvac.pid.")
+                or (node.level > 0 and (mod == "pid" or mod.startswith("pid.")))
+            )
             if pid_mod:
-                assert "*" not in names
-                assert "quantize_command" not in names
-                assert "clamp" not in names
+                raise AssertionError(
+                    f"pid import forbidden: from {mod!r} level={node.level}"
+                )
+            if "pid" in names and (
+                mod == "ha_smart_hvac" or (node.level > 0 and mod == "")
+            ):
+                raise AssertionError("pid import forbidden: import pid from package")
+
+
+def test_pid_does_not_reexport_clamp_or_quantize() -> None:
+    """F6-B: pid may import clamp/quantize only as private aliases."""
+    source = _PID_PATH.read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.ImportFrom):
+            continue
+        mod = node.module or ""
+        ff = mod == "ha_smart_hvac.feedforward" or (
+            node.level > 0 and (mod == "feedforward" or mod.startswith("feedforward."))
+        )
+        if not ff:
+            continue
+        for alias in node.names:
+            if alias.name in {"clamp", "quantize_command"}:
+                assert alias.asname is not None, (
+                    f"{alias.name} must be imported as a private alias"
+                )
+                assert alias.asname.startswith("_"), (
+                    f"{alias.name} alias {alias.asname!r} must be private"
+                )
 
 
 def test_initialize_schedules_control_tick(tmp_path: Path) -> None:
@@ -254,11 +290,11 @@ def test_initialize_schedules_control_tick(tmp_path: Path) -> None:
         for c in app.log.call_args_list
         if c.args
     )
-    assert not (tmp_path / STATE_FILENAME).exists()
+    assert not (tmp_path / _RLS_STATE_FILENAME).exists()
 
 
-def test_initialize_under_demand_runs_first_tick() -> None:
-    app = _init_app()
+def test_initialize_under_demand_runs_first_tick(tmp_path: Path) -> None:
+    app = _init_app(app_dir=tmp_path)
     app.get_state = MagicMock(side_effect=_init_gated_get_state())
     expected = _expected_command()
 
@@ -268,6 +304,7 @@ def test_initialize_under_demand_runs_first_tick() -> None:
     app.run_every.assert_called_once()
     assert app.run_every.call_args.args[1] == "now"
     assert app.run_every.call_args.args[2] == _CONTROL_INTERVAL
+    assert not (tmp_path / _RLS_STATE_FILENAME).exists()
 
 
 def test_initialize_under_demand_plant_unreadable_skips_write() -> None:
@@ -630,7 +667,6 @@ def test_event_idle_write_fail_still_logs() -> None:
     assert _set_value_writes(app) == []
     assert "No heating demand; setpoint 0" in _info_msgs(app)
     assert any("Plant setpoint unavailable" in m for m in _warn_msgs(app))
-    assert any("Plant setpoint unavailable" in m for m in _warn_msgs(app))
 
 
 def test_event_no_valid_zones_writes_zero() -> None:
@@ -647,12 +683,21 @@ def test_write_setpoint_skips_set_value_when_entity_float_equals(raw_state):
     app = _tick_app(plant_setpoint=raw_state)
     assert app._write_setpoint(45.0) is True
     assert _set_value_writes(app) == []
+    assert not any(
+        c.args and c.args[0] == "number/set_value"
+        for c in app.call_service.call_args_list
+    )
 
 
 def test_write_setpoint_calls_set_value_when_entity_float_differs():
     app = _tick_app(plant_setpoint=40.0)
     assert app._write_setpoint(45.0) is True
-    assert _set_value_writes(app) == [45.0]
+    calls = [
+        {"entity_id": c.kwargs["entity_id"], "value": c.kwargs["value"]}
+        for c in app.call_service.call_args_list
+        if c.args and c.args[0] == "number/set_value"
+    ]
+    assert calls == [{"entity_id": _PLANT_SETPOINT, "value": 45.0}]
 
 
 @pytest.mark.parametrize(
@@ -663,6 +708,10 @@ def test_write_setpoint_fail_closed_when_entity_unreadable(raw_state):
     app = _tick_app(plant_setpoint=raw_state)
     assert app._write_setpoint(45.0) is False
     assert _set_value_writes(app) == []
+    assert not any(
+        c.args and c.args[0] == "number/set_value"
+        for c in app.call_service.call_args_list
+    )
 
 
 def test_non_finite_zone_temp_skips_zone_like_unavailable() -> None:
@@ -687,7 +736,7 @@ def test_demand_tick_writes_ff_command_no_rls_state(tmp_path: Path) -> None:
     assert f"command={expected}" in joined
     assert "u_pid=" not in joined
     assert ", e=" not in joined and not joined.startswith("e=")
-    assert not (tmp_path / STATE_FILENAME).exists()
+    assert not (tmp_path / _RLS_STATE_FILENAME).exists()
 
 
 def test_demand_tick_pins_mild_outdoor_to_example_min_rail() -> None:
@@ -724,7 +773,13 @@ def test_demand_event_writes_ff_same_as_tick(tmp_path: Path) -> None:
     _fire_control_event(app)
 
     assert _set_value_writes(app) == [expected]
-    assert not (tmp_path / STATE_FILENAME).exists()
+    joined = " ".join(_info_msgs(app))
+    assert f"outdoor={_OUTDOOR_TEMP:.2f}" in joined
+    assert f"u_ff={_u_ff():.2f}" in joined
+    assert f"command={expected}" in joined
+    assert "u_pid=" not in joined
+    assert ", e=" not in joined and not joined.startswith("e=")
+    assert not (tmp_path / _RLS_STATE_FILENAME).exists()
 
 
 def test_outdoor_event_under_demand_refreshes_command() -> None:

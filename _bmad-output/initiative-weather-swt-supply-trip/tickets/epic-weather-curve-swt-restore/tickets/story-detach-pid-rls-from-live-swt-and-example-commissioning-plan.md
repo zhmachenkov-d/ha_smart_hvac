@@ -94,26 +94,27 @@ Entry 1 restored FF and left PID/RLS zombies for this story. House HITL = entry 
 
 ## Review Triage Log
 - 2026-11-11 review: Critical `clamp` cycle → move `clamp`+`quantize` (applied). Important: `_state_path`, init log, config DELETE breadth, fixtures, import-lock pattern, AGENTS override (applied). Nits: `_DEFAULT_BASE_WATER_TEMP`, stale `last_u` comment (applied); optional `test_feedforward` quantize coverage declined (keep in `test_pid`).
-- blind: pid public clamp/quantize bindings after feedforward import — verdict medium — evidence: `pid.py` `from feedforward import clamp, quantize_command` leaves names importable as `from pid import …`, violating F6-B no re-export.
+- blind: pid public clamp/quantize bindings after feedforward import — verdict medium — **fixed**: `pid.py` imports as `_clamp` / `_quantize_command` (F6-B).
 - blind: docs/house-calibration.md still commissions pid/base — verdict false — evidence: Approach names apps.yaml.example as commission strip; house-calibration lag is pre-entry-1-style docs drift (FF already live), not a new live-App defect from this strip.
-- blind: AGENTS/CONTEXT/ADR still describe PID SWT — verdict medium — evidence: real contradiction for agents/operators; intent Always forbids rewrite here (epic 3) → defer.
-- blind: test_config `not hasattr` for pid/base/boiler/PidConfig — verdict medium — evidence: Design Notes F4-A ban hasattr zombies; new asserts added this diff (pre-existing ladrc hasattr left alone).
-- blind: event demand lacks no-`rls_state.json` assert — verdict medium — evidence: AC wants tick/event; only `test_demand_tick_writes_ff_command_no_rls_state` checks file.
-- blind: `test_event_idle_write_fail_still_logs` dropped Plant setpoint unavailable WARN — verdict medium — evidence: tick sibling still asserts it; event path can regress fail-closed WARN.
-- blind: `test_write_setpoint_fail_closed` dropped `float("nan")` / `object()` — verdict medium — evidence: baseline parametrize included them; current list is strings/None only.
-- blind: `test_plant_off_no_write` dropped `call_service.assert_not_called` — verdict low — evidence: `_set_value_writes == []` remains; restore is trivial belt-and-suspenders.
+- blind: AGENTS/CONTEXT/ADR still describe PID SWT — verdict medium — **deferred**: epic 3 (see deferred-work.md).
+- blind: test_config `not hasattr` for pid/base/boiler/PidConfig — verdict medium — **withdrawn**: Design Notes F4-A ban hasattr zombies; asserts never shipped.
+- blind: event demand lacks no-`rls_state.json` assert — verdict medium — **fixed**: `test_demand_event_writes_ff_same_as_tick` asserts file absence.
+- blind: `test_event_idle_write_fail_still_logs` dropped Plant setpoint unavailable WARN — verdict medium — **withdrawn**: WARN assert present in shipped test.
+- blind: `test_write_setpoint_fail_closed` dropped `float("nan")` / `object()` — verdict medium — **withdrawn**: parametrize includes `float("nan")` and `object()`.
+- blind: `test_plant_off_no_write` dropped `call_service.assert_not_called` — verdict low — **withdrawn**: `assert_not_called` present in shipped test.
 - blind: plan tasks unchecked / tickets.toml / memlog hygiene — verdict false — evidence: build workflow owns plan status; tickets mark forbidden; not a product defect.
 - blind: no quantize coverage in test_feedforward — verdict false — evidence: prior Review Triage declined; coverage stays in test_pid until epic 3.
 - blind: apps.yaml.example missing legacy-ignore WARN note — verdict low — rejected: everyday operators use house HITL entry 3; comment not required by intent.
 - blind: pid.py docstring still reads as live SWT law — verdict low — rejected: module retained with evaluate_demand; epic 3 owns retirement banner.
-- blind: AST import-lock misses alternate rls shapes / bare pid import / F6 re-export surface — verdict medium — evidence: current walk only checks `ha_smart_hvac.rls*` modules and named imports from pid.
+- blind: AST import-lock misses alternate rls shapes / bare pid import / F6 re-export surface — verdict medium — **fixed** (2026-11-12): lock forbids all pid/rls module imports; F6-B covered by `test_pid_does_not_reexport_clamp_or_quantize`.
 - blind: feedforward docstring omits clamp/quantize — verdict low — rejected: cosmetic.
-- edge: `from ha_smart_hvac import rls` / relative rls import evade lock — verdict medium — evidence: ImportFrom `ha_smart_hvac` with name `rls` not rejected.
-- edge: `from ha_smart_hvac.pid import *` evades quantize/clamp name check — verdict medium — evidence: star not asserted before name set check.
-- edge: claim "no pid re-export" falsified at pid.py:17 — verdict medium — evidence: same as blind re-export (carried).
-- verification-gap: initialize never asserts no rls_state.json — verdict medium — evidence: pre-verified; only demand-tick tmp_path checks file; init tests never observe app_dir filesystem (gap: restore init persist would slip).
-- verification-gap Other: pid re-export — verdict medium — carried with blind/edge re-export.
+- edge: `from ha_smart_hvac import rls` / relative rls import evade lock — verdict medium — **fixed**: ImportFrom `rls` from package rejected.
+- edge: `from ha_smart_hvac.pid import *` evades quantize/clamp name check — verdict medium — **fixed** (2026-11-12): any pid ImportFrom forbidden.
+- edge: claim "no pid re-export" falsified at pid.py:17 — verdict medium — **fixed**: aliases `_clamp` / `_quantize_command`.
+- verification-gap: initialize never asserts no rls_state.json — verdict medium — **fixed** (2026-11-12): `test_initialize_under_demand_runs_first_tick` observes `app_dir`.
+- verification-gap Other: pid re-export — verdict medium — **fixed**: F6-B alias lock test.
 - intent-alignment: descriptive only — no separate defect rows beyond surfaces already triaged (proof proxies vs runtime strip).
+- 2026-11-12 annotate pass (decision B): tagged fixed/withdrawn/deferred above so stale medium rows no longer read as open defects.
 
 ## Design Notes
 F4-A: delete app RLS/∫-only tests; strip ∫/RLS asserts from survivors; no `not hasattr` zombies; keep module unit tests until epic 3. F6: move `clamp` with `quantize_command` so `feedforward` does not import `pid`. Dropping keys from `_KNOWN_KEYS` yields top-level ignore+WARN; remove `_PID_KEYS` walker with the parse strip. Import-lock via source/AST scan, not runtime hasattr.
@@ -122,3 +123,26 @@ F4-A: delete app RLS/∫-only tests; strip ∫/RLS asserts from survivors; no `n
 **Commands:**
 - `uv run pytest` — expected: all pass
 - `uv run ruff check apps/ha_smart_hvac tests` — expected: clean
+
+## Code Review
+
+### 2026-11-12
+**Code review complete.** 0 `decision-needed`, 10 `patch`, 1 `defer`, 4 rejected.
+
+- [x] [Review][Patch] Stale Review Triage Log vs shipped code — annotate each stale row applied/fixed/withdrawn (decision B)
+- [x] [Review][Patch] hvac_app import-lock incomplete for aliased and module pid imports [tests/test_hvac_app.py:215-239]
+- [x] [Review][Patch] Initialize-under-demand path does not assert absence of rls_state.json [tests/test_hvac_app.py:260-267]
+- [x] [Review][Patch] No test locks F6-B no-re-export on pid.py [apps/ha_smart_hvac/pid.py:17-18]
+- [x] [Review][Patch] Write-setpoint tests omit entity_id kwargs lock [tests/test_hvac_app.py:112-116, 646-665]
+- [x] [Review][Patch] Package __init__.py still says fixed-gain PID SWT [apps/ha_smart_hvac/__init__.py:1]
+- [x] [Review][Patch] Duplicate Plant setpoint unavailable assert [tests/test_hvac_app.py:632-633]
+- [x] [Review][Patch] Legacy-ignore parse test dropped Outdoor/FF unchanged checks [tests/test_config.py:105-112]
+- [x] [Review][Patch] same_as_tick test no longer checks log parity with tick [tests/test_hvac_app.py:720-727]
+- [x] [Review][Patch] Tests import STATE_FILENAME from rls after App strip [tests/test_hvac_app.py:16]
+- [x] [Review][Defer] Entry-2 ticket verify still names ∫ after surface removed [tickets.toml entry id=2 verify] — deferred: fix edits ticket file; settle by rewriting verify to F5-A surfaces (FF + no rls_state + import-locks) in a tickets touch or entry 4
+
+Rejected:
+- R1 plan status vs unchecked tasks — false: build workflow owns plan status/checkboxes
+- R2 party memlog vs built — false: memlog records party-exit history, not live approval state
+- R5 plan F6-B wording vs aliases — false: aliases implement no-re-export; fix would edit plan intent
+- R12 I/O matrix Adaptive yaml parse vs init WARN — rejected: fix would edit plan intent section

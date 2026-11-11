@@ -110,6 +110,12 @@ def test_parse_ignores_legacy_water_law_keys() -> None:
     args["boiler_water"] = "sensor.boiler_water"
     config = parse_config(args)
     assert config.ignored_keys == ("base_water_temp", "boiler_water", "pid")
+    assert config.outdoor_temperature == "sensor.outdoor"
+    assert config.weather_feedforward.base == pytest.approx(37.0)
+    assert config.weather_feedforward.slope == pytest.approx(0.9)
+    assert config.weather_feedforward.comfort_ref == pytest.approx(20.0)
+    assert config.zones[0].name == "living_room"
+    assert config.zones[0].weight == pytest.approx(1.0)
 
 
 def test_parse_rejects_negative_zone_weight() -> None:
