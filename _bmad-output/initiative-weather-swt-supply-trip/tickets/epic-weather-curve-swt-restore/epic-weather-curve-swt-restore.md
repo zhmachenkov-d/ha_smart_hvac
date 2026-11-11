@@ -73,3 +73,4 @@ Owns the AppDaemon `ha_smart_hvac` demand SWT runtime restore to weather curve, 
 - Decision: Missing / invalid Outdoor — ADR 0004 fail branch (clear ephemeral; no curve write) (2026-11-11).
 - Decision: R4 scope here — remove PID/RLS from live SWT path and commissioning yaml; dead modules and domain ADR/docs remain epic 3 (2026-11-11).
 - Decision: R7 scope here — Outdoor + Weather Feedforward commission and listener; supply entity commission is epic 2 (2026-11-11).
+- Decision: Tracer bullet — entry 1 restores weather-curve SWT law, gates, Outdoor listener, and apps.yaml.example FF commission; entry 2 detaches PID/RLS (least-certain); entry 3 house yaml HITL; entry 4 refactor sweep; declined separate live Exclusive Session / closing e2e suite (2026-11-11).
