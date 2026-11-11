@@ -91,9 +91,10 @@ def test_parse_apps_yaml_example() -> None:
     config = parse_config(args)
     assert not hasattr(config, "ladrc")
     assert not hasattr(config, "tune_state_path")
-    assert config.setpoint_min == 40.0
+    assert config.setpoint_min == 50.0
+    assert config.setpoint_max == 60.0
     assert config.control_interval == 300
-    assert config.base_water_temp == pytest.approx(40.0)
+    assert config.base_water_temp == pytest.approx(51.0)
     assert config.pid == PidConfig(
         kp=1.0, ki=1.0, i_term_min=-10.0, i_term_max=15.0, adaptive=False
     )
