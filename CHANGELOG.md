@@ -2,6 +2,30 @@
 
 <!-- version list -->
 
+## v3.5.0 (2026-11-11)
+
+### Bug Fixes
+
+- **hvac**: Harden weather-curve SWT after code review
+  ([`75cae7c`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/75cae7cf7b16ce004871249c4fc79b14e0d4dc89))
+
+### Chores
+
+- **bmad**: Plan stories for weather-curve SWT restore
+  ([`2a21dfe`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/2a21dfec9a5aad1eb630fcc30bd01e2d78d26640))
+
+- **bmad**: Refine epic weather-curve SWT restore
+  ([`30e21aa`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/30e21aa769635e55f7f5b219611de97dee08f754))
+
+- **bmad**: Slice weather-swt-supply-trip into three epics
+  ([`d2b1fb2`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/d2b1fb2d58f3815b080abf8be297de578f2c9ea0))
+
+### Features
+
+- **hvac**: Restore weather-curve demand SWT law
+  ([`17d4960`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/17d4960e7be1419717903730d257fe156d589890))
+
+
 ## Unreleased
 
 ### Features
