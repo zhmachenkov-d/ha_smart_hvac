@@ -14,7 +14,7 @@
   "mounts": [
     "source=${localEnv:HOME}/.ssh,target=/home/vscode/.ssh,type=bind,consistency=cached"
   ],
-  "postCreateCommand": "curl -LsSf https://astral.sh/uv/install.sh | sh && export PATH=\"$HOME/.local/bin:$PATH\" && uv sync --group dev && uv run pre-commit install",
+  "postCreateCommand": "curl -LsSf https://astral.sh/uv/install.sh | sh && export PATH=\"$HOME/.local/bin:$PATH\" && uv sync --group dev && uv run pre-commit install && npm install -g --allow-scripts=@tokenade/cli @tokenade/cli && tokenade install --yes --only cursor",
   "customizations": {
     "vscode": {
       "extensions": ["ms-python.python", "github.vscode-pull-request-github"]
