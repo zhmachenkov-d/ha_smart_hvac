@@ -54,11 +54,11 @@ Under Plant Management, demand Set Water Temperature follows `round-to-0.1(clamp
 
 ## Boundaries
 
-Capability boundary: AppDaemon `ha_smart_hvac` Set Water Temperature path (weather curve + supply rise-rate trip), yaml commissioning, and domain ADR/docs. Not CAP-7 curve auto-correct, not zone TRV percent actuation, not MADRC/LADRC return, not changing Exclusive Session or Heating Demand definition. Tracer path (to be sliced): weather-curve SWT restore → supply rise-rate trip → remove PID/RLS + docs/ADR.
+Capability boundary: AppDaemon `ha_smart_hvac` Set Water Temperature path (weather curve + supply rise-rate trip), yaml commissioning, and domain ADR/docs. Not CAP-7 curve auto-correct, not zone TRV percent actuation, not MADRC/LADRC return, not changing Exclusive Session or Heating Demand definition. Tracer path: epic-weather-curve-swt-restore → epic-supply-rise-rate-trip → epic-supersede-pid-domain-docs.
 
-- Touch point: `apps/ha_smart_hvac/` SWT path — weather `u_ff` + supply trip latch; owner: TBD at slice
-- Touch point: `apps/apps.yaml` / `apps.yaml.example` — FF nest, Outdoor, supply entity, `r_max`, hold; remove `pid` / RLS; owner: TBD at slice
-- Touch point: `docs/adr/`, `CONTEXT.md`, `AGENTS.md`, `knowledge/` — supersede fixed-PID live law; owner: TBD at slice
+- Touch point: `apps/ha_smart_hvac/` SWT path — weather `u_ff` (epic 1) + supply trip latch (epic 2); dead PID/RLS cleanup (epic 3)
+- Touch point: `apps/apps.yaml` / `apps.yaml.example` — FF nest, Outdoor (epic 1); supply entity, `r_max`, hold (epic 2); remove remaining `pid` / RLS nests (epic 1 path, epic 3 cleanup)
+- Touch point: `docs/adr/`, `CONTEXT.md`, `AGENTS.md`, `knowledge/` — supersede fixed-PID live law; owner: epic-supersede-pid-domain-docs
 - Must not change: Exclusive Session (ADR 0001); Heating Demand via `hvac_action`
 - Must not restore: CAP-7 / `ff_auto_correct_state.json` in this initiative
 
@@ -78,3 +78,4 @@ Capability boundary: AppDaemon `ha_smart_hvac` Set Water Temperature path (weath
 - Decision: A2 approved — Outdoor Temperature is again a control listener for weather-curve re-evaluation (2026-11-11).
 - Decision: Q1 closed — new FF defaults from house 72h demand SWT + outdoor band: `base=37`, `slope=0.9`, `comfort_ref=20` (Tout=0 → 55; Tout=5 → 50.5; within setpoint 42…60) (2026-11-11).
 - Decision: Q2 closed — supply rise-rate reads `boiler_water` = `sensor.opentherm_bridge_boiler_water_temperature_degc` (already in house `apps.yaml`) (2026-11-11).
+- Decision: Slice approved — three epics in order: (1) weather-curve SWT restore (R4 path; R7 Outdoor+FF), (2) supply rise-rate trip (R7 supply), (3) supersede PID domain docs (R4 docs/cleanup); no separate platform-baseline; shared R4 and R7 split path vs docs and Outdoor/FF vs supply; declined one thick curve+trip epic (2026-11-11).

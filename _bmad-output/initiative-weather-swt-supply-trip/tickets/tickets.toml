@@ -1,1 +1,24 @@
-# Weather-curve SWT + supply rise-rate trip — epics TBD at slice
+# Weather-curve SWT + supply rise-rate trip — epics in build order (approved 2026-11-11)
+
+[[epic]]
+id = 1
+slug = "epic-weather-curve-swt-restore"
+title = "Weather-curve SWT restore"
+description = "Under Plant Management on and Heating Demand, SWT is round-to-0.1(clamp(u_ff)) from Outdoor Temperature and yaml Weather Feedforward (base=37, slope=0.9, comfort_ref=20); Outdoor is a control listener again; idle writes 0+clear; plant-off no write+clear; fixed PID / optional RLS no longer drive live SWT (path/commissioning). CAP-7 and Critical Zone as SWT drivers stay out. (ADR/CONTEXT/AGENTS/knowledge and dead PID module cleanup → epic 3.)"
+covers = ["R1", "R2", "R3", "R4", "R7", "R8"]
+
+[[epic]]
+id = 2
+slug = "epic-supply-rise-rate-trip"
+title = "Supply rise-rate trip"
+description = "Under Plant Management on and Heating Demand, every supply temperature change computes r_obs; if r_obs > r_max (yaml, default 2 C/min) the App latches and writes SWT 0 (weather curve not applied while latched) until the hold timer (default 900s) elapses or a zone newly enters Heating Demand; supply entity is yaml-commissioned (boiler_water)."
+covers = ["R5", "R6", "R7"]
+after = [{ epic = 1, needs = "weather-curve demand SWT path and Outdoor control listener live under Plant/Demand gates" }]
+
+[[epic]]
+id = 3
+slug = "epic-supersede-pid-domain-docs"
+title = "Supersede PID domain docs"
+description = "A new ADR supersedes ADR 0005 / 0006 for the weather-curve + supply-trip water law; CONTEXT, AGENTS, and knowledge/ match the shipped App; dead PID/RLS modules and pid commissioning nests are removed from the codebase and example yaml. CAP-7 / ff_auto_correct_state.json remain absent."
+covers = ["R4"]
+after = [{ epic = 2, needs = "weather-curve demand path and supply rise-rate trip shipped so docs match the App" }]
