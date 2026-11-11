@@ -4,15 +4,22 @@
 #
 # base_water_temp / pid / control_interval / zone weight below are C4 starting
 # commission defaults — not house-proven; retune under operator HITL after epic 2 docs.
+# Mild Outdoor with defaults base=37 / slope=0.9 / comfort_ref=20 can pin SWT to
+# setpoint_min (e.g. ~10 °C → u_ff≈46, still below 50) until house HITL retunes rails.
 hvac:
   module: ha_smart_hvac
   class: HvacApp
+  outdoor_temperature: sensor.YOUR_OUTDOOR_TEMPERATURE
   plant_management: switch.YOUR_PLANT_MANAGEMENT
   plant_setpoint: number.YOUR_PLANT_SETPOINT
   setpoint_min: 50
   setpoint_max: 60
   control_interval: 300
   base_water_temp: 51
+  weather_feedforward:
+    base: 37
+    slope: 0.9
+    comfort_ref: 20
   # kp: °C water per °C air error. ki: 1/h (∫ is °C·h). i_term_*: bounds on
   # ki·∫ in °C of water — independent of control_interval.
   # When adaptive: true, also set boiler_water and all four adapted-gain rails

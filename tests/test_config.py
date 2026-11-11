@@ -1,4 +1,4 @@
-"""Config parse smoke: PID commission args; no outdoor / weather feedforward."""
+"""Config parse smoke: Outdoor + weather feedforward + PID commission args."""
 
 from __future__ import annotations
 
@@ -19,10 +19,12 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def _minimal_args() -> dict:
     return {
+        "outdoor_temperature": "sensor.outdoor",
         "plant_management": "switch.pm",
         "plant_setpoint": "number.setpoint",
         "setpoint_min": 40,
         "setpoint_max": 55,
+        "weather_feedforward": {},
         "zones": [
             {
                 "name": "living_room",
@@ -47,6 +49,10 @@ def test_parse_omitted_pid_defaults() -> None:
     config = parse_config(_minimal_args())
     assert config.control_interval == 300
     assert config.base_water_temp == pytest.approx(40.0)
+    assert config.outdoor_temperature == "sensor.outdoor"
+    assert config.weather_feedforward.base == pytest.approx(37.0)
+    assert config.weather_feedforward.slope == pytest.approx(0.9)
+    assert config.weather_feedforward.comfort_ref == pytest.approx(20.0)
     assert config.pid.kp == pytest.approx(1.0)
     assert config.pid.ki == pytest.approx(1.0)
     assert config.pid.i_term_min == pytest.approx(-10.0)
@@ -78,23 +84,30 @@ def test_parse_pid_and_weight_overrides() -> None:
 
 
 def test_parse_apps_yaml_example() -> None:
-    """Real example file parses with PID commission defaults."""
-    raw = yaml.safe_load((ROOT / "apps.yaml.example").read_text())
+    """Real example file parses with Outdoor + FF + PID commission defaults."""
+    example_text = (ROOT / "apps.yaml.example").read_text()
+    raw = yaml.safe_load(example_text)
     assert isinstance(raw, dict) and "hvac" in raw
     args = dict(raw["hvac"])
     assert args["module"] == "ha_smart_hvac"
     assert args["class"] == "HvacApp"
     assert "ladrc" not in args
     assert "tune_state_path" not in args
-    assert "outdoor_temperature" not in args
-    assert "weather_feedforward" not in args
+    assert "auto_correct" not in args.get("weather_feedforward", {})
+    assert "ff_auto_correct" not in example_text
+    assert "pin" in example_text.lower() or "mild Outdoor" in example_text
     config = parse_config(args)
     assert not hasattr(config, "ladrc")
     assert not hasattr(config, "tune_state_path")
+    assert not hasattr(config, "auto_correct")
+    assert config.outdoor_temperature == "sensor.YOUR_OUTDOOR_TEMPERATURE"
     assert config.setpoint_min == 50.0
     assert config.setpoint_max == 60.0
     assert config.control_interval == 300
     assert config.base_water_temp == pytest.approx(51.0)
+    assert config.weather_feedforward.base == pytest.approx(37.0)
+    assert config.weather_feedforward.slope == pytest.approx(0.9)
+    assert config.weather_feedforward.comfort_ref == pytest.approx(20.0)
     assert config.pid == PidConfig(
         kp=1.0, ki=1.0, i_term_min=-10.0, i_term_max=15.0, adaptive=False
     )
@@ -160,40 +173,86 @@ def test_critical_zone_swt_driver_symbols_absent() -> None:
     assert not hasattr(models, "ControlDecision")
 
 
-@pytest.mark.parametrize(
-    "module", ["ha_smart_hvac.feedforward", "ha_smart_hvac.ff_auto_correct"]
-)
-def test_weather_feedforward_modules_absent(module: str) -> None:
+def test_feedforward_module_present_auto_correct_absent() -> None:
+    importlib.import_module("ha_smart_hvac.feedforward")
     with pytest.raises(ModuleNotFoundError):
-        importlib.import_module(module)
+        importlib.import_module("ha_smart_hvac.ff_auto_correct")
 
 
-def test_config_has_no_outdoor_or_feedforward_fields() -> None:
+def test_config_has_outdoor_and_feedforward_fields() -> None:
     import ha_smart_hvac.models as models
 
     config = parse_config(_minimal_args())
-    assert not hasattr(config, "outdoor_temperature")
-    assert not hasattr(config, "weather_feedforward")
+    assert config.outdoor_temperature == "sensor.outdoor"
+    assert config.weather_feedforward.base == pytest.approx(37.0)
     assert not hasattr(config, "auto_correct")
-    assert not hasattr(models, "WeatherFeedforwardConfig")
+    assert hasattr(models, "WeatherFeedforwardConfig")
     assert not hasattr(models, "AutoCorrectConfig")
 
 
-def test_legacy_outdoor_and_feedforward_keys_ignored() -> None:
-    """Stale commissioning keys parse as unknown args, not as control inputs."""
+def test_weather_feedforward_overrides() -> None:
     args = _minimal_args()
-    args["outdoor_temperature"] = "sensor.outdoor"
-    args["weather_feedforward"] = {
-        "base": 25,
-        "slope": 1.2,
-        "comfort_ref": 20,
-        "auto_correct": {"e_sat_c_per_h": 0},
-    }
+    args["weather_feedforward"] = {"base": 25, "slope": 1.2, "comfort_ref": 18}
     config = parse_config(args)
-    assert not hasattr(config, "outdoor_temperature")
-    assert not hasattr(config, "weather_feedforward")
-    assert config.ignored_keys == ("outdoor_temperature", "weather_feedforward")
-    assert replace(config, ignored_keys=()) == parse_config(_minimal_args())
+    assert config.weather_feedforward.base == pytest.approx(25.0)
+    assert config.weather_feedforward.slope == pytest.approx(1.2)
+    assert config.weather_feedforward.comfort_ref == pytest.approx(18.0)
+
+
+def test_weather_feedforward_accepts_negative_slope() -> None:
+    args = _minimal_args()
+    args["weather_feedforward"] = {"slope": -0.5}
+    assert parse_config(args).weather_feedforward.slope == pytest.approx(-0.5)
+
+
+@pytest.mark.parametrize("key", ["base", "slope", "comfort_ref"])
+@pytest.mark.parametrize(
+    "value", [math.nan, math.inf, -math.inf, "nan", None, True, "x"]
+)
+def test_weather_feedforward_rejects_bad_numerics(key: str, value: object) -> None:
+    args = _minimal_args()
+    args["weather_feedforward"] = {key: value}
+    with pytest.raises(ConfigError, match=rf"weather_feedforward\.{key} must be"):
+        parse_config(args)
+
+
+def test_weather_feedforward_rejects_unknown_subkeys() -> None:
+    args = _minimal_args()
+    args["weather_feedforward"] = {"base": 37, "auto_correct": {}}
+    with pytest.raises(ConfigError, match="weather_feedforward unknown keys"):
+        parse_config(args)
+
+
+def test_missing_outdoor_or_feedforward_raises() -> None:
+    args = _minimal_args()
+    del args["outdoor_temperature"]
+    with pytest.raises(ConfigError, match="outdoor_temperature"):
+        parse_config(args)
+    args = _minimal_args()
+    del args["weather_feedforward"]
+    with pytest.raises(ConfigError, match="weather_feedforward"):
+        parse_config(args)
+
+
+def test_empty_outdoor_entity_rejected() -> None:
+    args = _minimal_args()
+    args["outdoor_temperature"] = ""
+    with pytest.raises(ConfigError, match="outdoor_temperature must be a non-empty"):
+        parse_config(args)
+
+
+def test_weather_feedforward_rejects_non_mapping() -> None:
+    args = _minimal_args()
+    args["weather_feedforward"] = "not-a-mapping"
+    with pytest.raises(ConfigError, match="weather_feedforward must be a mapping"):
+        parse_config(args)
+
+
+def test_outdoor_temperature_rejects_non_string() -> None:
+    args = _minimal_args()
+    args["outdoor_temperature"] = 42
+    with pytest.raises(ConfigError, match="outdoor_temperature must be a non-empty"):
+        parse_config(args)
 
 
 # --- C5 commission parse hardening (story 1.7) -------------------------------
@@ -373,16 +432,12 @@ def test_parse_omitted_base_is_default_clamped_into_bounds(
 
 def test_parse_reports_legacy_and_unknown_keys() -> None:
     args = _minimal_args()
-    args["outdoor_temperature"] = "sensor.outdoor"
-    args["weather_feedforward"] = {"base": 25}
     args["pid"] = {"integral_min": -10}
     args["foo"] = 1
     config = parse_config(args)
     assert config.ignored_keys == (
         "foo",
-        "outdoor_temperature",
         "pid.integral_min",
-        "weather_feedforward",
     )
 
 
