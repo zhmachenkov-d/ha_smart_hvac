@@ -1,6 +1,8 @@
 """Tests for outdoor weather-curve Set Water Temperature control loop."""
 
-import json
+from __future__ import annotations
+
+import ast
 import tempfile
 from pathlib import Path
 from types import SimpleNamespace
@@ -9,21 +11,13 @@ from unittest.mock import MagicMock
 import pytest
 
 from ha_smart_hvac.config import parse_config
+from ha_smart_hvac.feedforward import quantize_command
 from ha_smart_hvac.hvac_app import HvacApp
-from ha_smart_hvac.pid import quantize_command
-from ha_smart_hvac.rls import (
-    STATE_FILENAME,
-    RlsState,
-    copy_durable,
-    durable_equal,
-)
+from ha_smart_hvac.rls import STATE_FILENAME
 
 _SETPOINT_MIN = 40.0
 _SETPOINT_MAX = 55.0
 _CONTROL_INTERVAL = 300
-_BASE = 40.0
-_KP = 1.0
-_KI = 1.0
 _FF_BASE = 37.0
 _FF_SLOPE = 0.9
 _FF_COMFORT_REF = 20.0
@@ -32,10 +26,13 @@ _OUTDOOR_TEMP = 10.0  # u_ff = 37 + 0.9*(20-10) = 46.0
 _OUTDOOR = "sensor.outdoor"
 _PLANT_MGMT = "switch.pm"
 _PLANT_SETPOINT = "number.plant_setpoint"
-_BOILER_WATER = "sensor.boiler_water"
 _ZONE_TEMP = "sensor.zone_one_temp"
 _CLIMATE = "climate.zone_one"
 _ZONE_NAME = "zone_one"
+
+_HVAC_APP_PATH = (
+    Path(__file__).resolve().parents[1] / "apps" / "ha_smart_hvac" / "hvac_app.py"
+)
 
 
 def _tick_args() -> dict:
@@ -46,17 +43,10 @@ def _tick_args() -> dict:
         "setpoint_min": _SETPOINT_MIN,
         "setpoint_max": _SETPOINT_MAX,
         "control_interval": _CONTROL_INTERVAL,
-        "base_water_temp": _BASE,
         "weather_feedforward": {
             "base": _FF_BASE,
             "slope": _FF_SLOPE,
             "comfort_ref": _FF_COMFORT_REF,
-        },
-        "pid": {
-            "kp": _KP,
-            "ki": _KI,
-            "i_term_min": -10,
-            "i_term_max": 15,
         },
         "zones": [
             {
@@ -85,20 +75,12 @@ def _tick_app(
     hvac_action: str = "heating",
     plant_management: str = "on",
     outdoor: object = _OUTDOOR_TEMP,
-    boiler_water: object = 50.0,
     args: dict | None = None,
     app_dir: str | Path | None = None,
 ) -> HvacApp:
     """Hass-stubbed HvacApp for control_tick (_config only)."""
     app = object.__new__(HvacApp)
     app._config = parse_config(args if args is not None else _tick_args())
-    app._integral = 0.0
-    app._rls = RlsState()
-    app._rls_fallback_latched = False
-    app._rls_fallback_reason = None
-    app._rls_last_saved = copy_durable(app._rls)
-    app._rls_force_rewrite = False
-    app._rls_persist_fail_warned = False
     app.AD = SimpleNamespace(
         app_dir=Path(app_dir) if app_dir is not None else Path(tempfile.mkdtemp())
     )
@@ -115,8 +97,6 @@ def _tick_app(
             return zone_temp
         if entity_id == _PLANT_SETPOINT:
             return plant_setpoint
-        if entity_id == _BOILER_WATER:
-            return boiler_water
         if entity_id == _CLIMATE:
             if attribute == "temperature":
                 return setpoint
@@ -127,26 +107,6 @@ def _tick_app(
 
     app.get_state = MagicMock(side_effect=get_state)
     return app
-
-
-def _adaptive_args(
-    *,
-    kp_min: float = 0.0,
-    kp_max: float = 100.0,
-    ki_min: float = 0.0,
-    ki_max: float = 10000.0,
-) -> dict:
-    args = _tick_args()
-    args["boiler_water"] = _BOILER_WATER
-    args["pid"] = {
-        **args["pid"],
-        "adaptive": True,
-        "kp_min": kp_min,
-        "kp_max": kp_max,
-        "ki_min": ki_min,
-        "ki_max": ki_max,
-    }
-    return args
 
 
 def _set_value_writes(app: HvacApp) -> list[float]:
@@ -179,7 +139,7 @@ def _init_app(
     """Hass-stubbed app ready for initialize() (run_every + listen_state).
 
     Default plant-off so the explicit initialize control_tick is hands-off
-    (∫ stays 0, no SWT write). Override get_state for plant-on demand init tests.
+    (no SWT write). Override get_state for plant-on demand init tests.
     """
     app = object.__new__(HvacApp)
     app.args = args if args is not None else _tick_args()
@@ -200,8 +160,6 @@ def _init_app(
             return 20.0
         if entity_id == _PLANT_SETPOINT:
             return 45.0
-        if entity_id == _BOILER_WATER:
-            return 50.0
         if entity_id == _CLIMATE:
             if attribute == "temperature":
                 return 22.0
@@ -222,7 +180,6 @@ def _init_gated_get_state(
     hvac_action: str = "heating",
     plant_setpoint: object = 45.0,
     outdoor: object = _OUTDOOR_TEMP,
-    boiler_water: object = 50.0,
 ):
     """get_state side_effect for initialize under plant-on demand."""
 
@@ -235,8 +192,6 @@ def _init_gated_get_state(
             return zone_temp
         if entity_id == _PLANT_SETPOINT:
             return plant_setpoint
-        if entity_id == _BOILER_WATER:
-            return boiler_water
         if entity_id == _CLIMATE:
             if attribute == "temperature":
                 return setpoint
@@ -252,17 +207,54 @@ def _fire_control_event(app: HvacApp, entity: str = _PLANT_MGMT) -> None:
     app.control_event(entity, "state", None, "on", {})
 
 
-def test_initialize_schedules_control_tick() -> None:
-    app = _init_app()
+def test_hvac_app_does_not_import_rls_or_pid_quantize() -> None:
+    """Import-lock: live App must not pull rls or quantize_command from pid."""
+    source = _HVAC_APP_PATH.read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                assert alias.name != "ha_smart_hvac.rls"
+                assert not alias.name.startswith("ha_smart_hvac.rls.")
+                assert alias.name != "rls"
+        elif isinstance(node, ast.ImportFrom):
+            mod = node.module or ""
+            names = {alias.name for alias in node.names}
+            # Absolute: ha_smart_hvac.rls[.*]; relative: from .rls / from ..rls
+            rls_mod = mod == "ha_smart_hvac.rls" or mod.startswith("ha_smart_hvac.rls.")
+            rls_rel = node.level > 0 and (mod == "rls" or mod.startswith("rls."))
+            if rls_mod or rls_rel:
+                raise AssertionError(
+                    f"rls import forbidden: from {mod!r} level={node.level}"
+                )
+            # from ha_smart_hvac import rls; from . import rls
+            if "rls" in names and (
+                mod == "ha_smart_hvac" or (node.level > 0 and mod == "")
+            ):
+                raise AssertionError("rls import forbidden: import rls from package")
+            pid_mod = mod == "ha_smart_hvac.pid" or (node.level > 0 and mod == "pid")
+            if pid_mod:
+                assert "*" not in names
+                assert "quantize_command" not in names
+                assert "clamp" not in names
+
+
+def test_initialize_schedules_control_tick(tmp_path: Path) -> None:
+    app = _init_app(app_dir=tmp_path)
 
     app.initialize()
 
-    assert app._integral == 0.0
     assert _set_value_writes(app) == []
     app.run_every.assert_called_once()
     assert app.run_every.call_args.args[0].__func__ is HvacApp.control_tick
     assert app.run_every.call_args.args[1] == "now"
     assert app.run_every.call_args.args[2] == _CONTROL_INTERVAL
+    assert any(
+        "HVAC weather-curve SWT app initialized" in str(c.args[0])
+        for c in app.log.call_args_list
+        if c.args
+    )
+    assert not (tmp_path / STATE_FILENAME).exists()
 
 
 def test_initialize_under_demand_runs_first_tick() -> None:
@@ -273,7 +265,6 @@ def test_initialize_under_demand_runs_first_tick() -> None:
     app.initialize()
 
     assert _set_value_writes(app) == [expected]
-    assert app._integral == pytest.approx(0.0)
     app.run_every.assert_called_once()
     assert app.run_every.call_args.args[1] == "now"
     assert app.run_every.call_args.args[2] == _CONTROL_INTERVAL
@@ -288,7 +279,6 @@ def test_initialize_under_demand_plant_unreadable_skips_write() -> None:
     app.initialize()
 
     assert _set_value_writes(app) == []
-    assert app._integral == pytest.approx(0.0)
 
 
 def _err_msgs(app: HvacApp) -> list[str]:
@@ -301,9 +291,7 @@ def _err_msgs(app: HvacApp) -> list[str]:
 
 def _bad_args(path: str, value: object) -> dict:
     args = _tick_args()
-    if path.startswith("pid."):
-        args["pid"][path.removeprefix("pid.")] = value
-    elif path == "weight":
+    if path == "weight":
         args["zones"][0]["weight"] = value
     else:
         args[path] = value
@@ -314,12 +302,8 @@ def _bad_args(path: str, value: object) -> dict:
     ("path", "value"),
     [
         pytest.param("setpoint_min", "abc", id="non-numeric"),
-        pytest.param("pid.kp", float("nan"), id="non-finite"),
-        pytest.param("pid.ki", -0.1, id="negative-gain"),
         pytest.param("control_interval", 60.7, id="fractional-interval"),
         pytest.param("control_interval", 1e15, id="interval-above-one-day"),
-        pytest.param("pid.i_term_min", 1, id="i-term-excludes-zero"),
-        pytest.param("base_water_temp", 55.1, id="base-out-of-bounds"),
         pytest.param("weight", float("inf"), id="non-finite-weight"),
         pytest.param("setpoint_max", 10**400, id="overflow"),
     ],
@@ -365,8 +349,26 @@ def test_initialize_clean_args_no_warning() -> None:
 
     app.initialize()
 
-    # No config warnings; plant-off initialize tick still hands-off.
     assert _warn_msgs(app) == ["Plant Management disabled"]
+    app.run_every.assert_called_once()
+
+
+def test_initialize_warns_on_legacy_water_law_keys() -> None:
+    """Leftover pid / base_water_temp / boiler_water → top-level ignored_keys WARN."""
+    args = _tick_args()
+    args["pid"] = {"kp": 1.0, "adaptive": True}
+    args["base_water_temp"] = 51
+    args["boiler_water"] = "sensor.boiler_water"
+    app = _init_app(args=args)
+
+    app.initialize()
+
+    warns = _warn_msgs(app)
+    assert warns[0].startswith("HVAC config: ignoring legacy or unknown keys:")
+    assert "base_water_temp" in warns[0]
+    assert "boiler_water" in warns[0]
+    assert "pid" in warns[0]
+    assert "Plant Management disabled" in warns
     app.run_every.assert_called_once()
 
 
@@ -393,10 +395,6 @@ def test_critical_zone_does_not_change_swt() -> None:
 
     app = object.__new__(HvacApp)
     app._config = parse_config(args)
-    app._integral = 0.0
-    app._rls = RlsState()
-    app._rls_fallback_latched = False
-    app._rls_fallback_reason = None
     app.call_service = MagicMock()
     app.log = MagicMock()
 
@@ -455,10 +453,6 @@ def test_partial_zone_skip_uses_successful_snapshots_only() -> None:
     ]
     app = object.__new__(HvacApp)
     app._config = parse_config(args)
-    app._integral = 0.0
-    app._rls = RlsState()
-    app._rls_fallback_latched = False
-    app._rls_fallback_reason = None
     app.call_service = MagicMock()
     app.log = MagicMock()
 
@@ -514,10 +508,6 @@ def test_partial_zone_skip_unavailable_thermostat_setpoint() -> None:
     ]
     app = object.__new__(HvacApp)
     app._config = parse_config(args)
-    app._integral = 0.0
-    app._rls = RlsState()
-    app._rls_fallback_latched = False
-    app._rls_fallback_reason = None
     app.call_service = MagicMock()
     app.log = MagicMock()
 
@@ -555,482 +545,149 @@ def test_partial_zone_skip_unavailable_thermostat_setpoint() -> None:
     assert any("thermostat unavailable" in m for m in _warn_msgs(app))
 
 
-def test_plant_on_idle_writes_zero_and_clears() -> None:
+def test_plant_on_idle_writes_zero() -> None:
     app = _tick_app(zone_temp=22.0, setpoint=22.0, hvac_action="idle")
-    app._integral = 12.0
 
     app.control_tick({})
 
     assert _set_value_writes(app) == [0.0]
-    assert app._integral == 0.0
     assert "No heating demand; setpoint 0" in _info_msgs(app)
     assert not any("No heating demand" in m for m in _warn_msgs(app))
 
 
-def test_idle_write_fail_still_clears() -> None:
+def test_idle_write_fail_still_logs() -> None:
     app = _tick_app(
         zone_temp=22.0,
         setpoint=22.0,
         hvac_action="idle",
         plant_setpoint="unavailable",
     )
-    app._integral = 12.0
 
     app.control_tick({})
 
     assert _set_value_writes(app) == []
-    assert app._integral == 0.0
+    assert "No heating demand; setpoint 0" in _info_msgs(app)
     assert any("Plant setpoint unavailable" in m for m in _warn_msgs(app))
 
 
-def test_plant_off_no_write_clears() -> None:
+def test_plant_off_no_write() -> None:
     app = _tick_app(plant_management="off")
-    app._integral = 12.0
 
     app.control_tick({})
 
     assert _set_value_writes(app) == []
     app.call_service.assert_not_called()
-    assert app._integral == 0.0
+    assert "Plant Management disabled" in _warn_msgs(app)
 
 
-def test_no_valid_zones_writes_zero_and_clears() -> None:
+def test_no_valid_zones_writes_zero() -> None:
     app = _tick_app(zone_temp="unavailable")
-    app._integral = 5.0
 
     app.control_tick({})
 
     assert _set_value_writes(app) == [0.0]
-    assert app._integral == 0.0
-    assert any("No zones with valid readings this tick" in m for m in _warn_msgs(app))
+    assert any("No zones with valid readings" in m for m in _warn_msgs(app))
 
 
 def test_demand_fail_write_aborts_without_success_info() -> None:
-    app = _tick_app(
-        zone_temp=20.0,
-        setpoint=22.0,
-        plant_setpoint="unavailable",
-    )
-    app._integral = 0.5
+    app = _tick_app(plant_setpoint="unavailable")
 
     app.control_tick({})
 
     assert _set_value_writes(app) == []
-    assert not any("command=" in m for m in _info_msgs(app))
     assert any("Plant setpoint unavailable" in m for m in _warn_msgs(app))
-    # FF demand: plant-unreadable aborts write and holds ephemeral (no ∫ clear).
-    assert app._integral == pytest.approx(0.5)
+    assert not any("command=" in m for m in _info_msgs(app))
 
 
-def test_event_plant_off_no_write_clears() -> None:
+def test_event_plant_off_no_write() -> None:
     app = _tick_app(plant_management="off")
-    app._integral = 5.0
 
     _fire_control_event(app)
 
     assert _set_value_writes(app) == []
-    assert app._integral == 0.0
+    assert "Plant Management disabled" in _warn_msgs(app)
 
 
-def test_event_idle_writes_zero_clears() -> None:
+def test_event_idle_writes_zero() -> None:
     app = _tick_app(zone_temp=22.0, setpoint=22.0, hvac_action="idle")
-    app._integral = 5.0
 
     _fire_control_event(app)
 
     assert _set_value_writes(app) == [0.0]
-    assert app._integral == 0.0
+    assert "No heating demand; setpoint 0" in _info_msgs(app)
 
 
-def test_event_idle_write_fail_still_clears() -> None:
+def test_event_idle_write_fail_still_logs() -> None:
     app = _tick_app(
         zone_temp=22.0,
         setpoint=22.0,
         hvac_action="idle",
         plant_setpoint="unavailable",
     )
-    app._integral = 5.0
 
     _fire_control_event(app)
 
     assert _set_value_writes(app) == []
-    assert app._integral == 0.0
+    assert "No heating demand; setpoint 0" in _info_msgs(app)
+    assert any("Plant setpoint unavailable" in m for m in _warn_msgs(app))
     assert any("Plant setpoint unavailable" in m for m in _warn_msgs(app))
 
 
-def test_event_no_valid_zones_writes_zero_and_clears() -> None:
+def test_event_no_valid_zones_writes_zero() -> None:
     app = _tick_app(zone_temp="unavailable")
-    app._integral = 5.0
 
     _fire_control_event(app)
 
     assert _set_value_writes(app) == [0.0]
-    assert app._integral == 0.0
+    assert any("No zones with valid readings" in m for m in _warn_msgs(app))
 
 
-def _write_stub(raw_state: object) -> HvacApp:
-    """Minimal Hass surface for HvacApp._write_setpoint / _read_float."""
-    app = object.__new__(HvacApp)
-    app._config = SimpleNamespace(plant_setpoint=_PLANT_SETPOINT)
-    app.get_state = MagicMock(return_value=raw_state)
-    app.call_service = MagicMock()
-    app.log = MagicMock()
-    return app
-
-
-@pytest.mark.parametrize(
-    "raw_state",
-    [42.0, "42.0", 42],
-)
+@pytest.mark.parametrize("raw_state", [45.0, "45.0", 45])
 def test_write_setpoint_skips_set_value_when_entity_float_equals(raw_state):
-    app = _write_stub(raw_state)
-
-    ok = HvacApp._write_setpoint(app, 42.0)
-
-    assert ok is True
-    app.call_service.assert_not_called()
+    app = _tick_app(plant_setpoint=raw_state)
+    assert app._write_setpoint(45.0) is True
+    assert _set_value_writes(app) == []
 
 
 def test_write_setpoint_calls_set_value_when_entity_float_differs():
-    app = _write_stub(40.0)
-
-    ok = HvacApp._write_setpoint(app, 42.0)
-
-    assert ok is True
-    app.call_service.assert_called_once_with(
-        "number/set_value",
-        entity_id=_PLANT_SETPOINT,
-        value=42.0,
-    )
+    app = _tick_app(plant_setpoint=40.0)
+    assert app._write_setpoint(45.0) is True
+    assert _set_value_writes(app) == [45.0]
 
 
 @pytest.mark.parametrize(
     "raw_state",
-    [None, "unavailable", "unknown", "not-a-float", object(), "nan", float("nan")],
+    [None, "unavailable", "unknown", "nan", "abc", float("nan"), object()],
 )
 def test_write_setpoint_fail_closed_when_entity_unreadable(raw_state):
-    app = _write_stub(raw_state)
-
-    ok = HvacApp._write_setpoint(app, 42.0)
-
-    assert ok is False
-    app.call_service.assert_not_called()
+    app = _tick_app(plant_setpoint=raw_state)
+    assert app._write_setpoint(45.0) is False
+    assert _set_value_writes(app) == []
 
 
 def test_non_finite_zone_temp_skips_zone_like_unavailable() -> None:
-    app = _tick_app(zone_temp=float("nan"), plant_setpoint=45.0)
-    app._integral = 5.0
+    app = _tick_app(zone_temp=float("nan"))
 
     app.control_tick({})
 
     assert _set_value_writes(app) == [0.0]
-    assert app._integral == 0.0
+    assert any("No zones with valid readings" in m for m in _warn_msgs(app))
 
 
-# --- RLS adaptive on control_tick (tracer) -----------------------------------
-
-
-def test_initialize_creates_rls_state() -> None:
-    app = _init_app()
-    app.initialize()
-    assert isinstance(app._rls, RlsState)
-    assert app._rls.theta == [0.0, 0.0]
-    assert app._rls_fallback_latched is False
-    assert app._rls_fallback_reason is None
-
-
-def test_initialize_logs_legacy_ki_warning_once() -> None:
-    args = _tick_args()
-    args["pid"]["ki"] = 0.2
-    app = _init_app(args=args)
-    app.initialize()
-    warns = [m for m in _warn_msgs(app) if "legacy" in m and "pid.ki" in m]
-    assert len(warns) == 1
-    assert app._config.pid.legacy_ki_warning is True
-
-
-@pytest.mark.parametrize(
-    ("clear_mode", "expect_zero_write"),
-    [
-        ("idle", True),
-        ("plant_off", False),
-        ("no_zones", True),
-    ],
-)
-def test_clear_wipes_y_prev_keeps_rls_bookkeeping(
-    clear_mode: str, expect_zero_write: bool
-) -> None:
-    kwargs: dict = {
-        "zone_temp": 20.0,
-        "setpoint": 22.0,
-        "plant_setpoint": 45.0,
-        "boiler_water": 50.0,
-        "args": _adaptive_args(),
-    }
-    if clear_mode == "idle":
-        kwargs["hvac_action"] = "idle"
-    elif clear_mode == "plant_off":
-        kwargs["plant_management"] = "off"
-    else:
-        kwargs["zone_temp"] = "unavailable"
-    app = _tick_app(**kwargs)
-    app._integral = 12.0
-    app._rls.y_prev = 50.0
-    app._rls.last_u = 42.0
-    app._rls.theta = [0.8, 0.2]
-    app._rls.p = [[1.0, 0.1], [0.1, 2.0]]
-    app._rls.adapted_kp = 2.0
-    app._rls.adapted_ki = 0.5
-
-    app.control_tick({})
-
-    assert app._rls.y_prev is None
-    assert app._rls.last_u == pytest.approx(42.0)
-    assert app._rls.theta == [0.8, 0.2]
-    assert app._rls.p == [[1.0, 0.1], [0.1, 2.0]]
-    assert app._rls.adapted_kp == pytest.approx(2.0)
-    assert app._rls.adapted_ki == pytest.approx(0.5)
-    assert app._integral == 0.0
-    if expect_zero_write:
-        assert _set_value_writes(app) == [0.0]
-    else:
-        assert _set_value_writes(app) == []
-
-
-# --- RLS state JSON persistence ----------------------------------------------
-
-
-def _rls_path(app: HvacApp) -> Path:
-    return Path(app.app_dir) / STATE_FILENAME
-
-
-def _write_valid_rls_json(
-    path: Path,
-    *,
-    theta: list[float] | None = None,
-    p: list[list[float]] | None = None,
-    last_u: float | None = 45.0,
-    adapted_kp: float | None = 1.5,
-    adapted_ki: float | None = 12.0,
-    extra: dict | None = None,
-) -> None:
-    payload = {
-        "version": 1,
-        "theta": theta if theta is not None else [0.9, 0.1],
-        "p": p if p is not None else [[1.0, 0.0], [0.0, 1.0]],
-        "last_u": last_u,
-        "adapted_kp": adapted_kp,
-        "adapted_ki": adapted_ki,
-    }
-    if extra:
-        payload.update(extra)
-    path.write_text(json.dumps(payload), encoding="utf-8")
-
-
-def test_initialize_loads_valid_rls_state(tmp_path: Path) -> None:
-    path = tmp_path / STATE_FILENAME
-    _write_valid_rls_json(path)
-    app = _init_app(args=_adaptive_args(), app_dir=tmp_path)
-    app.initialize()
-
-    assert app._rls.theta == [0.9, 0.1]
-    assert app._rls.p == [[1.0, 0.0], [0.0, 1.0]]
-    assert app._rls.last_u == pytest.approx(45.0)
-    assert app._rls.adapted_kp == pytest.approx(1.5)
-    assert app._rls.adapted_ki == pytest.approx(12.0)
-    assert app._rls.y_prev is None
-    assert app._rls_fallback_latched is False
-    assert app._rls_force_rewrite is False
-    assert durable_equal(app._rls_last_saved, copy_durable(app._rls))
-    assert any("Loaded RLS state" in m for m in _info_msgs(app))
-
-
-def test_initialize_missing_rls_state_silent_cold(tmp_path: Path) -> None:
-    app = _init_app(args=_adaptive_args(), app_dir=tmp_path)
-    app.initialize()
-
-    assert app._rls.theta == [0.0, 0.0]
-    assert app._rls_force_rewrite is False
-    assert not any("RLS state" in m for m in _warn_msgs(app))
-    assert not any("Loaded RLS state" in m for m in _info_msgs(app))
-
-
-def test_initialize_corrupt_rls_sets_force(tmp_path: Path) -> None:
-    path = tmp_path / STATE_FILENAME
-    path.write_text("{not json", encoding="utf-8")
-    app = _init_app(args=_adaptive_args(), app_dir=tmp_path)
-    app.initialize()
-
-    assert app._rls.theta == [0.0, 0.0]
-    assert app._rls_force_rewrite is True
-    assert any("unusable RLS state" in m for m in _warn_msgs(app))
-
-
-def test_initialize_imc_invalid_theta_sets_force(tmp_path: Path) -> None:
-    path = tmp_path / STATE_FILENAME
-    _write_valid_rls_json(path, theta=[0.0, 0.1])  # a1 not in (0,1)
-    app = _init_app(args=_adaptive_args(), app_dir=tmp_path)
-    app.initialize()
-
-    assert app._rls.theta == [0.0, 0.0]
-    assert app._rls_force_rewrite is True
-    assert any("IMC-invalid" in m for m in _warn_msgs(app))
-
-
-def test_initialize_adapted_drop_reason_and_force(tmp_path: Path) -> None:
-    path = tmp_path / STATE_FILENAME
-    _write_valid_rls_json(path, adapted_kp=1.5, adapted_ki=None)
-    app = _init_app(args=_adaptive_args(), app_dir=tmp_path)
-    app.initialize()
-
-    assert app._rls.theta == [0.9, 0.1]
-    assert app._rls.adapted_kp is None
-    assert app._rls.adapted_ki is None
-    assert app._rls_force_rewrite is True
-    assert app._rls_fallback_latched is False
-    assert sum(1 for m in _warn_msgs(app) if "mismatch" in m) == 1
-    assert any("Loaded RLS state" in m for m in _info_msgs(app))
-
-
-def test_force_rewrite_stays_set_ff_demand_does_not_persist(
-    tmp_path: Path,
-) -> None:
-    """FF demand path does not call persist; force flag and disk stay as after load."""
-    path = tmp_path / STATE_FILENAME
-    _write_valid_rls_json(path, adapted_kp=1.5, adapted_ki=None)
-    before = path.read_text()
-    app = _init_app(args=_adaptive_args(), app_dir=tmp_path)
-    app.initialize()
-    assert app._rls_force_rewrite is True
-    assert app._rls.adapted_kp is None
-    last_u_before = 42.0
-    app._rls.last_u = last_u_before
-
-    app.get_state = MagicMock(
-        side_effect=lambda entity_id, attribute=None: {
-            _PLANT_MGMT: "on",
-            _OUTDOOR: _OUTDOOR_TEMP,
-            _ZONE_TEMP: 20.04,
-            _PLANT_SETPOINT: 42.0,
-            _BOILER_WATER: 50.0,
-            _CLIMATE: (
-                22.0
-                if attribute == "temperature"
-                else ("heating" if attribute == "hvac_action" else "heat")
-            ),
-        }.get(entity_id)
-    )
-    app.call_service = MagicMock()
-
-    app.control_tick({})
-
-    assert app._rls_force_rewrite is True
-    assert app._rls.last_u == last_u_before
-    assert path.read_text() == before
-
-
-def test_initialize_adapted_out_of_rail_drop(tmp_path: Path) -> None:
-    path = tmp_path / STATE_FILENAME
-    _write_valid_rls_json(path, adapted_kp=999.0, adapted_ki=1.0)
-    app = _init_app(
-        args=_adaptive_args(kp_min=0.0, kp_max=10.0, ki_min=0.0, ki_max=100.0),
-        app_dir=tmp_path,
-    )
-    app.initialize()
-
-    assert app._rls.adapted_kp is None
-    assert app._rls_force_rewrite is True
-    assert sum(1 for m in _warn_msgs(app) if "out_of_rail" in m) == 1
-
-
-def test_initialize_unknown_keys_ignored(tmp_path: Path) -> None:
-    path = tmp_path / STATE_FILENAME
-    _write_valid_rls_json(path, extra={"y_prev": 50.0, "noise": True})
-    app = _init_app(args=_adaptive_args(), app_dir=tmp_path)
-    app.initialize()
-
-    assert app._rls.y_prev is None
-    assert app._rls.theta == [0.9, 0.1]
-    assert any("Loaded RLS state" in m for m in _info_msgs(app))
-
-
-def test_initialize_adaptive_off_skips_load(tmp_path: Path) -> None:
-    path = tmp_path / STATE_FILENAME
-    _write_valid_rls_json(path)
-    app = _init_app(args=_tick_args(), app_dir=tmp_path)
-    app.initialize()
-
-    assert app._rls.theta == [0.0, 0.0]
-    assert not any("Loaded RLS state" in m for m in _info_msgs(app))
-
-
-def test_load_missing_race_after_is_file_is_silent_cold(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    path = tmp_path / STATE_FILENAME
-    path.write_text("{}", encoding="utf-8")
-    app = _init_app(args=_adaptive_args(), app_dir=tmp_path)
-
-    real_is_file = Path.is_file
-    seen = {"n": 0}
-
-    def _is_file(self: Path) -> bool:
-        if self == path:
-            seen["n"] += 1
-            if seen["n"] == 1:
-                return True
-            return False
-        return real_is_file(self)
-
-    monkeypatch.setattr(Path, "is_file", _is_file)
-    monkeypatch.setattr("ha_smart_hvac.hvac_app.load_rls_state", lambda *_a, **_k: None)
-
-    app.initialize()
-
-    assert app._rls.theta == [0.0, 0.0]
-    assert app._rls_force_rewrite is False
-    assert not any("Ignoring unusable" in m for m in _warn_msgs(app))
-
-
-def test_initialize_after_latched_restores_adapted_clears_latch(
-    tmp_path: Path,
-) -> None:
-    path = tmp_path / STATE_FILENAME
-    _write_valid_rls_json(path)
-    app = _init_app(args=_adaptive_args(), app_dir=tmp_path)
-    app.initialize()
-    app._rls_fallback_latched = True
-    app._rls_fallback_reason = "out_of_band"
-    # Simulate App reload after a latched episode.
-    app.initialize()
-    assert app._rls_fallback_latched is False
-    assert app._rls_fallback_reason is None
-    assert app._rls.adapted_kp == pytest.approx(1.5)
-    assert app._rls.adapted_ki == pytest.approx(12.0)
-
-
-# --- Weather FF demand Behavior & acceptance (entry 1) ---
-
-
-def test_demand_tick_writes_ff_command_no_integral_no_rls() -> None:
-    app = _tick_app(plant_setpoint=45.0)
-    app._integral = 1.5
-    app._rls.last_u = 41.0
-    app._rls.y_prev = 50.0
+def test_demand_tick_writes_ff_command_no_rls_state(tmp_path: Path) -> None:
+    app = _tick_app(plant_setpoint=45.0, app_dir=tmp_path)
     expected = _expected_command()
 
     app.control_tick({})
 
     assert _set_value_writes(app) == [expected]
-    assert app._integral == pytest.approx(1.5)
-    assert app._rls.last_u == pytest.approx(41.0)
-    assert app._rls.y_prev == pytest.approx(50.0)
     joined = " ".join(_info_msgs(app))
     assert f"outdoor={_OUTDOOR_TEMP:.2f}" in joined
     assert f"u_ff={_u_ff():.2f}" in joined
     assert f"command={expected}" in joined
     assert "u_pid=" not in joined
     assert ", e=" not in joined and not joined.startswith("e=")
+    assert not (tmp_path / STATE_FILENAME).exists()
 
 
 def test_demand_tick_pins_mild_outdoor_to_example_min_rail() -> None:
@@ -1038,7 +695,6 @@ def test_demand_tick_pins_mild_outdoor_to_example_min_rail() -> None:
     args = _tick_args()
     args["setpoint_min"] = 50
     args["setpoint_max"] = 60
-    args["base_water_temp"] = 51  # stay inside new rails (parse only)
     app = _tick_app(plant_setpoint=45.0, outdoor=10.0, args=args)
 
     app.control_tick({})
@@ -1061,14 +717,14 @@ def test_demand_tick_pins_cold_outdoor_to_max_rail() -> None:
     assert "command=55.0" in joined
 
 
-def test_demand_event_writes_ff_same_as_tick() -> None:
-    app = _tick_app(plant_setpoint=45.0)
+def test_demand_event_writes_ff_same_as_tick(tmp_path: Path) -> None:
+    app = _tick_app(plant_setpoint=45.0, app_dir=tmp_path)
     expected = _expected_command()
 
     _fire_control_event(app)
 
     assert _set_value_writes(app) == [expected]
-    assert app._integral == pytest.approx(0.0)
+    assert not (tmp_path / STATE_FILENAME).exists()
 
 
 def test_outdoor_event_under_demand_refreshes_command() -> None:
@@ -1078,7 +734,7 @@ def test_outdoor_event_under_demand_refreshes_command() -> None:
 
     app.call_service.reset_mock()
     app.log.reset_mock()
-    # colder outdoor → higher u_ff
+
     app.get_state = MagicMock(
         side_effect=_init_gated_get_state(outdoor=0.0, plant_setpoint=45.0)
     )
@@ -1092,7 +748,7 @@ def test_zone_air_event_under_held_demand_refreshes_ff() -> None:
     app = _tick_app(plant_setpoint=45.0, outdoor=10.0)
     app.control_tick({})
     app.call_service.reset_mock()
-    # Change outdoor via get_state while firing zone-air event — FF uses re-read.
+
     app.get_state = MagicMock(
         side_effect=_init_gated_get_state(outdoor=5.0, plant_setpoint=45.0)
     )
@@ -1117,17 +773,14 @@ def test_weights_unusable_under_demand_still_writes_ff() -> None:
     app.control_tick({})
 
     assert _set_value_writes(app) == [expected]
-    assert app._integral == pytest.approx(0.0)
 
 
 def test_outdoor_unavailable_goes_idle() -> None:
     app = _tick_app(plant_setpoint=45.0, outdoor="unavailable")
-    app._integral = 3.0
 
     app.control_tick({})
 
     assert _set_value_writes(app) == [0.0]
-    assert app._integral == 0.0
     assert any(
         f"Outdoor temperature unavailable: {_OUTDOOR}" in m for m in _warn_msgs(app)
     )
@@ -1135,12 +788,10 @@ def test_outdoor_unavailable_goes_idle() -> None:
 
 def test_outdoor_miss_plant_unreadable_clears_no_success_log() -> None:
     app = _tick_app(plant_setpoint="unavailable", outdoor="unavailable")
-    app._integral = 3.0
 
     app.control_tick({})
 
     assert _set_value_writes(app) == []
-    assert app._integral == 0.0
     assert any("Plant setpoint unavailable" in m for m in _warn_msgs(app))
     assert any(
         f"Outdoor temperature unavailable: {_OUTDOOR}" in m for m in _warn_msgs(app)
@@ -1150,15 +801,13 @@ def test_outdoor_miss_plant_unreadable_clears_no_success_log() -> None:
 
 def test_plant_off_outdoor_unavailable_no_write_no_outdoor_idle() -> None:
     app = _tick_app(plant_management="off", outdoor="unavailable")
-    app._integral = 4.0
 
     app.control_tick({})
 
     assert _set_value_writes(app) == []
-    assert app._integral == 0.0
     assert "Plant Management disabled" in _warn_msgs(app)
     assert all("Outdoor temperature unavailable" not in m for m in _warn_msgs(app))
-    # plant-off must not read Outdoor
+
     assert all(
         (not c.args) or c.args[0] != _OUTDOOR for c in app.get_state.call_args_list
     )
@@ -1167,27 +816,19 @@ def test_plant_off_outdoor_unavailable_no_write_no_outdoor_idle() -> None:
 def test_equal_float_ff_skip_still_logs_success() -> None:
     expected = _expected_command()
     app = _tick_app(plant_setpoint=expected)
-    app._integral = 2.0
-    app._rls.last_u = 40.0
 
     app.control_tick({})
 
     assert _set_value_writes(app) == []
-    assert app._integral == pytest.approx(2.0)
-    assert app._rls.last_u == pytest.approx(40.0)
     assert any(f"command={expected}" in m for m in _info_msgs(app))
 
 
-def test_plant_unreadable_on_demand_no_success_log_holds_ephemeral() -> None:
+def test_plant_unreadable_on_demand_no_success_log() -> None:
     app = _tick_app(plant_setpoint="unavailable")
-    app._integral = 0.5
-    app._rls.last_u = 40.0
 
     app.control_tick({})
 
     assert _set_value_writes(app) == []
-    assert app._integral == pytest.approx(0.5)
-    assert app._rls.last_u == pytest.approx(40.0)
     assert any("Plant setpoint unavailable" in m for m in _warn_msgs(app))
     assert not any("command=" in m for m in _info_msgs(app))
 
@@ -1197,12 +838,10 @@ def test_non_finite_u_ff_goes_idle(monkeypatch: pytest.MonkeyPatch) -> None:
 
     monkeypatch.setattr(hvac_mod, "weather_feedforward", lambda *_a, **_k: float("nan"))
     app = _tick_app(plant_setpoint=45.0)
-    app._integral = 2.0
 
     app.control_tick({})
 
     assert _set_value_writes(app) == [0.0]
-    assert app._integral == 0.0
     assert any("Non-finite weather feedforward" in m for m in _warn_msgs(app))
 
 
@@ -1213,7 +852,6 @@ def test_init_outdoor_unavailable_goes_idle() -> None:
     app.initialize()
 
     assert _set_value_writes(app) == [0.0]
-    assert app._integral == 0.0
     assert any(
         f"Outdoor temperature unavailable: {_OUTDOOR}" in m for m in _warn_msgs(app)
     )
@@ -1229,23 +867,3 @@ def test_initialize_registers_outdoor_listener() -> None:
     }
     assert _OUTDOOR in entity_only
     assert _PLANT_MGMT in entity_only
-
-
-def test_adaptive_ff_demand_does_not_step_or_persist_rls(tmp_path: Path) -> None:
-    args = _adaptive_args()
-    app = _tick_app(plant_setpoint=45.0, args=args, app_dir=tmp_path)
-    app._config = parse_config(args)
-    # Step-ready priors: a re-wired _maybe_rls_step would mutate θ/P and y_prev.
-    app._rls.last_u = 40.0
-    app._rls.y_prev = 48.0
-    app._rls.theta = [0.8, 0.2]
-    app._rls.p = [[1.0, 0.1], [0.1, 2.0]]
-    app._rls.adapted_kp = 2.0
-    app._rls.adapted_ki = 0.5
-    before = copy_durable(app._rls)
-
-    app.control_tick({})
-
-    assert durable_equal(copy_durable(app._rls), before)
-    assert app._rls.y_prev == pytest.approx(48.0)
-    assert not (tmp_path / STATE_FILENAME).exists()

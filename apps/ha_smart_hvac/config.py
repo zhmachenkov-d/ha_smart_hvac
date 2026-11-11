@@ -7,7 +7,6 @@ from typing import Any
 
 from ha_smart_hvac.models import (
     HvacConfig,
-    PidConfig,
     WeatherFeedforwardConfig,
     ZoneConfig,
 )
@@ -19,7 +18,6 @@ class ConfigError(ValueError):
 
 _REQUIRED = object()
 
-_DEFAULT_BASE_WATER_TEMP = 40.0
 _DEFAULT_FF_BASE = 37.0
 _DEFAULT_FF_SLOPE = 0.9
 _DEFAULT_FF_COMFORT_REF = 20.0
@@ -36,9 +34,6 @@ _KNOWN_KEYS = frozenset(
         "setpoint_min",
         "setpoint_max",
         "control_interval",
-        "base_water_temp",
-        "boiler_water",
-        "pid",
         "weather_feedforward",
         "zones",
     }
@@ -46,21 +41,6 @@ _KNOWN_KEYS = frozenset(
 
 # Keys _parse_weather_feedforward reads under ``weather_feedforward``.
 _FF_KEYS = frozenset({"base", "slope", "comfort_ref"})
-
-# Keys _parse_pid reads under ``pid``.
-_PID_KEYS = frozenset(
-    {
-        "kp",
-        "ki",
-        "i_term_min",
-        "i_term_max",
-        "adaptive",
-        "kp_min",
-        "kp_max",
-        "ki_min",
-        "ki_max",
-    }
-)
 
 # Keys _parse_zone reads under each zone mapping.
 _ZONE_KEYS = frozenset({"name", "temperature", "thermostats", "weight"})
@@ -152,91 +132,6 @@ def _parse_zone(raw: Any) -> ZoneConfig:
     )
 
 
-def _parse_adaptive(raw: dict[str, Any]) -> bool:
-    """YAML bool only; omitted → False. Rejects strings/ints/None."""
-    if "adaptive" not in raw:
-        return False
-    value = raw["adaptive"]
-    if not isinstance(value, bool):
-        raise ConfigError("pid.adaptive must be a boolean")
-    return value
-
-
-def _parse_boiler_water(args: dict[str, Any], *, adaptive: bool) -> str | None:
-    """Top-level boiler_water; required (strip nonempty) when adaptive is on."""
-    if "boiler_water" not in args:
-        if adaptive:
-            raise ConfigError(
-                "boiler_water must be a non-empty entity id when pid.adaptive is true"
-            )
-        return None
-    raw = args["boiler_water"]
-    if isinstance(raw, str) and raw.strip():
-        return raw.strip()
-    if adaptive:
-        raise ConfigError(
-            "boiler_water must be a non-empty entity id when pid.adaptive is true"
-        )
-    return None
-
-
-def _parse_rail(raw: dict[str, Any], key: str, *, required: bool) -> float | None:
-    """Finite ≥0 rail; required when adaptive, else optional."""
-    label = f"pid.{key}"
-    if key not in raw:
-        if required:
-            raise ConfigError(f"{label} is required when pid.adaptive is true")
-        return None
-    value = _number(raw, key, label=label)
-    if value < 0:
-        raise ConfigError(f"{label} must be >= 0")
-    return value
-
-
-def _parse_pid(raw: Any) -> PidConfig:
-    """Parse optional pid nest; missing keys → C4 starting commission defaults."""
-    if raw is None:
-        return PidConfig()
-    if not isinstance(raw, dict):
-        raise ConfigError("pid must be a mapping")
-    defaults = PidConfig()
-    kp = _number(raw, "kp", defaults.kp, label="pid.kp")
-    ki = _number(raw, "ki", defaults.ki, label="pid.ki")
-    i_term_min = _number(raw, "i_term_min", defaults.i_term_min, label="pid.i_term_min")
-    i_term_max = _number(raw, "i_term_max", defaults.i_term_max, label="pid.i_term_max")
-    adaptive = _parse_adaptive(raw)
-    if kp < 0:
-        raise ConfigError("pid.kp must be >= 0")
-    if ki < 0:
-        raise ConfigError("pid.ki must be >= 0")
-    if i_term_min >= i_term_max:
-        raise ConfigError("pid.i_term_min must be less than i_term_max")
-    if not i_term_min <= 0 <= i_term_max:
-        raise ConfigError("pid.i_term_min must be <= 0 and pid.i_term_max must be >= 0")
-    # Explicit 0 < ki < 1 → legacy per-second scale WARNING flag (still parse).
-    legacy_ki_warning = "ki" in raw and 0.0 < ki < 1.0
-    kp_min = _parse_rail(raw, "kp_min", required=adaptive)
-    kp_max = _parse_rail(raw, "kp_max", required=adaptive)
-    ki_min = _parse_rail(raw, "ki_min", required=adaptive)
-    ki_max = _parse_rail(raw, "ki_max", required=adaptive)
-    if kp_min is not None and kp_max is not None and kp_min > kp_max:
-        raise ConfigError("pid.kp_min must be <= pid.kp_max")
-    if ki_min is not None and ki_max is not None and ki_min > ki_max:
-        raise ConfigError("pid.ki_min must be <= pid.ki_max")
-    return PidConfig(
-        kp=kp,
-        ki=ki,
-        i_term_min=i_term_min,
-        i_term_max=i_term_max,
-        adaptive=adaptive,
-        kp_min=kp_min,
-        kp_max=kp_max,
-        ki_min=ki_min,
-        ki_max=ki_max,
-        legacy_ki_warning=legacy_ki_warning,
-    )
-
-
 def _parse_weather_feedforward(raw: Any) -> WeatherFeedforwardConfig:
     """Require a mapping; omitted numerics → commission defaults; whitelist keys."""
     if not isinstance(raw, dict):
@@ -263,15 +158,12 @@ def _is_appdaemon_key(key: str) -> bool:
 
 
 def _ignored_keys(args: dict[Any, Any]) -> tuple[str, ...]:
-    """Unknown top-level, ``pid.*``, and zone sub-keys (AppDaemon keys excepted)."""
+    """Unknown top-level and zone sub-keys (AppDaemon keys excepted)."""
     ignored = [
         str(k)
         for k in args
         if str(k) not in _KNOWN_KEYS and not _is_appdaemon_key(str(k))
     ]
-    pid_raw = args.get("pid")
-    if isinstance(pid_raw, dict):
-        ignored.extend(f"pid.{k}" for k in pid_raw if str(k) not in _PID_KEYS)
     zones_raw = args.get("zones")
     if isinstance(zones_raw, list):
         for index, zone in enumerate(zones_raw):
@@ -313,17 +205,6 @@ def parse_config(args: dict[str, Any]) -> HvacConfig:
             f"control_interval must be at most {_MAX_CONTROL_INTERVAL} seconds"
         )
 
-    if "base_water_temp" in args:
-        base_water_temp = _number(args, "base_water_temp")
-        if not setpoint_min <= base_water_temp <= setpoint_max:
-            raise ConfigError(
-                "base_water_temp must be within setpoint_min..setpoint_max "
-                f"({setpoint_min:g}..{setpoint_max:g})"
-            )
-    else:
-        base_water_temp = min(max(_DEFAULT_BASE_WATER_TEMP, setpoint_min), setpoint_max)
-    pid = _parse_pid(args.get("pid"))
-    boiler_water = _parse_boiler_water(args, adaptive=pid.adaptive)
     weather_feedforward = _parse_weather_feedforward(
         _require(args, "weather_feedforward")
     )
@@ -339,10 +220,7 @@ def parse_config(args: dict[str, Any]) -> HvacConfig:
         setpoint_min=setpoint_min,
         setpoint_max=setpoint_max,
         control_interval=control_interval,
-        base_water_temp=base_water_temp,
-        pid=pid,
         weather_feedforward=weather_feedforward,
         zones=tuple(_parse_zone(z) for z in zones_raw),
-        boiler_water=boiler_water,
         ignored_keys=_ignored_keys(args),
     )
