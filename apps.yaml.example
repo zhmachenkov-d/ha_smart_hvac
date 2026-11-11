@@ -12,7 +12,7 @@ hvac:
   setpoint_min: 50
   setpoint_max: 60
   control_interval: 300
-  base_water_temp: 40
+  base_water_temp: 51
   # kp: °C water per °C air error. ki: 1/h (∫ is °C·h). i_term_*: bounds on
   # ki·∫ in °C of water — independent of control_interval.
   # When adaptive: true, also set boiler_water and all four adapted-gain rails
