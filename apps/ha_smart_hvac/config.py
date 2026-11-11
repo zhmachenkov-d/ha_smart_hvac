@@ -8,6 +8,7 @@ from typing import Any
 from ha_smart_hvac.models import (
     HvacConfig,
     PidConfig,
+    WeatherFeedforwardConfig,
     ZoneConfig,
 )
 
@@ -19,6 +20,9 @@ class ConfigError(ValueError):
 _REQUIRED = object()
 
 _DEFAULT_BASE_WATER_TEMP = 40.0
+_DEFAULT_FF_BASE = 37.0
+_DEFAULT_FF_SLOPE = 0.9
+_DEFAULT_FF_COMFORT_REF = 20.0
 
 # One day; also keeps run_every's timedelta from overflowing.
 _MAX_CONTROL_INTERVAL = 86400
@@ -26,6 +30,7 @@ _MAX_CONTROL_INTERVAL = 86400
 # Top-level keys parse_config reads.
 _KNOWN_KEYS = frozenset(
     {
+        "outdoor_temperature",
         "plant_management",
         "plant_setpoint",
         "setpoint_min",
@@ -34,9 +39,13 @@ _KNOWN_KEYS = frozenset(
         "base_water_temp",
         "boiler_water",
         "pid",
+        "weather_feedforward",
         "zones",
     }
 )
+
+# Keys _parse_weather_feedforward reads under ``weather_feedforward``.
+_FF_KEYS = frozenset({"base", "slope", "comfort_ref"})
 
 # Keys _parse_pid reads under ``pid``.
 _PID_KEYS = frozenset(
@@ -228,6 +237,27 @@ def _parse_pid(raw: Any) -> PidConfig:
     )
 
 
+def _parse_weather_feedforward(raw: Any) -> WeatherFeedforwardConfig:
+    """Require a mapping; omitted numerics → commission defaults; whitelist keys."""
+    if not isinstance(raw, dict):
+        raise ConfigError("weather_feedforward must be a mapping")
+    unknown = sorted(str(k) for k in raw if str(k) not in _FF_KEYS)
+    if unknown:
+        raise ConfigError("weather_feedforward unknown keys: " + ", ".join(unknown))
+    return WeatherFeedforwardConfig(
+        base=_number(raw, "base", _DEFAULT_FF_BASE, label="weather_feedforward.base"),
+        slope=_number(
+            raw, "slope", _DEFAULT_FF_SLOPE, label="weather_feedforward.slope"
+        ),
+        comfort_ref=_number(
+            raw,
+            "comfort_ref",
+            _DEFAULT_FF_COMFORT_REF,
+            label="weather_feedforward.comfort_ref",
+        ),
+    )
+
+
 def _is_appdaemon_key(key: str) -> bool:
     return key in _APPDAEMON_KEYS or key.startswith(_APPDAEMON_PREFIX)
 
@@ -257,8 +287,11 @@ def _ignored_keys(args: dict[Any, Any]) -> tuple[str, ...]:
 
 def parse_config(args: dict[str, Any]) -> HvacConfig:
     """Parse AppDaemon app arguments into a validated HvacConfig."""
+    outdoor_temperature = _require(args, "outdoor_temperature")
     plant_management = _require(args, "plant_management")
     plant_setpoint = _require(args, "plant_setpoint")
+    if not isinstance(outdoor_temperature, str) or not outdoor_temperature:
+        raise ConfigError("outdoor_temperature must be a non-empty entity id")
     if not isinstance(plant_management, str) or not plant_management:
         raise ConfigError("plant_management must be a non-empty entity id")
     if not isinstance(plant_setpoint, str) or not plant_setpoint:
@@ -291,12 +324,16 @@ def parse_config(args: dict[str, Any]) -> HvacConfig:
         base_water_temp = min(max(_DEFAULT_BASE_WATER_TEMP, setpoint_min), setpoint_max)
     pid = _parse_pid(args.get("pid"))
     boiler_water = _parse_boiler_water(args, adaptive=pid.adaptive)
+    weather_feedforward = _parse_weather_feedforward(
+        _require(args, "weather_feedforward")
+    )
 
     zones_raw = _require(args, "zones")
     if not isinstance(zones_raw, list) or not zones_raw:
         raise ConfigError("zones must be a non-empty list")
 
     return HvacConfig(
+        outdoor_temperature=outdoor_temperature,
         plant_management=plant_management,
         plant_setpoint=plant_setpoint,
         setpoint_min=setpoint_min,
@@ -304,6 +341,7 @@ def parse_config(args: dict[str, Any]) -> HvacConfig:
         control_interval=control_interval,
         base_water_temp=base_water_temp,
         pid=pid,
+        weather_feedforward=weather_feedforward,
         zones=tuple(_parse_zone(z) for z in zones_raw),
         boiler_water=boiler_water,
         ignored_keys=_ignored_keys(args),

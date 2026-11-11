@@ -1,4 +1,4 @@
-"""HVAC App — fixed-gain PID Set Water Temperature loop."""
+"""HVAC App — outdoor weather-curve Set Water Temperature loop."""
 
 from __future__ import annotations
 
@@ -9,13 +9,14 @@ import appdaemon.plugins.hass.hassapi as hass
 
 from ha_smart_hvac.config import ConfigError, parse_config
 from ha_smart_hvac.coordinator import has_heating_demand, select_max_error_demand_zone
+from ha_smart_hvac.feedforward import weather_feedforward
 from ha_smart_hvac.models import (
     HvacConfig,
     ThermostatReading,
     ZoneSnapshot,
     plant_management_enabled,
 )
-from ha_smart_hvac.pid import PidResult, evaluate_demand, weighted_error
+from ha_smart_hvac.pid import quantize_command
 from ha_smart_hvac.rls import (
     STATE_FILENAME,
     RlsDurableSnapshot,
@@ -60,7 +61,6 @@ class HvacApp(hass.Hass):
             )
 
         self._integral = 0.0
-        self._gated_demand = False
         self._rls = RlsState()
         self._rls_fallback_latched = False
         self._rls_fallback_reason: str | None = None
@@ -186,9 +186,10 @@ class HvacApp(hass.Hass):
             self._rls_persist_fail_warned = True
 
     def _register_control_listeners(self) -> None:
-        """Re-evaluate gate on plant / zone air / thermostat attrs."""
+        """Re-evaluate gate on plant / outdoor / zone air / thermostat attrs."""
         config = self._config
         self.listen_state(self.control_event, config.plant_management)
+        self.listen_state(self.control_event, config.outdoor_temperature)
         for zone in config.zones:
             self.listen_state(self.control_event, zone.temperature)
             for entity_id in zone.thermostats:
@@ -205,13 +206,20 @@ class HvacApp(hass.Hass):
         # adapted_*, and the fallback latch (parked gains ignored while latched).
         self._rls.y_prev = None
 
-    def _gate_prelude(self) -> list[ZoneSnapshot] | None:
-        """Plant Management / Heating Demand prelude. Zones on demand, else None."""
+    def _gate_prelude(self) -> tuple[list[ZoneSnapshot], float] | None:
+        """Plant / Outdoor / Heating Demand prelude. (zones, outdoor) or None."""
         config = self._config
 
         if not plant_management_enabled(self.get_state(config.plant_management)):
             self._clear_pid_ephemeral()
             self._hands_off("Plant Management disabled")
+            return None
+
+        outdoor = self._read_float(config.outdoor_temperature)
+        if outdoor is None:
+            self._go_idle(
+                f"Outdoor temperature unavailable: {config.outdoor_temperature}"
+            )
             return None
 
         zones = self._read_zones(config)
@@ -223,14 +231,14 @@ class HvacApp(hass.Hass):
             self._go_idle("No heating demand; setpoint 0", level="INFO")
             return None
 
-        return zones
+        return zones, outdoor
 
     def control_tick(self, kwargs: dict) -> None:
-        zones = self._gate_prelude()
-        if zones is None:
-            self._gated_demand = False
+        outcome = self._gate_prelude()
+        if outcome is None:
             return
-        self._run_demand(zones)
+        zones, outdoor = outcome
+        self._run_demand(zones, outdoor)
 
     def control_event(
         self,
@@ -240,18 +248,13 @@ class HvacApp(hass.Hass):
         new: object,
         kwargs: dict,
     ) -> None:
-        """Event entry: prelude clears; rising-edge demand write when not gated."""
+        """Event entry: shared prelude + FF demand writer (no sticky latch)."""
         # listen_state args ignored — re-read current Hass state in prelude.
-        zones = self._gate_prelude()
-        if zones is None:
-            self._gated_demand = False
+        outcome = self._gate_prelude()
+        if outcome is None:
             return
-        if self._gated_demand:
-            return
-        if self._run_demand_edge(zones):
-            self._gated_demand = True
-        else:
-            self._gated_demand = False
+        zones, outdoor = outcome
+        self._run_demand(zones, outdoor)
 
     def _gains_for_demand(self) -> tuple[float, float]:
         pid = self._config.pid
@@ -343,87 +346,34 @@ class HvacApp(hass.Hass):
         # Skip-step paths do not enter or refresh the latch.
         rls.y_prev = y
 
-    def _run_demand(self, zones: list[ZoneSnapshot]) -> None:
+    def _run_demand(self, zones: list[ZoneSnapshot], outdoor: float) -> None:
+        """Shared FF demand writer for tick and every eligible control_event."""
         config = self._config
-        pid = config.pid
-        # Weights-unusable clear must not step RLS (I/O matrix / AC).
-        if weighted_error(zones) is None:
-            self._go_idle("Demand zone weights unusable; setpoint 0")
+        u_ff = weather_feedforward(outdoor, config.weather_feedforward)
+        if not math.isfinite(u_ff):
+            self._go_idle(f"Non-finite weather feedforward u_ff for outdoor={outdoor}")
             return
-        # One plant snapshot per demand tick: RLS gate and write share it (no TOCTOU).
+
+        command = quantize_command(u_ff, config.setpoint_min, config.setpoint_max)
         plant_current = self._read_float(config.plant_setpoint)
-        if pid.adaptive:
-            self._maybe_rls_step(plant_ok=plant_current is not None)
-        kp, ki = self._gains_for_demand()
-        result = evaluate_demand(
-            zones,
-            integral=self._integral,
-            kp=kp,
-            ki=ki,
-            base_water_temp=config.base_water_temp,
-            setpoint_min=config.setpoint_min,
-            setpoint_max=config.setpoint_max,
-            i_term_min=pid.i_term_min,
-            i_term_max=pid.i_term_max,
-            dt_hours=config.control_interval / 3600.0,
-        )
-        if result is None:
-            self._go_idle("Demand zone weights unusable; setpoint 0")
+        # R7: skip plant call when equal; no ∫ / no RLS on FF demand path.
+        if not self._write_setpoint(command, plant_reading=plant_current):
             return
-
+        # last_u stays frozen across FF writes (adaptive overlay inert here).
         critical = select_max_error_demand_zone(zones)
-        # R7: skip the plant call only when the plant already reads the command
-        # (_write_setpoint); ∫ advances only when the plant entity is readable.
-        if not self._write_setpoint(result.command, plant_reading=plant_current):
-            self._gated_demand = False
-            return
-        self._integral = result.integral
-        # Last demand u: write True only (incl. equal-float skip); never idle 0.
-        self._rls.last_u = result.command
-        self._maybe_persist_rls()
-        self._log_demand_success(result, critical)
-        self._gated_demand = True
-
-    def _run_demand_edge(self, zones: list[ZoneSnapshot]) -> bool:
-        """Rising-edge demand write: current gains; no ∫; no RLS step/persist."""
-        config = self._config
-        pid = config.pid
-        if weighted_error(zones) is None:
-            self._go_idle("Demand zone weights unusable; setpoint 0")
-            return False
-        plant_current = self._read_float(config.plant_setpoint)
-        kp, ki = self._gains_for_demand()
-        result = evaluate_demand(
-            zones,
-            integral=self._integral,
-            kp=kp,
-            ki=ki,
-            base_water_temp=config.base_water_temp,
-            setpoint_min=config.setpoint_min,
-            setpoint_max=config.setpoint_max,
-            i_term_min=pid.i_term_min,
-            i_term_max=pid.i_term_max,
-            dt_hours=config.control_interval / 3600.0,
-        )
-        if result is None:
-            self._go_idle("Demand zone weights unusable; setpoint 0")
-            return False
-
-        critical = select_max_error_demand_zone(zones)
-        if not self._write_setpoint(result.command, plant_reading=plant_current):
-            return False
-        # Do not assign ∫; do not step or persist RLS.
-        self._rls.last_u = result.command
-        self._log_demand_success(result, critical)
-        return True
+        self._log_demand_success(outdoor, u_ff, command, critical)
 
     def _log_demand_success(
-        self, result: PidResult, critical: ZoneSnapshot | None
+        self,
+        outdoor: float,
+        u_ff: float,
+        command: float,
+        critical: ZoneSnapshot | None,
     ) -> None:
         parts = [
-            f"e={result.e:.2f}",
-            f"u_pid={result.u_pid:.2f}",
-            f"command={result.command}",
+            f"outdoor={outdoor:.2f}",
+            f"u_ff={u_ff:.2f}",
+            f"command={command}",
         ]
         if critical is not None:
             parts.append(f"critical_zone={critical.name}")
@@ -435,7 +385,6 @@ class HvacApp(hass.Hass):
     def _go_idle(self, message: str, *, level: str = "WARNING") -> None:
         self._write_setpoint(0.0)
         self._clear_pid_ephemeral()
-        self._gated_demand = False
         self.log(message, level=level)
 
     def _read_zones(self, config: HvacConfig) -> list[ZoneSnapshot]:

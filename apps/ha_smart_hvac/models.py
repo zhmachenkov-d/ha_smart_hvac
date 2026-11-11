@@ -64,12 +64,20 @@ class PidConfig:
     legacy_ki_warning: bool = False
 
 
+@dataclass(frozen=True)
+class WeatherFeedforwardConfig:
+    base: float = 37.0
+    slope: float = 0.9
+    comfort_ref: float = 20.0
+
+
 def plant_management_enabled(switch_state: str | None) -> bool:
     return switch_state == "on"
 
 
 @dataclass(frozen=True)
 class HvacConfig:
+    outdoor_temperature: str
     plant_management: str
     plant_setpoint: str
     setpoint_min: float
@@ -77,6 +85,7 @@ class HvacConfig:
     control_interval: int
     base_water_temp: float
     pid: PidConfig
+    weather_feedforward: WeatherFeedforwardConfig
     zones: tuple[ZoneConfig, ...]
     boiler_water: str | None = None
     ignored_keys: tuple[str, ...] = ()

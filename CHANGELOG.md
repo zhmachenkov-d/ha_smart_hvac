@@ -2,6 +2,15 @@
 
 <!-- version list -->
 
+## Unreleased
+
+### Features
+
+- **hvac**: Restore weather-curve demand SWT (`quantize_command(u_ff)` from
+  Outdoor + `weather_feedforward`). **Breaking:** `outdoor_temperature` and
+  `weather_feedforward` are required in apps.yaml — Production AppDaemon raises
+  `ConfigError` until house HITL commissions them.
+
 ## v3.4.1 (2026-11-11)
 
 ### Bug Fixes
