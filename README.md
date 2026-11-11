@@ -36,7 +36,7 @@ Canonical Python lives at repo-root `apps/ha_smart_hvac/`. Exclusive Session con
    ```
 
 2. Open the folder in a Dev Container (**Dev Containers: Reopen in Container**).
-   Python 3.12 and dependencies install via `uv sync --group dev` in `postCreateCommand`.
+   Python 3.12 and dependencies install via `uv sync --group dev` in `postCreateCommand`; Tokenade (`@tokenade/cli`) is installed and wired for Cursor there as well.
 
 3. Ensure local wiring exists:
 
