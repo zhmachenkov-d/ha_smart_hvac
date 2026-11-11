@@ -1,3 +1,18 @@
+---
+title: 'Tracer: weather-curve SWT law'
+type: 'feature'
+ticket: '1'
+created: '2026-11-11'
+status: done
+baseline_revision: '6cd2b2d7efbc0bb294464a5aff0cc69a9257fa96'
+route: full
+risk: high
+context: []
+review: 'thorough'
+review_source: 'auto'
+lenses_ran: ['blind-hunter', 'edge-case-hunter', 'verification-gap', 'intent-alignment']
+---
+
 <frozen-after-approval reason="human-owned intent — do not modify unless human renegotiates">
 
 ## Intent
