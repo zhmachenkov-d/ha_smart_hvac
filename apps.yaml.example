@@ -2,10 +2,11 @@
 # app_dir (manual install or Production). Replace YOUR_* placeholders with house entity IDs.
 # apps/apps.yaml is gitignored — do not commit live entity IDs.
 #
-# base_water_temp / pid / control_interval / zone weight below are C4 starting
-# commission defaults — not house-proven; retune under operator HITL after epic 2 docs.
-# Mild Outdoor with defaults base=37 / slope=0.9 / comfort_ref=20 can pin SWT to
-# setpoint_min (e.g. ~10 °C → u_ff≈46, still below 50) until house HITL retunes rails.
+# Demand SWT follows weather_feedforward (base/slope/comfort_ref) + Outdoor under
+# Plant Management / Heating Demand — not base_water_temp / pid (those remain until
+# entry 2 strip; control_interval / zone weight still used). Not house-proven; retune
+# under operator HITL. Mild Outdoor with defaults base=37 / slope=0.9 / comfort_ref=20
+# can pin SWT to setpoint_min (e.g. ~10 °C → u_ff≈46, still below 50) until rails HITL.
 hvac:
   module: ha_smart_hvac
   class: HvacApp

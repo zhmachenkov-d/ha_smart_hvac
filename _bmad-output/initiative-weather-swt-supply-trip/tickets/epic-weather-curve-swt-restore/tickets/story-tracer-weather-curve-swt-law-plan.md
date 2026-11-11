@@ -1,18 +1,3 @@
----
-title: 'Tracer: weather-curve SWT law'
-type: 'feature'
-ticket: '1'
-created: '2026-11-11'
-status: built
-baseline_revision: '6cd2b2d7efbc0bb294464a5aff0cc69a9257fa96'
-route: full
-risk: high
-context: []
-review: 'thorough'
-review_source: 'auto'
-lenses_ran: ['blind-hunter', 'edge-case-hunter', 'verification-gap', 'intent-alignment']
----
-
 <frozen-after-approval reason="human-owned intent — do not modify unless human renegotiates">
 
 ## Intent
@@ -112,7 +97,6 @@ Resolved forks (audit): Outdoor-fail A · zombie-PID/tests A · rails OQ1-A · r
 **Status:** 2026-11-11 human Approve → `ready-for-dev` (party locks + review apply-all frozen). Risk high → implement with `review: auto`/`thorough` (not `quick`).
 
 ## Review Triage Log
-
 | Lens | Finding | Verdict | Evidence / route |
 | --- | --- | --- | --- |
 | blind-hunter | Dead `_gains_for_demand` / `_maybe_rls_*` helpers remain in `hvac_app.py` | false | Intent/plan leave pid/rls on disk until entry 2; Code Map says stop calling on demand, not delete helpers. |
@@ -134,3 +118,30 @@ Resolved forks (audit): Outdoor-fail A · zombie-PID/tests A · rails OQ1-A · r
 | intent-alignment | Diff implements R1+R2+R3 (+R4 plan locks); R5 docs deferred by omission | false | Descriptive audit — aligns with Intent; no defect. |
 | intent-alignment | Equal-float skip also logs success / freezes `last_u` beyond throttle wording | false | Behavior retained from prior write path; plan success log still applies when write returns True on equal-float. |
 | intent-alignment | Planning surfaces (plan/tickets/memlog) change outside pasted Intent | false | Expected build workflow artifacts; not a product divergence. |
+
+## Code Review
+### 2026-11-11
+**Code review complete.** 0 `decision-needed`, 6 `patch`, 0 `defer`, 14 rejected.
+
+- [x] [Review][Patch] Adaptive FF demand “no RLS step” asserted only via mock hooks [tests/test_hvac_app.py:1234]
+- [x] [Review][Patch] Stale PID/latch language left in FF-era demand tests [tests/test_hvac_app.py:609]
+- [x] [Review][Patch] Breaking Outdoor+FF ConfigError lacks operator-facing CHANGELOG note [CHANGELOG.md]
+- [x] [Review][Patch] Example yaml header still frames pid/base_water_temp as live C4 commission [apps.yaml.example:5]
+- [x] [Review][Patch] Live FF demand writer has no max-rail clamp assertion [tests/test_hvac_app.py]
+- [x] [Review][Patch] Orphaned RLS test helpers after demand-path strip [tests/test_hvac_app.py:27]
+
+#### Rejected
+- R1 AGENTS/CONTEXT still PID law — false: epic 3 / Intent Never deferral
+- R2 CONTEXT avoid-list vs restored FF — false: same docs deferral as R1
+- R5 Outdoor before Heating Demand WARN on idle — false: plan prelude order b862db4
+- R6 Equal-float still INFO-logs success — false: intentional write throttle; test locks it
+- R8 Fixtures 40/55 miss example rails — false: dedicated mild-Outdoor pin test locks clamp
+- R9 No setpoint/hvac_action attribute-event tests — false: control_event ignores args; zone-air covers shared writer
+- R10 RLS suites deleted / helpers remain — false: plan leaves unwired until entry 2
+- R11 last_u frozen vs plant under FF — false: plan Always freezes last_u
+- R12 Plan hygiene Execution/Status lag — false: would edit plan; frontmatter is SoT
+- R13 Party .memlog in changeset — false: process artifact
+- R19 Live HA not in diff — false: operator verify surface; CI is unit tests
+- R20 Epic R1 latch / R7 supply not in tracer — false: deferred to epic 2 by design
+- R21 Leftover PID helpers (intent note) — false: same interim as R10
+- R22 Attribute-event proxy coverage (intent note) — false: same as R9

@@ -24,7 +24,6 @@ _CONTROL_INTERVAL = 300
 _BASE = 40.0
 _KP = 1.0
 _KI = 1.0
-_DT_HOURS = _CONTROL_INTERVAL / 3600.0
 _FF_BASE = 37.0
 _FF_SLOPE = 0.9
 _FF_COMFORT_REF = 20.0
@@ -180,7 +179,7 @@ def _init_app(
     """Hass-stubbed app ready for initialize() (run_every + listen_state).
 
     Default plant-off so the explicit initialize control_tick is hands-off
-    (∫ stays 0, no SWT write). Override get_state for gated-demand init tests.
+    (∫ stays 0, no SWT write). Override get_state for plant-on demand init tests.
     """
     app = object.__new__(HvacApp)
     app.args = args if args is not None else _tick_args()
@@ -225,7 +224,7 @@ def _init_gated_get_state(
     outdoor: object = _OUTDOOR_TEMP,
     boiler_water: object = 50.0,
 ):
-    """get_state side_effect for initialize under gated demand."""
+    """get_state side_effect for initialize under plant-on demand."""
 
     def get_state(entity_id: str, attribute: str | None = None):
         if entity_id == _PLANT_MGMT:
@@ -280,7 +279,7 @@ def test_initialize_under_demand_runs_first_tick() -> None:
     assert app.run_every.call_args.args[2] == _CONTROL_INTERVAL
 
 
-def test_initialize_under_demand_plant_unreadable_leaves_latch_false() -> None:
+def test_initialize_under_demand_plant_unreadable_skips_write() -> None:
     app = _init_app()
     app.get_state = MagicMock(
         side_effect=_init_gated_get_state(plant_setpoint="unavailable")
@@ -612,14 +611,15 @@ def test_demand_fail_write_aborts_without_success_info() -> None:
         setpoint=22.0,
         plant_setpoint="unavailable",
     )
+    app._integral = 0.5
 
     app.control_tick({})
 
     assert _set_value_writes(app) == []
     assert not any("command=" in m for m in _info_msgs(app))
     assert any("Plant setpoint unavailable" in m for m in _warn_msgs(app))
-    # R7: ∫ advances only when the plant entity is readable (written or already equal)
-    assert app._integral == pytest.approx(0.0)
+    # FF demand: plant-unreadable aborts write and holds ephemeral (no ∫ clear).
+    assert app._integral == pytest.approx(0.5)
 
 
 def test_event_plant_off_no_write_clears() -> None:
@@ -747,18 +747,6 @@ def test_initialize_logs_legacy_ki_warning_once() -> None:
     warns = [m for m in _warn_msgs(app) if "legacy" in m and "pid.ki" in m]
     assert len(warns) == 1
     assert app._config.pid.legacy_ki_warning is True
-
-
-def _count_rls_steps(monkeypatch: pytest.MonkeyPatch) -> dict[str, int]:
-    stepped = {"n": 0}
-    real_step = __import__("ha_smart_hvac.rls", fromlist=["rls_step"]).rls_step
-
-    def _count(state, **kwargs) -> bool:
-        stepped["n"] += 1
-        return real_step(state, **kwargs)
-
-    monkeypatch.setattr("ha_smart_hvac.hvac_app.rls_step", _count)
-    return stepped
 
 
 @pytest.mark.parametrize(
@@ -1061,6 +1049,18 @@ def test_demand_tick_pins_mild_outdoor_to_example_min_rail() -> None:
     assert "command=50.0" in joined
 
 
+def test_demand_tick_pins_cold_outdoor_to_max_rail() -> None:
+    """Fixture rails 40/55: outdoor=-20 → u_ff=73 pins command to 55.0."""
+    app = _tick_app(plant_setpoint=45.0, outdoor=-20.0)
+
+    app.control_tick({})
+
+    assert _set_value_writes(app) == [55.0]
+    joined = " ".join(_info_msgs(app))
+    assert "u_ff=73.00" in joined
+    assert "command=55.0" in joined
+
+
 def test_demand_event_writes_ff_same_as_tick() -> None:
     app = _tick_app(plant_setpoint=45.0)
     expected = _expected_command()
@@ -1231,31 +1231,21 @@ def test_initialize_registers_outdoor_listener() -> None:
     assert _PLANT_MGMT in entity_only
 
 
-def test_adaptive_ff_demand_does_not_step_or_persist_rls(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
+def test_adaptive_ff_demand_does_not_step_or_persist_rls(tmp_path: Path) -> None:
     args = _adaptive_args()
     app = _tick_app(plant_setpoint=45.0, args=args, app_dir=tmp_path)
     app._config = parse_config(args)
+    # Step-ready priors: a re-wired _maybe_rls_step would mutate θ/P and y_prev.
     app._rls.last_u = 40.0
     app._rls.y_prev = 48.0
-    stepped = {"n": 0}
-    persisted = {"n": 0}
-
-    def boom(*_a, **_k):
-        stepped["n"] += 1
-        raise AssertionError("rls_step must not run on FF demand")
-
-    monkeypatch.setattr(app, "_maybe_rls_step", boom)
-    monkeypatch.setattr(
-        app,
-        "_maybe_persist_rls",
-        lambda: persisted.__setitem__("n", persisted["n"] + 1),
-    )
+    app._rls.theta = [0.8, 0.2]
+    app._rls.p = [[1.0, 0.1], [0.1, 2.0]]
+    app._rls.adapted_kp = 2.0
+    app._rls.adapted_ki = 0.5
+    before = copy_durable(app._rls)
 
     app.control_tick({})
 
-    assert stepped["n"] == 0
-    assert persisted["n"] == 0
-    assert app._rls.last_u == pytest.approx(40.0)
+    assert durable_equal(copy_durable(app._rls), before)
+    assert app._rls.y_prev == pytest.approx(48.0)
     assert not (tmp_path / STATE_FILENAME).exists()
