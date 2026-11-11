@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "hooks": {
+    "preToolUse": [
+      {
+        "command": ".cursor/hooks/tokenade-pretool.sh",
+        "description": "Route shell commands and file reads through tokenade for token-optimized output",
+        "matcher": "Shell|Read"
+      }
+    ],
+    "postToolUse": [
+      {
+        "command": ".cursor/hooks/tokenade-mcp-post.sh",
+        "description": "Fold verbose MCP tool results before the model reads them"
+      }
+    ]
+  }
+}
