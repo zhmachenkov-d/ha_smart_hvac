@@ -2,6 +2,24 @@
 
 <!-- version list -->
 
+## v3.6.0 (2026-11-11)
+
+### Bug Fixes
+
+- **hvac**: Harden detach-PID after code review
+  ([`d5e0a0f`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/d5e0a0f4ea28e54aeae8e1270f560049f1978a24))
+
+### Chores
+
+- **bmad**: Record detach-PID party-mode planning memlog
+  ([`aab61f6`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/aab61f681289f8b3af24815edc606f0375f84e8b))
+
+### Features
+
+- **hvac**: Detach PID/RLS from live SWT and example commissioning
+  ([`a5f4919`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/a5f49190a8e376eed5090bbd59b87f3e5cb839fd))
+
+
 ## v3.5.0 (2026-11-11)
 
 ### Bug Fixes
