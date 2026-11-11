@@ -51,20 +51,6 @@ class ZoneSnapshot:
 
 
 @dataclass(frozen=True)
-class PidConfig:
-    kp: float = 1.0
-    ki: float = 1.0
-    i_term_min: float = -10.0
-    i_term_max: float = 15.0
-    adaptive: bool = False
-    kp_min: float | None = None
-    kp_max: float | None = None
-    ki_min: float | None = None
-    ki_max: float | None = None
-    legacy_ki_warning: bool = False
-
-
-@dataclass(frozen=True)
 class WeatherFeedforwardConfig:
     base: float = 37.0
     slope: float = 0.9
@@ -83,9 +69,6 @@ class HvacConfig:
     setpoint_min: float
     setpoint_max: float
     control_interval: int
-    base_water_temp: float
-    pid: PidConfig
     weather_feedforward: WeatherFeedforwardConfig
     zones: tuple[ZoneConfig, ...]
-    boiler_water: str | None = None
     ignored_keys: tuple[str, ...] = ()

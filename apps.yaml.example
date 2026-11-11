@@ -3,10 +3,10 @@
 # apps/apps.yaml is gitignored — do not commit live entity IDs.
 #
 # Demand SWT follows weather_feedforward (base/slope/comfort_ref) + Outdoor under
-# Plant Management / Heating Demand — not base_water_temp / pid (those remain until
-# entry 2 strip; control_interval / zone weight still used). Not house-proven; retune
-# under operator HITL. Mild Outdoor with defaults base=37 / slope=0.9 / comfort_ref=20
-# can pin SWT to setpoint_min (e.g. ~10 °C → u_ff≈46, still below 50) until rails HITL.
+# Plant Management / Heating Demand — the only water-law commission. Not
+# house-proven; retune under operator HITL. Mild Outdoor with defaults base=37 /
+# slope=0.9 / comfort_ref=20 can pin SWT to setpoint_min (e.g. ~10 °C → u_ff≈46,
+# still below 50) until rails HITL.
 hvac:
   module: ha_smart_hvac
   class: HvacApp
@@ -16,28 +16,10 @@ hvac:
   setpoint_min: 50
   setpoint_max: 60
   control_interval: 300
-  base_water_temp: 51
   weather_feedforward:
     base: 37
     slope: 0.9
     comfort_ref: 20
-  # kp: °C water per °C air error. ki: 1/h (∫ is °C·h). i_term_*: bounds on
-  # ki·∫ in °C of water — independent of control_interval.
-  # When adaptive: true, also set boiler_water and all four adapted-gain rails
-  # (kp_min / kp_max / ki_min / ki_max). Rails constrain adapted proposals only.
-  # With adaptive enabled, delete rls_state.json under the AppDaemon app
-  # directory to reset learned RLS state — do not disable adaptive to reset.
-  # boiler_water: sensor.YOUR_BOILER_WATER
-  pid:
-    kp: 1.0
-    ki: 1.0
-    i_term_min: -10
-    i_term_max: 15
-    adaptive: false
-    # kp_min: 0.0
-    # kp_max: 10.0
-    # ki_min: 0.0
-    # ki_max: 100.0
   zones:
     - name: zone_one
       temperature: sensor.YOUR_ZONE_ONE_TEMPERATURE

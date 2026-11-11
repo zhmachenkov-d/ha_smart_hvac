@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import pytest
 
+from ha_smart_hvac.feedforward import clamp, quantize_command
 from ha_smart_hvac.models import ThermostatReading, ZoneSnapshot
-from ha_smart_hvac.pid import clamp, evaluate_demand, quantize_command, weighted_error
+from ha_smart_hvac.pid import evaluate_demand, weighted_error
 
 
 def _zone(

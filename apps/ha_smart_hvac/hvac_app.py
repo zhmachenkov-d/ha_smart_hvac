@@ -3,41 +3,21 @@
 from __future__ import annotations
 
 import math
-from pathlib import Path
 
 import appdaemon.plugins.hass.hassapi as hass
 
 from ha_smart_hvac.config import ConfigError, parse_config
 from ha_smart_hvac.coordinator import has_heating_demand, select_max_error_demand_zone
-from ha_smart_hvac.feedforward import weather_feedforward
+from ha_smart_hvac.feedforward import quantize_command, weather_feedforward
 from ha_smart_hvac.models import (
     HvacConfig,
     ThermostatReading,
     ZoneSnapshot,
     plant_management_enabled,
 )
-from ha_smart_hvac.pid import quantize_command
-from ha_smart_hvac.rls import (
-    STATE_FILENAME,
-    RlsDurableSnapshot,
-    RlsState,
-    copy_durable,
-    durable_equal,
-    durable_fields_savable,
-    gains_within_rails,
-    imc_gains,
-    load_rls_state,
-    rls_step,
-    save_rls_state,
-)
 
 # Sentinel: _write_setpoint re-reads plant when plant_reading is omitted.
 _READ_PLANT = object()
-
-# Latch reason codes (mutually exclusive; evaluation order in _maybe_rls_step).
-_REASON_RLS_NOOP = "rls_noop"
-_REASON_IMC_NONE = "imc_none"
-_REASON_OUT_OF_BAND = "out_of_band"
 
 
 class HvacApp(hass.Hass):
@@ -53,22 +33,6 @@ class HvacApp(hass.Hass):
                 + ", ".join(self._config.ignored_keys),
                 level="WARNING",
             )
-        if self._config.pid.legacy_ki_warning:
-            self.log(
-                f"HVAC config: pid.ki={self._config.pid.ki:g} looks like legacy "
-                "per-second scale (0 < ki < 1); expected 1/h — not auto-migrated",
-                level="WARNING",
-            )
-
-        self._integral = 0.0
-        self._rls = RlsState()
-        self._rls_fallback_latched = False
-        self._rls_fallback_reason: str | None = None
-        self._rls_last_saved = copy_durable(self._rls)
-        self._rls_force_rewrite = False
-        self._rls_persist_fail_warned = False
-        if self._config.pid.adaptive:
-            self._load_rls_overlay()
 
         self._register_control_listeners()
         self.run_every(
@@ -79,111 +43,7 @@ class HvacApp(hass.Hass):
         # Explicit first tick: AD "now" schedules the first periodic fire at
         # now+interval, not immediately.
         self.control_tick({})
-        self.log("HVAC fixed-gain PID app initialized")
-
-    def _state_path(self) -> Path:
-        return Path(self.app_dir) / STATE_FILENAME
-
-    def _seed_last_saved(self) -> None:
-        self._rls_last_saved = copy_durable(self._rls)
-
-    def _apply_loaded_adapted(self, loaded: RlsDurableSnapshot) -> None:
-        """OQ6 B: overlay adapted or drop with reason WARNING + force."""
-        pid = self._config.pid
-        issue = loaded.adapted_issue
-        kp, ki = loaded.adapted_kp, loaded.adapted_ki
-        if issue is None and kp is not None and ki is not None:
-            assert pid.kp_min is not None and pid.kp_max is not None
-            assert pid.ki_min is not None and pid.ki_max is not None
-            if not gains_within_rails(
-                kp, ki, pid.kp_min, pid.kp_max, pid.ki_min, pid.ki_max
-            ):
-                issue = "out_of_rail"
-                kp, ki = None, None
-        if issue is not None:
-            self._rls.adapted_kp = None
-            self._rls.adapted_ki = None
-            self._rls_force_rewrite = True
-            self.log(
-                f"RLS state adapted gains dropped on load ({issue})",
-                level="WARNING",
-            )
-            return
-        self._rls.adapted_kp = kp
-        self._rls.adapted_ki = ki
-
-    def _load_rls_overlay(self) -> None:
-        """Adaptive-on initialize: overlay durable fields from rls_state.json."""
-        path = self._state_path()
-        if not path.is_file():
-            self._seed_last_saved()
-            return
-        loaded = load_rls_state(path)
-        if loaded is None:
-            # Race: deleted between is_file and load → same as missing (silent cold).
-            if not path.is_file():
-                self._seed_last_saved()
-                return
-            self.log(
-                f"Ignoring unusable RLS state file: {path}",
-                level="WARNING",
-            )
-            self._rls_force_rewrite = True
-            self._seed_last_saved()
-            return
-        if (
-            imc_gains(
-                loaded.theta[0],
-                loaded.theta[1],
-                float(self._config.control_interval),
-            )
-            is None
-        ):
-            self.log(
-                f"Ignoring RLS state with IMC-invalid theta: {path}",
-                level="WARNING",
-            )
-            self._rls_force_rewrite = True
-            self._seed_last_saved()
-            return
-
-        self._rls.theta = [loaded.theta[0], loaded.theta[1]]
-        self._rls.p = [
-            [loaded.p[0][0], loaded.p[0][1]],
-            [loaded.p[1][0], loaded.p[1][1]],
-        ]
-        self._rls.last_u = loaded.last_u
-        # y_prev stays None; latch stays False (process-local).
-        self._apply_loaded_adapted(loaded)
-        self.log(f"Loaded RLS state from {path}")
-        self._seed_last_saved()
-
-    def _maybe_persist_rls(self) -> None:
-        """Save durable RLS after successful demand write when dirty or forced."""
-        if not self._config.pid.adaptive:
-            return
-        snap = copy_durable(self._rls)
-        if not self._rls_force_rewrite and durable_equal(snap, self._rls_last_saved):
-            return
-        path = self._state_path()
-        if save_rls_state(path, self._rls):
-            self._rls_last_saved = snap
-            self._rls_force_rewrite = False
-            self._rls_persist_fail_warned = False
-            return
-        if not self._rls_persist_fail_warned:
-            if not durable_fields_savable(self._rls):
-                self.log(
-                    f"RLS state unsavable (non-finite or mismatched adapted); "
-                    f"skip persist: {path}",
-                    level="WARNING",
-                )
-            else:
-                self.log(
-                    f"Failed to persist RLS state: {path}",
-                    level="WARNING",
-                )
-            self._rls_persist_fail_warned = True
+        self.log("HVAC weather-curve SWT app initialized")
 
     def _register_control_listeners(self) -> None:
         """Re-evaluate gate on plant / outdoor / zone air / thermostat attrs."""
@@ -200,18 +60,11 @@ class HvacApp(hass.Hass):
                     self.control_event, entity_id, attribute="temperature"
                 )
 
-    def _clear_pid_ephemeral(self) -> None:
-        self._integral = 0.0
-        # Wipe y_prev only among RLS bookkeeping; keep θ/P, last u, parked
-        # adapted_*, and the fallback latch (parked gains ignored while latched).
-        self._rls.y_prev = None
-
     def _gate_prelude(self) -> tuple[list[ZoneSnapshot], float] | None:
         """Plant / Outdoor / Heating Demand prelude. (zones, outdoor) or None."""
         config = self._config
 
         if not plant_management_enabled(self.get_state(config.plant_management)):
-            self._clear_pid_ephemeral()
             self._hands_off("Plant Management disabled")
             return None
 
@@ -256,96 +109,6 @@ class HvacApp(hass.Hass):
         zones, outdoor = outcome
         self._run_demand(zones, outdoor)
 
-    def _gains_for_demand(self) -> tuple[float, float]:
-        pid = self._config.pid
-        # Latched unhealthy/OOB → YAML fixed until healthy in-band publish.
-        if self._rls_fallback_latched:
-            return pid.kp, pid.ki
-        rls = self._rls
-        if pid.adaptive and rls.adapted_kp is not None and rls.adapted_ki is not None:
-            return rls.adapted_kp, rls.adapted_ki
-        return pid.kp, pid.ki
-
-    def _enter_rls_fallback(
-        self,
-        reason: str,
-        *,
-        proposed: tuple[float, float] | None = None,
-    ) -> None:
-        """Latch demand onto YAML fixed; WARN once on enter or reason change."""
-        prior = self._rls_fallback_reason if self._rls_fallback_latched else None
-        self._rls_fallback_latched = True
-        self._rls_fallback_reason = reason
-        if prior == reason:
-            return
-        pid = self._config.pid
-        if reason == _REASON_OUT_OF_BAND and proposed is not None:
-            kp, ki = proposed
-            self.log(
-                f"RLS fallback latched: {reason}; proposed kp={kp:g} ki={ki:g}; "
-                f"rails kp=[{pid.kp_min:g},{pid.kp_max:g}] "
-                f"ki=[{pid.ki_min:g},{pid.ki_max:g}]",
-                level="WARNING",
-            )
-        else:
-            self.log(
-                f"RLS fallback latched: {reason}; using yaml fixed kp/ki",
-                level="WARNING",
-            )
-
-    def _clear_rls_fallback(self) -> None:
-        self._rls_fallback_latched = False
-        self._rls_fallback_reason = None
-
-    def _maybe_rls_step(self, *, plant_ok: bool) -> None:
-        """Step RLS at most once on a demand tick when priors and y allow it."""
-        config = self._config
-        pid = config.pid
-        entity_id = config.boiler_water
-        assert entity_id is not None  # parse requires it when adaptive
-        y = self._read_float(entity_id)
-        if y is None:
-            self.log(f"Boiler water unavailable: {entity_id}", level="WARNING")
-            return
-
-        rls = self._rls
-        y_prev = rls.y_prev
-        can_step = plant_ok and y_prev is not None and rls.last_u is not None
-        if can_step:
-            stepped = rls_step(rls, y=y, y_prev=y_prev, u_prev=rls.last_u)
-            if not stepped:
-                # Park adapted_* (leave as-is); latch → YAML fixed.
-                self._enter_rls_fallback(_REASON_RLS_NOOP)
-            else:
-                # θ/P committed; accept adapted only when IMC finite + in-band.
-                gains = imc_gains(
-                    rls.theta[0], rls.theta[1], float(config.control_interval)
-                )
-                if (
-                    gains is None
-                    or not math.isfinite(gains[0])
-                    or not math.isfinite(gains[1])
-                ):
-                    self._enter_rls_fallback(_REASON_IMC_NONE)
-                else:
-                    assert pid.kp_min is not None and pid.kp_max is not None
-                    assert pid.ki_min is not None and pid.ki_max is not None
-                    if not gains_within_rails(
-                        gains[0],
-                        gains[1],
-                        pid.kp_min,
-                        pid.kp_max,
-                        pid.ki_min,
-                        pid.ki_max,
-                    ):
-                        self._enter_rls_fallback(_REASON_OUT_OF_BAND, proposed=gains)
-                    else:
-                        rls.adapted_kp, rls.adapted_ki = gains
-                        self._clear_rls_fallback()
-        # Finite y always seeds/refreshes; plant-unreadable / missing u only skip step.
-        # Skip-step paths do not enter or refresh the latch.
-        rls.y_prev = y
-
     def _run_demand(self, zones: list[ZoneSnapshot], outdoor: float) -> None:
         """Shared FF demand writer for tick and every eligible control_event."""
         config = self._config
@@ -356,10 +119,9 @@ class HvacApp(hass.Hass):
 
         command = quantize_command(u_ff, config.setpoint_min, config.setpoint_max)
         plant_current = self._read_float(config.plant_setpoint)
-        # R7: skip plant call when equal; no ∫ / no RLS on FF demand path.
+        # R7: skip plant call when equal; no PID / RLS on FF demand path.
         if not self._write_setpoint(command, plant_reading=plant_current):
             return
-        # last_u stays frozen across FF writes (adaptive overlay inert here).
         critical = select_max_error_demand_zone(zones)
         self._log_demand_success(outdoor, u_ff, command, critical)
 
@@ -384,7 +146,6 @@ class HvacApp(hass.Hass):
 
     def _go_idle(self, message: str, *, level: str = "WARNING") -> None:
         self._write_setpoint(0.0)
-        self._clear_pid_ephemeral()
         self.log(message, level=level)
 
     def _read_zones(self, config: HvacConfig) -> list[ZoneSnapshot]:
