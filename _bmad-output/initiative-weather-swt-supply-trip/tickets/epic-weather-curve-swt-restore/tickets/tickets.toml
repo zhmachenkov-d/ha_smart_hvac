@@ -1,0 +1,49 @@
+# Epic 1 breakdown — leaf build order. `id` is stable; table order is build order.
+# Approved 2026-11-11. Tracer = weather-curve through config + demand path + Outdoor listener + example yaml.
+
+[[entry]]
+id = 1
+type = "story"
+title = "Tracer: weather-curve SWT law"
+description = "Restores demand SWT as round-to-0.1(clamp(u_ff)) with u_ff = base + slope × (comfort_ref − T_out) from yaml Weather Feedforward (defaults base=37, slope=0.9, comfort_ref=20) and Outdoor Temperature under Plant Management / Heating Demand gates; idle writes 0+clear; plant-off no write+clear; Outdoor is a control listener again; missing/invalid Outdoor fails without a curve write; Critical Zone stays diagnostics-only; CAP-7 / ff_auto_correct_state.json stay out; apps.yaml.example commissions outdoor_temperature and weather_feedforward. PID/RLS may remain unwired until entry 2."
+verify = "Under Plant on + Heating Demand, plant Set Water Temperature tracks round(clamp(u_ff)) as Outdoor changes (AppDaemon/HA); idle shows SWT 0; plant-off leaves SWT untouched by the App. Automated tests lock demand→round(clamp(u_ff)), idle→0+clear, plant-off→no write+clear, Outdoor among listeners, missing Outdoor no curve write, Critical Zone does not change SWT, example yaml has FF+Outdoor and no CAP-7; uv run pytest and uv run ruff check clean."
+covers = ["R1", "R2", "R3", "R7", "R8"]
+after = []
+hitl = false
+risk = "high"
+notes = ["Tracer bullet: config parse + FF law + demand write + Outdoor listener + example yaml in one path.", "R7 here: Outdoor + FF only; supply / boiler_water commission for the trip stays epic 2.", "R1 latch: treat as always clear until epic 2.", "Interim: pid.py / rls.py may remain until entry 2; R4 'no PID on path' is entry 2, not this tracer."]
+
+[[entry]]
+id = 2
+type = "story"
+title = "Detach PID/RLS from live SWT and example commissioning"
+description = "Removes fixed PID (base_water_temp + u_pid, ∫), optional RLS adaptive gains, and rls_state.json from the live SWT path and from apps.yaml.example commissioning for the water path so demand no longer calls PID/RLS; dead module file deletion and domain ADR/docs stay epic 3."
+verify = "Demand-path tests never invoke PID/RLS or advance ∫; apps.yaml.example has no live pid / base_water_temp water-law nest driving SWT; rls_state.json is not written on the demand path; uv run pytest and uv run ruff check clean."
+covers = ["R4"]
+after = [1]
+hitl = false
+risk = "high"
+notes = ["Least-certain: unravel adaptive RLS tests and boiler_water-as-RLS without deleting modules (epic 3 owns deletion).", "Shared R4: path/commissioning here; docs/ADR/dead modules in epic 3."]
+
+[[entry]]
+id = 3
+type = "story"
+title = "Commission house apps.yaml for weather FF"
+description = "Operator updates house apps/apps.yaml for the weather-curve App: commissions outdoor_temperature and weather_feedforward (base=37, slope=0.9, comfort_ref=20 or house-chosen), removes or stops using pid / base_water_temp as the water law; house entity IDs unchanged unless the owner confirms. No live Exclusive Session required in this story."
+verify = "House apps/apps.yaml parses with outdoor_temperature and weather_feedforward; pid is not the live water-law commission; entity IDs match the pre-change backup unless the owner confirmed a change."
+covers = ["R7"]
+after = [1, 2]
+hitl = true
+risk = "medium"
+notes = ["HITL: ask before changing house entity IDs (AGENTS.md).", "R7 part: Outdoor + FF house commission; supply entity for trip remains epic 2 (boiler_water already present)."]
+
+[[entry]]
+id = 4
+type = "story"
+title = "Refactor sweep"
+description = "Cleans deferred review findings and orphans left by the weather-curve SWT restore; no new scope."
+verify = "uv run pytest and uv run ruff check clean; no unused PID-on-path leftovers called out in this epic's deferred notes."
+covers = []
+after = [1, 2, 3]
+hitl = false
+risk = "low"

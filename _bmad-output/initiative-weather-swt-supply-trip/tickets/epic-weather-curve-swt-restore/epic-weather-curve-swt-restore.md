@@ -7,7 +7,7 @@ sources:
   - _bmad-output/initiative-weather-swt-supply-trip/initiative-weather-swt-supply-trip.md
 companions: []
 after: []
-refined: false
+refined: true
 risk: high
 ---
 
@@ -20,6 +20,24 @@ Restore weather-curve Set Water Temperature under the existing Plant Management 
 ## Outcome
 
 On Heating Demand with Plant Management on, the house follows Outdoor-driven weather-curve SWT with no PID/RLS term on the water path.
+
+## Requirements
+
+1. **R1 (parent R1):** Under Plant Management on and Heating Demand, and when the supply rise-rate latch is clear, the App commands Set Water Temperature = round-to-0.1(clamp(`u_ff`)), where `u_ff = base + slope × (comfort_ref − T_out)` from yaml-commissioned Weather Feedforward parameters and Outdoor Temperature.
+2. **R2 (parent R2):** Plant Management on and no Heating Demand writes `0` and clears ephemeral / water-path state (not persisted trip-commission files beyond what Constraints allow).
+3. **R3 (parent R3):** Plant Management off does not write Set Water Temperature and clears ephemeral / water-path state.
+4. **R4 (parent R4):** Fixed PID (`base_water_temp + u_pid`, ∫), optional RLS adaptive gains, and `rls_state.json` are removed from the live SWT path and commissioning; domain docs and a new ADR supersede ADR 0005 / 0006 for this water law.
+5. **R7 (parent R7):** Supply temperature is read from a yaml-commissioned entity; Outdoor Temperature returns to the weather-curve SWT path and commissioning.
+6. **R8 (parent R8):** Critical Zone remains diagnostics/logging only and does not drive SWT or the trip; CAP-7 rise-rate auto-correct of `base`/`slope` and `ff_auto_correct_state.json` are not restored in this initiative.
+
+## Constraints
+
+1. **C1 (parent C1):** Implementation stays inside the AppDaemon `ha_smart_hvac` App writing the existing HA plant Set Water Temperature entity.
+2. **C2 (parent C2):** Exclusive Session (ADR 0001) and Heating Demand via thermostat `hvac_action=heating` are unchanged.
+3. **C3 (parent C3):** SWT uses round-to-0.1 and clamp into existing `setpoint_min` / `setpoint_max` only.
+4. **C4 (parent C4):** Critical Zone must not drive Set Water Temperature or the supply rise-rate trip.
+5. **C5 (parent C5):** Supply (and Outdoor) entity ids are yaml-commissioned; house entity ids are not hardcoded and house `apps.yaml` changes require owner confirmation.
+6. **C6 (parent C6):** CAP-7 / adapting `base`/`slope` / `ff_auto_correct_state.json` are out of scope for this initiative.
 
 ## Done when
 
@@ -50,3 +68,9 @@ Owns the AppDaemon `ha_smart_hvac` demand SWT runtime restore to weather curve, 
 - Waits on nothing: opening tracer epic / platform baseline for this initiative.
 - Decision: Slice approved — three epics; this epic is the tracer (weather-curve restore before trip); R4 path here, R4 docs in epic 3; R7 Outdoor+FF here, R7 supply in epic 2 (2026-11-11).
 - Shared covers: R4 with epic 3 (path vs docs/cleanup); R7 with epic 2 (Outdoor/FF vs supply entity); R8 runtime diagnostics-only here (docs language in epic 3 as needed).
+- Decision: Refine from parent covers only — no extra companions before stories (2026-11-11).
+- Decision: R1 latch clause — this epic delivers weather-curve as if latch always clear; latch gate is epic 2 (2026-11-11).
+- Decision: Missing / invalid Outdoor — ADR 0004 fail branch (clear ephemeral; no curve write) (2026-11-11).
+- Decision: R4 scope here — remove PID/RLS from live SWT path and commissioning yaml; dead modules and domain ADR/docs remain epic 3 (2026-11-11).
+- Decision: R7 scope here — Outdoor + Weather Feedforward commission and listener; supply entity commission is epic 2 (2026-11-11).
+- Decision: Tracer bullet — entry 1 restores weather-curve SWT law, gates, Outdoor listener, and apps.yaml.example FF commission; entry 2 detaches PID/RLS (least-certain); entry 3 house yaml HITL; entry 4 refactor sweep; declined separate live Exclusive Session / closing e2e suite (2026-11-11).
