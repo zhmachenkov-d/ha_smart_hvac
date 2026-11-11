@@ -2,6 +2,39 @@
 
 <!-- version list -->
 
+## v3.4.1 (2026-11-11)
+
+### Bug Fixes
+
+- **config**: Align example base_water_temp with setpoint rails
+  ([`997696b`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/997696b86f80a84f1b4c4078da1b4401c6d170ff))
+
+- **devcontainer**: Wire Tokenade via project Cursor hooks
+  ([`13c147b`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/13c147b3d21395db108819eb8dca77000bb01394))
+
+### Chores
+
+- **bmad**: Add weather-curve SWT supply-trip initiative
+  ([`37af46a`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/37af46a786d05dbc82d258589f6a0c269568c1a9))
+
+- **bmad**: Mark story 4.2 done
+  ([`1ec66aa`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/1ec66aae2defc984a8ea9759c1c6c571a4dae75e))
+
+- **bmad**: Reclose initiative-pid after epic 4
+  ([`b0ea25b`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/b0ea25b33047bd8e3b5939d0b4503d21b28e38e3))
+
+- **config**: Raise example setpoint clamp to 50–60
+  ([`1f3368c`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/1f3368c06c52413440b86254bddbf59eb7e94e15))
+
+- **devcontainer**: Install Tokenade in postCreate
+  ([`9fb2e4c`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/9fb2e4c7d244f7c80faece79233c370f12109c12))
+
+### Documentation
+
+- Align tick/event docs with startup demand-edge law
+  ([`813d427`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/813d427618beadb1b1220971265d39c338cf1191))
+
+
 ## v3.4.0 (2026-11-10)
 
 ### Chores
