@@ -9,8 +9,8 @@ hvac:
   class: HvacApp
   plant_management: switch.YOUR_PLANT_MANAGEMENT
   plant_setpoint: number.YOUR_PLANT_SETPOINT
-  setpoint_min: 40
-  setpoint_max: 55
+  setpoint_min: 50
+  setpoint_max: 60
   control_interval: 300
   base_water_temp: 40
   # kp: °C water per °C air error. ki: 1/h (∫ is °C·h). i_term_*: bounds on
