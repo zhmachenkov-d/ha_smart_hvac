@@ -1,19 +1,3 @@
----
-title: 'Commission house apps.yaml for weather FF'
-type: 'chore'
-ticket: '3'
-created: '2026-11-12'
-status: 'built'
-baseline_revision: '63c38441661e4ec94a93e5dc040705f58f94cddc'
-route: oneshot
-route_source: auto
-risk: medium
-context: []
-review: 'quick'
-review_source: 'auto'
-lenses_ran: ['quick']
----
-
 <frozen-after-approval reason="human-owned intent — do not modify unless human renegotiates">
 
 ## Intent
@@ -71,7 +55,7 @@ Continuity (entries 1–2): App already FF-only; leftover house `boiler_water` �
 - [x] Offline verify: `parse_config` succeeds; Outdoor+FF present; pid not live water law.
 
 **Acceptance Criteria:**
-- Given the pre-change backup, when house yaml is updated, then plant/zone/plant entity IDs match the backup unless the owner confirmed a change.
+- Given the pre-change backup, when house yaml is updated, then plant/zone/setpoint/boiler entity IDs match the backup unless the owner confirmed a change.
 - Given the updated house `apps/apps.yaml`, when `parse_config` runs on its `hvac` args, then it succeeds with `outdoor_temperature` and `weather_feedforward` commissioned.
 - Given the updated house yaml, when inspected, then `pid` / `base_water_temp` are not the live water-law commission (absent, or only ignored legacy).
 
@@ -94,8 +78,49 @@ Continuity (entries 1–2): App already FF-only; leftover house `boiler_water` �
 
 ## Verification
 **Commands:**
-- `uv run python` + `parse_config` on `apps/apps.yaml` — expected: success; FF 30/1.0/20; ignored_keys includes boiler_water only among legacy; no pid/base
+- Offline `parse_config` (expected: success; FF 30/1.0/20; `ignored_keys=('boiler_water',)`; no live pid/base):
+
+```sh
+PYTHONPATH=apps uv run python - <<'PY'
+from pathlib import Path
+import yaml
+from ha_smart_hvac.config import parse_config
+args = yaml.safe_load(Path("apps/apps.yaml").read_text())["hvac"]
+args = {k: v for k, v in args.items() if k not in ("module", "class")}
+cfg = parse_config(args)
+assert cfg.outdoor_temperature
+assert cfg.weather_feedforward.base == 30.0
+assert cfg.weather_feedforward.slope == 1.0
+assert cfg.weather_feedforward.comfort_ref == 20.0
+assert "boiler_water" in cfg.ignored_keys
+assert "pid" not in args and "base_water_temp" not in args
+print("ok", cfg.outdoor_temperature, cfg.weather_feedforward, cfg.ignored_keys)
+PY
+```
 - Entity compare `apps.yaml.pre-1.3` vs `apps/apps.yaml` — expected: plant/zone/boiler ids unchanged; Outdoor+FF added; pid/base removed
 
 **Manual checks (if no CLI):**
 - Open house yaml: Outdoor + weather_feedforward 30/1.0/20; no pid nest; boiler_water present.
+
+## Code Review
+### 2026-11-12
+**Code review complete.** 0 `decision-needed`, 2 `patch`, 0 `defer`, 14 rejected.
+
+- [x] [Review][Patch] Plan Acceptance Criteria typo "plant/zone/plant" [story-commission-house-apps-yaml-for-weather-ff-plan.md:Acceptance Criteria]
+- [x] [Review][Patch] Offline parse_config verify command not reproducible as written [story-commission-house-apps-yaml-for-weather-ff-plan.md:Verification]
+
+#### Rejected
+- R2 false — App ConfigError edge paths owned by 1.1–1.2; this HITL yaml is valid Outdoor+FF
+- R4 false — unclear outdoor proof was review-corpus packaging, not the commission
+- R5 low — rails already preserved vs pre-1.3; expanding AC after the fact is noise
+- R6 low — zone weights already unchanged; AC expansion is noise
+- R7 false — ticket id `3` vs ref `1.3` is standard BMAD
+- R8 false — live AppDaemon verify intentionally out of scope (Never)
+- R9 false — leftover `rls_state.json` pre-existing / off live SWT after 1.2; epic 3 cleanup
+- R10 low — empty `context: []` rarely visible after built
+- R11 low — zone re-indent verified ID/weight-equal; note optional
+- R12 false — PID calibration comments correctly removed; preserved in pre-1.3 backup
+- R13 false — FF 30/1.0/20 implements approved HITL S2 (ticket allowed house-chosen)
+- R14 false — gitignored house yaml + plan prose verify matches intentional process
+- R15 false — BMAD plan artifact is process, not product-scope creep
+- R16 false — hard delete of pid/base matches HITL 3A
