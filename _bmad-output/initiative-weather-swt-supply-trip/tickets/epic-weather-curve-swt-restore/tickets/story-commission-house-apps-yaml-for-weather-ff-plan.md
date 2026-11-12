@@ -1,3 +1,18 @@
+---
+title: 'Commission house apps.yaml for weather FF'
+ticket: '3'
+created: '2026-11-12'
+status: 'done'
+baseline_revision: '63c38441661e4ec94a93e5dc040705f58f94cddc'
+route: oneshot
+route_source: auto
+risk: medium
+context: []
+review: 'quick'
+review_source: 'auto'
+lenses_ran: ['quick']
+---
+
 <frozen-after-approval reason="human-owned intent — do not modify unless human renegotiates">
 
 ## Intent
