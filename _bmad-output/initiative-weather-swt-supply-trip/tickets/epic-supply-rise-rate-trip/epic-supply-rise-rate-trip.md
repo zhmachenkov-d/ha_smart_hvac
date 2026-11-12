@@ -74,3 +74,8 @@ Owns supply rise-rate observation, latch/hold/clear, trip-state clear on idle/pl
 - Decision: While latched under demand, demand path writes SWT `0` (equal-float skip); weather curve not applied (2026-11-12).
 - Decision: Hold timer runs from latch moment; clear cancels it (2026-11-12).
 - Decision: House HITL — entity already Q2-confirmed and present in house yaml; this epic commissions example + parse_config accept; house check that `boiler_water` is accepted (not ignored), no id change (2026-11-12).
+- Decision: Stories approved — tracer = config + supply listener + r_obs + latch/hold + gate CAP-8 FF writer + example; rising-edge clear separate (least certain); house accept HITL; refactor sweep; no closing e2e suite (2026-11-12).
+- Decision: Tracer bullet is entry 1 «Tracer: supply rise-rate trip» (2026-11-12).
+- Decision: Yaml keys top-level `boiler_water`, `r_max` (default 2), `hold` (default 900) — not under `weather_feedforward` (2026-11-12).
+- Decision: Shared R6 — entry 1 delivers hold/idle/plant-off clears; entry 2 delivers zone rising-edge clear (2026-11-12).
+- Decision: Shared R7 — entry 1 delivers example + parse accept; entry 3 delivers house accept-check (2026-11-12).
