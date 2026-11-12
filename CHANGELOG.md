@@ -2,6 +2,39 @@
 
 <!-- version list -->
 
+## v3.6.1 (2026-11-12)
+
+### Bug Fixes
+
+- **docs**: Apply story 1.4 code review patches
+  ([`6613488`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/6613488a15454396d9d9f3d42dfbaadf3c97925b))
+
+- **docs**: Restore README badge and whitespace
+  ([`e8f07db`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/e8f07dbb311de5281b4a8ec8075b384493f00fd9))
+
+### Chores
+
+- **bmad**: Mark story 1.1 weather-curve tracer done
+  ([`42dda16`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/42dda16bfe0a8966cc871f10cb1431400c6e3306))
+
+- **bmad**: Mark story 1.2 detach-PID done
+  ([`827ffd6`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/827ffd6ddd2d307e592bc5d76a7d20f93ddafd7f))
+
+- **bmad**: Mark story 1.3 house apps.yaml commission done
+  ([`0d25903`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/0d25903702e68766f62d506be06a45c60132fec1))
+
+- **commission**: Apply review patches to 1.3 plan
+  ([`96009ef`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/96009ef050e39b137418c88a1e8a0b23557276d6))
+
+- **commission**: Record house apps.yaml weather FF plan
+  ([`c7975fe`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/c7975fed5ba07437b6d3fb0e4e135c7580a0ca59))
+
+### Documentation
+
+- Retarget commissioning docs to Outdoor+FF
+  ([`cd3cfd4`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/cd3cfd422e0d8d3cf1a36932ee1dac9dba10c20a))
+
+
 ## v3.6.0 (2026-11-11)
 
 ### Bug Fixes
