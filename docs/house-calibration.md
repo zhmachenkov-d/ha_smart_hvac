@@ -1,105 +1,86 @@
 # House calibration
-
-How to calibrate the HVAC App for a specific house. Calibration is **manual `apps.yaml` commissioning** of the base water temperature, fixed PID gains, and Zone weights. There is no relay/step commissioning procedure.
+How to calibrate the HVAC App for a specific house. Calibration is **manual `apps.yaml` commissioning** of Outdoor Temperature, Weather Feedforward (`weather_feedforward`), and plant rails. Optional Zone `weight` is wiring residual only (parsed/validated; not water-law commission). There is no relay/step commissioning procedure.
 
 Copy [`apps.yaml.example`](../apps.yaml.example) to `apps.yaml` next to the installed `ha_smart_hvac/` package, then work through the sections below. Never commit live house entity IDs.
 
-Domain terms: [`CONTEXT.md`](../CONTEXT.md). Exclusive Session: [ADR 0001](adr/0001-exclusive-session-against-production-ha.md).
+**Domain-docs lag:** [`CONTEXT.md`](../CONTEXT.md), ADR 0005/0006, and AGENTS.md may still describe fixed PID / RLS as the live water law until epic 3 supersedes them. Until then, **this document and [`apps.yaml.example`](../apps.yaml.example) are the commissioning source of truth** (Outdoor Temperature + Weather Feedforward only). Exclusive Session: [ADR 0001](adr/0001-exclusive-session-against-production-ha.md).
 
 ## 1. House wiring (required)
-
 Replace every `YOUR_*` placeholder:
 
 | Key | Role |
-|-----|------|
-| `plant_management` | Switch: when off, the App does not write Set Water Temperature and clears ephemeral / water-path state |
+| --- | --- |
+| `outdoor_temperature` | Outdoor air temperature sensor used by Weather Feedforward |
+| `plant_management` | Switch: when off, the App stops Set Water Temperature writes and leaves SWT untouched |
 | `plant_setpoint` | OpenTherm Set Water Temperature (`number` entity) |
 | `zones[]` | Per Zone: air temperature sensor + one or more climate thermostats; optional `weight` (default `1.0`) |
 
-Without correct wiring the App is not bound to the house.
+Without correct wiring the App is not bound to the house. At runtime, missing or non-finite Outdoor Temperature takes the idle path (writes SWT `0`); that is distinct from Plant Management off, which does not write and leaves SWT untouched.
 
 ## 2. Plant clamps and interval
-
-```yaml
-setpoint_min: 40
-setpoint_max: 55
+```yml
+setpoint_min: 50
+setpoint_max: 60
 control_interval: 300
 ```
+`setpoint_min` / `setpoint_max` bound the commanded Set Water Temperature; match them to the boiler / primary circuit limits. The example template uses `50` / `60` — house yaml may differ after commissioning. `control_interval` (a whole number of seconds, at most `86400`, default `300`) is the periodic schedule for demand Set Water Temperature writes under Plant Management and Heating Demand. Under those same gates, Outdoor and other control listeners also refresh demand SWT when their entities change — `control_interval` is not the sole writer.
 
-`setpoint_min` / `setpoint_max` bound the commanded Set Water Temperature; match them to the boiler / primary circuit limits. `control_interval` (a whole number of seconds, at most `86400`, default `300`) is the only schedule that advances the PID and writes a demand Set Water Temperature.
-
-## 3. Base water temperature and PID (yaml commission)
-
-Under Heating Demand the App commands:
+## 3. Weather Feedforward (yaml commission)
+Under Plant Management and Heating Demand the App commands:
 
 \[
-\text{SWT} = \operatorname{round}_{0.1}\big(\operatorname{clamp}(\texttt{base\_water\_temp} + K_p e + K_i \textstyle\int e\,dt)\big),\quad e = T_{set,w} - T_{air,w}
+\text{SWT} = \operatorname{quantize\_command}(u_{ff}),\quad u_{ff} = \texttt{base} + \texttt{slope} \times (\texttt{comfort\_ref} - T_{out})
 \]
 
-where \(T_{set,w}\) and \(T_{air,w}\) are weight-normalized averages over Zones with Heating Demand only.
+where \(T_{out}\) is Outdoor Temperature and `quantize_command` is round-to-0.1(clamp(…)) into `setpoint_min`…`setpoint_max`.
 
-```yaml
-base_water_temp: 40
-pid:
-  kp: 1.0
-  ki: 1.0
-  i_term_min: -10
-  i_term_max: 15
+```yml
+weather_feedforward:
+  base: 37
+  slope: 0.9
+  comfort_ref: 20
 ```
 
-Units:
+Copy these keys/values from [`apps.yaml.example`](../apps.yaml.example) as the starting template; house yaml may differ after commissioning. Mild Outdoor with these defaults can pin SWT to `setpoint_min` (e.g. ~10 °C outdoor → \(u_{ff}\) ≈ 46, still below 50) until rails or FF coefficients are retuned under operator HITL.
+
+Units / meaning:
 
 | Key | Unit | Meaning |
-|-----|------|---------|
-| `kp` | °C water per °C air | Proportional gain on \(e\) |
-| `ki` | 1/h | Integral gain; \(\int e\,dt\) is accumulated in °C·h (hours, not seconds or ticks) |
-| `i_term_min` / `i_term_max` | °C of water | Bounds on the I-term \(K_i \int e\,dt\) |
+| --- | --- | --- |
+| `base` | °C water | FF baseline water temperature |
+| `slope` | °C water / °C outdoor | Gain on `(comfort_ref − T_out)`; negative slopes are allowed |
+| `comfort_ref` | °C outdoor | Outdoor temperature where FF equals `base` |
 
-With `ki: 1.0`, a sustained 1 °C air error adds about 1 °C of water per hour (about 1/12 °C per tick at `control_interval: 300`). Changing `control_interval` does not rescale the effective Ki: each periodic tick that steps the integral adds the error times the configured interval in hours (not measured elapsed time), so one hour of ticks adds the same amount at 60 s or 300 s. Ticks where the integral is held (plant setpoint unavailable, or the freeze below) add nothing. The integral only advances on the periodic tick and freezes when the unclamped command (`base_water_temp` + Kp·e + I-term) is past `setpoint_min` / `setpoint_max` in the direction of the error.
-
-When `pid.adaptive` is true, commission `boiler_water` and all four adapted-gain rails (`kp_min` / `kp_max` / `ki_min` / `ki_max`, each ≥ 0 with min ≤ max). Rails constrain adapted Kp/Ki proposals only; YAML fixed `kp` / `ki` are not checked against them. An explicit `pid.ki` with `0 < ki < 1` still parses but logs one WARNING at startup (legacy per-second scale; expected unit is 1/h — not auto-migrated). With adaptive enabled, delete `rls_state.json` under the AppDaemon app directory to reset learned RLS state; do not disable `adaptive` to reset.
-
-When `base_water_temp` equals `setpoint_min` (as in the example), a negative error with a non-positive I-term already sits at `setpoint_min`, so the integral freezes and `i_term_min` is reachable only when `base_water_temp` is above `setpoint_min`.
-
-`base_water_temp` must lie within `setpoint_min`…`setpoint_max` (bounds inclusive); an explicit value outside them is a config error and the App does not start. When `base_water_temp` is omitted, the default `40` is clamped into the bounds (with `setpoint_min: 42` the base is `42`; with `setpoint_max: 35` it is `35`).
-
-These are starting defaults, not house-proven. Raise `zones[].weight` for Zones that should count more in the averages.
+Omitted `base` / `slope` / `comfort_ref` under a present `weather_feedforward:` mapping take the example defaults (`37` / `0.9` / `20`). Optional `zones[].weight` is accepted and validated at parse time but unused on the live Outdoor+FF demand path (Heating Demand gates on thermostat `hvac_action`; SWT is Outdoor+FF only).
 
 ### Rejected commission values
-
 Each of these logs `HVAC config error: …` at startup and the App does not run:
 
-- A non-numeric value (text that is not a number, `null`, a list, or `true` / `false`) or a non-finite one (`nan`, `inf`) for `setpoint_min`, `setpoint_max`, `control_interval`, `base_water_temp`, any `pid.*` gain or bound, or a Zone `weight`
+- Missing `outdoor_temperature`, `weather_feedforward`, `plant_management`, `plant_setpoint`, `zones`, `setpoint_min`, or `setpoint_max`
+- Empty `zones` list
+- A Zone that is not a mapping; empty / non-string Zone `name`; empty temperature entity id; empty or invalid `thermostats` list
+- A non-numeric value (text that is not a number, `null`, a list, or `true` / `false`) or a non-finite one (`nan`, `inf`) for `setpoint_min`, `setpoint_max`, `control_interval`, any `weather_feedforward` numeric (`base` / `slope` / `comfort_ref`), or a Zone `weight`
 - A fractional `control_interval` (`60.7`, `0.5`); `60.0` is accepted as `60`
+- A non-positive `control_interval` (`0`, `-1`)
 - A `control_interval` above `86400` (one day)
-- A negative `pid.kp` or `pid.ki` (`0` is accepted)
-- When `pid.adaptive` is true: a missing `boiler_water`, or any missing adapted-gain rail (`kp_min` / `kp_max` / `ki_min` / `ki_max`)
-- A present adapted-gain rail that is negative or has min>max (even when `pid.adaptive` is false)
-- An I-term range that does not include `0` (`i_term_min` must be ≤ 0 ≤ `i_term_max`)
-- An explicit `base_water_temp` outside `setpoint_min`…`setpoint_max`
+- A Zone `weight` < `0`
+- `weather_feedforward` that is not a mapping, or that includes unknown sub-keys (e.g. `auto_correct`)
+- Empty / non-string entity IDs for Outdoor, plant, or Zones
+- `setpoint_min` ≥ `setpoint_max`
+
+Leftover top-level `pid` / `base_water_temp` / `boiler_water` keys are WARNING-only ignores (not Rejected) — see **Upgrading from fixed PID commissioning**.
 
 ## 4. Safe order on a live house
-
-1. Fill entity IDs and Zones.
+1. Fill entity IDs (including `outdoor_temperature`) and Zones.
 2. Set sensible `setpoint_min` / `setpoint_max`.
-3. Commission `base_water_temp` and `pid` gains.
+3. Commission `weather_feedforward` (`base` / `slope` / `comfort_ref`).
 4. Enable Plant Management; watch water temperature and Zone air under demand and idle (write `0`).
-5. Disable Plant Management to stop all Set Water Temperature writes and clear ephemeral / water-path state.
+5. Disable Plant Management to stop all Set Water Temperature writes and leave SWT untouched.
 
-## Upgrading from Weather Feedforward
-
-Outdoor Temperature, Weather Feedforward, and rise-rate auto-correct are removed. Leftover `outdoor_temperature` and `weather_feedforward` keys in `apps.yaml` are ignored and logged as one WARNING at startup (`HVAC config: ignoring legacy or unknown keys: …`, which also names any other unknown key, including unknown zone sub-keys such as a misspelled `weigth`); delete them. `ff_auto_correct_state.json` in the AppDaemon app directory is no longer read and can be deleted.
-
-## Upgrading to hour-based PID integral
-
-`pid.integral_min` / `pid.integral_max` are replaced by `pid.i_term_min` / `pid.i_term_max`, which bound the I-term in °C of water rather than the raw integral. The old keys are ignored and logged as one WARNING at startup; replace them. The integral is now accumulated in °C·h with `ki` in 1/h, so the I-term builds over hours rather than per tick, and an old `ki` value does not carry the same meaning: the old `ki` was per second, so an explicit old value × 3600 is the equivalent per-hour `ki` (old `0.1` ≈ `360`, far above the new default). Delete an old `ki` to take the default `1.0`, or set a per-hour value deliberately. A yaml without a `pid:` section picks up the new defaults (`kp 1.0`, `ki 1.0`, `i_term_min -10`, `i_term_max 15`) on update.
-
-## Upgrading to strict commission parsing
-
-An explicit `base_water_temp` outside `setpoint_min`…`setpoint_max`, or any value in the rejection list in §3, now stops the App at startup with `HVAC config error: …` instead of being accepted. An omitted `base_water_temp` now defaults to `40` clamped into the bounds, so a house with `setpoint_min` above `40` and no `base_water_temp` now starts from `setpoint_min`.
+## Upgrading from fixed PID commissioning
+Outdoor Temperature + Weather Feedforward is the live water law. Leftover `pid`, `base_water_temp`, and `boiler_water` keys in `apps.yaml` are ignored and logged as one WARNING at startup (`HVAC config: ignoring legacy or unknown keys: …`, which also names any other unknown key, including unknown zone sub-keys such as a misspelled `weigth`); delete them. `rls_state.json` in the AppDaemon app directory is no longer written on the demand path and can be deleted. Unknown `weather_feedforward` sub-keys (including CAP-7 `auto_correct`) are a config error — strip them.
 
 ## What is not calibrated here
-
 - Relay or open-loop step commissioning
-- Air→SWT tracking / LADRC on water — removed from this path (not dormant)
-- Deep RLS λ / IMC design knobs — not commissioned here; online Kp/Ki via `pid.adaptive` is §3 above
+- Adaptive RLS / `rls_state.json` / fixed PID gains — not on the live water path (modules may remain on disk until epic 3)
+- CAP-7 rise-rate auto-correct / `ff_auto_correct_state.json` — stay out
