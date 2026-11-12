@@ -102,8 +102,8 @@ Demand SWT follows quantize_command(u_ff) with no rls_state.json on the demand p
 - notes: `Interim: pid.py / rls.py may remain until entry 2; R4 'no PID on path' is entry 2, not this tracer.`
 
 **Keep** (substance — assert present after scrub):
-- description: `quantize_command(u_ff…)` / Weather Feedforward / Outdoor / Plant+Heating Demand gates / idle `0`+clear / plant-off no write+clear / Outdoor listener / missing Outdoor → `_go_idle` / CAP-8 shared writer / Critical Zone diagnostics-only / CAP-7 out / example Outdoor+FF rails 50/60
-- verify: Plant on + Heating Demand tracks `quantize_command(u_ff)`; idle SWT 0; plant-off leaves SWT untouched; automated locks for demand→quantize, idle→0+clear, plant-off→no write+clear, Outdoor listeners, missing Outdoor vs plant-unreadable, weights-unusable, Critical Zone, example FF+Outdoor no CAP-7; `uv run pytest` and ruff clean
+- description: `quantize_command(u_ff…)` / Weather Feedforward / Outdoor / Plant+Heating Demand gates / idle writes `0` / plant-off no write (leave SWT untouched) / Outdoor listener / missing Outdoor → `_go_idle` / CAP-8 shared writer / Critical Zone diagnostics-only / CAP-7 out / example Outdoor+FF rails 50/60
+- verify: Plant on + Heating Demand tracks `quantize_command(u_ff)`; idle SWT 0; plant-off leaves SWT untouched; automated locks for demand→quantize, idle→0, plant-off→no write (leave SWT untouched), Outdoor listeners, missing Outdoor vs plant-unreadable, weights-unusable, Critical Zone, example FF+Outdoor no CAP-7; `uv run pytest` and ruff clean
 - notes: plan-approved / tracer bullet / R7 Outdoor+FF only / R1 latch epic 2 — keep; do not invent epic-3 module-deletion notes here
 
 ### house-calibration section inventory
@@ -146,3 +146,31 @@ Risk remains `low` (docs/ticket hygiene; no plant write-path change). Route `ful
   - IA2 plan checkboxes lag deliverables — verdict `false` — rejected: plan-edit fix (same as BH6).
   - IA3 named proof tests live in prose not test hunks — verdict `false` — R1 expected; no product/test change.
   - IA4 lag note cites CONTEXT/ADR/AGENTS — verdict `false` — required domain-docs-lag note; not citing them as live water law.
+
+## Code Review
+
+### 2026-11-12
+**Code review complete.** 0 `decision-needed`, 6 `patch`, 0 `defer`, 11 rejected. Decision F1→A→patch.
+
+- [x] [Review][Patch] Stale +clear language kept on entry-1 ticket surfaces vs live App [`tickets.toml:8`] — resolved Decision A: drop +clear; renegotiate Design Notes keep-list
+- [x] [Review][Patch] Rejected section lead-in frames WARNING-only legacy ignores as hard-fails [`docs/house-calibration.md:69`]
+- [x] [Review][Patch] Calibration presents control_interval as sole demand write schedule [`docs/house-calibration.md:26`]
+- [x] [Review][Patch] Weather FF formula documents Heating Demand without Plant Management gate [`docs/house-calibration.md:29`]
+- [x] [Review][Patch] Rejected commission list incomplete vs config hard-fails [`docs/house-calibration.md:56`]
+- [x] [Review][Patch] Outdoor unavailable → idle/0 fail path missing from calibration [`docs/house-calibration.md:13`]
+
+#### Rejected
+- R4 (low): orphan `ff_auto_correct_state.json` delete guidance — rarely visible; CAP-7 never restored
+- R5 (low): plan Execution checkboxes still unchecked while `status: built` — process scaffolding; prior BH6 declined
+- R6 (false): §1 omitted ephemeral-clear — App has no ephemeral clear on FF path; omission matches live behavior
+- R7 (low): README Install omits rails — linked house-calibration §2 covers them
+- R8 (low): Domain-docs lag missing links for AGENTS/ADR 0005/0006 — cosmetic navigability
+- R9 (low): ```yml vs ```yaml fence drift — cosmetic
+- R10 (false): entry-2 verify omits F5-A proof names — frozen canonical verify string by design
+- R17 (false): docs beyond board entry-4 verify — plan Always/OQ1-A authorize operator-doc sweep
+- R18 (false): no pytest/app hunks for board verify — expected docs/tickets-only surface
+- R19 (false): entry-1 scrub not in board Title/Description/Verify — plan OQ2-A authorizes
+- R20 (false): F5–F7 proofs prose-only — prior-story locks; expected for this diff
+
+### 2026-11-12 apply-all patches
+- Applied F1–F6: entry-1 drop +clear (Design Notes keep-list renegotiated); house-calibration Plant gate, event writes, Outdoor fail path, Rejected completeness, WARNING leftovers moved out of hard-fail list.

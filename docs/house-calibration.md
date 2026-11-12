@@ -15,7 +15,7 @@ Replace every `YOUR_*` placeholder:
 | `plant_setpoint` | OpenTherm Set Water Temperature (`number` entity) |
 | `zones[]` | Per Zone: air temperature sensor + one or more climate thermostats; optional `weight` (default `1.0`) |
 
-Without correct wiring the App is not bound to the house.
+Without correct wiring the App is not bound to the house. At runtime, missing or non-finite Outdoor Temperature takes the idle path (writes SWT `0`); that is distinct from Plant Management off, which does not write and leaves SWT untouched.
 
 ## 2. Plant clamps and interval
 ```yml
@@ -23,10 +23,10 @@ setpoint_min: 50
 setpoint_max: 60
 control_interval: 300
 ```
-`setpoint_min` / `setpoint_max` bound the commanded Set Water Temperature; match them to the boiler / primary circuit limits. The example template uses `50` / `60` — house yaml may differ after commissioning. `control_interval` (a whole number of seconds, at most `86400`, default `300`) is the periodic schedule for demand Set Water Temperature writes under Plant Management and Heating Demand.
+`setpoint_min` / `setpoint_max` bound the commanded Set Water Temperature; match them to the boiler / primary circuit limits. The example template uses `50` / `60` — house yaml may differ after commissioning. `control_interval` (a whole number of seconds, at most `86400`, default `300`) is the periodic schedule for demand Set Water Temperature writes under Plant Management and Heating Demand. Under those same gates, Outdoor and other control listeners also refresh demand SWT when their entities change — `control_interval` is not the sole writer.
 
 ## 3. Weather Feedforward (yaml commission)
-Under Heating Demand the App commands:
+Under Plant Management and Heating Demand the App commands:
 
 \[
 \text{SWT} = \operatorname{quantize\_command}(u_{ff}),\quad u_{ff} = \texttt{base} + \texttt{slope} \times (\texttt{comfort\_ref} - T_{out})
@@ -56,7 +56,9 @@ Omitted `base` / `slope` / `comfort_ref` under a present `weather_feedforward:` 
 ### Rejected commission values
 Each of these logs `HVAC config error: …` at startup and the App does not run:
 
-- Missing `outdoor_temperature` or `weather_feedforward`
+- Missing `outdoor_temperature`, `weather_feedforward`, `plant_management`, `plant_setpoint`, `zones`, `setpoint_min`, or `setpoint_max`
+- Empty `zones` list
+- A Zone that is not a mapping; empty / non-string Zone `name`; empty temperature entity id; empty or invalid `thermostats` list
 - A non-numeric value (text that is not a number, `null`, a list, or `true` / `false`) or a non-finite one (`nan`, `inf`) for `setpoint_min`, `setpoint_max`, `control_interval`, any `weather_feedforward` numeric (`base` / `slope` / `comfort_ref`), or a Zone `weight`
 - A fractional `control_interval` (`60.7`, `0.5`); `60.0` is accepted as `60`
 - A non-positive `control_interval` (`0`, `-1`)
@@ -66,7 +68,7 @@ Each of these logs `HVAC config error: …` at startup and the App does not run:
 - Empty / non-string entity IDs for Outdoor, plant, or Zones
 - `setpoint_min` ≥ `setpoint_max`
 
-Leftover top-level `pid`, `base_water_temp`, and `boiler_water` keys are ignored (logged once as `HVAC config: ignoring legacy or unknown keys: …`) and do not drive Set Water Temperature — delete them.
+Leftover top-level `pid` / `base_water_temp` / `boiler_water` keys are WARNING-only ignores (not Rejected) — see **Upgrading from fixed PID commissioning**.
 
 ## 4. Safe order on a live house
 1. Fill entity IDs (including `outdoor_temperature`) and Zones.
