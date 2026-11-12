@@ -25,6 +25,7 @@ _FF_COMFORT_REF = 20.0
 _OUTDOOR_TEMP = 10.0  # u_ff = 37 + 0.9*(20-10) = 46.0
 
 _OUTDOOR = "sensor.outdoor"
+_BOILER_WATER = "sensor.boiler_water"
 _PLANT_MGMT = "switch.pm"
 _PLANT_SETPOINT = "number.plant_setpoint"
 _ZONE_TEMP = "sensor.zone_one_temp"
@@ -40,6 +41,7 @@ _PID_PATH = Path(__file__).resolve().parents[1] / "apps" / "ha_smart_hvac" / "pi
 def _tick_args() -> dict:
     return {
         "outdoor_temperature": _OUTDOOR,
+        "boiler_water": _BOILER_WATER,
         "plant_management": _PLANT_MGMT,
         "plant_setpoint": _PLANT_SETPOINT,
         "setpoint_min": _SETPOINT_MIN,
@@ -89,12 +91,20 @@ def _tick_app(
     app.call_service = MagicMock()
     app.log = MagicMock()
     app.set_state = MagicMock()
+    app.run_in = MagicMock(return_value="hold-handle")
+    app.cancel_timer = MagicMock()
+    app._supply_trip_latched = False
+    app._supply_sample = None
+    app._trip_hold_handle = None
+    app._monotonic = MagicMock(return_value=0.0)
 
     def get_state(entity_id: str, attribute: str | None = None):
         if entity_id == _PLANT_MGMT:
             return plant_management
         if entity_id == _OUTDOOR:
             return outdoor
+        if entity_id == _BOILER_WATER:
+            return 40.0
         if entity_id == _ZONE_TEMP:
             return zone_temp
         if entity_id == _PLANT_SETPOINT:
@@ -152,6 +162,8 @@ def _init_app(
     app.run_every = MagicMock()
     app.listen_state = MagicMock()
     app.call_service = MagicMock()
+    app.run_in = MagicMock(return_value="hold-handle")
+    app.cancel_timer = MagicMock()
 
     def get_state(entity_id: str, attribute: str | None = None):
         if entity_id == _PLANT_MGMT:
@@ -391,11 +403,10 @@ def test_initialize_clean_args_no_warning() -> None:
 
 
 def test_initialize_warns_on_legacy_water_law_keys() -> None:
-    """Leftover pid / base_water_temp / boiler_water → top-level ignored_keys WARN."""
+    """Leftover pid / base_water_temp → ignored_keys WARN; boiler_water commissioned."""
     args = _tick_args()
     args["pid"] = {"kp": 1.0, "adaptive": True}
     args["base_water_temp"] = 51
-    args["boiler_water"] = "sensor.boiler_water"
     app = _init_app(args=args)
 
     app.initialize()
@@ -403,7 +414,7 @@ def test_initialize_warns_on_legacy_water_law_keys() -> None:
     warns = _warn_msgs(app)
     assert warns[0].startswith("HVAC config: ignoring legacy or unknown keys:")
     assert "base_water_temp" in warns[0]
-    assert "boiler_water" in warns[0]
+    assert "boiler_water" not in warns[0]
     assert "pid" in warns[0]
     assert "Plant Management disabled" in warns
     app.run_every.assert_called_once()
@@ -434,6 +445,7 @@ def test_critical_zone_does_not_change_swt() -> None:
     app._config = parse_config(args)
     app.call_service = MagicMock()
     app.log = MagicMock()
+    app._supply_trip_latched = False
 
     def get_state(entity_id: str, attribute: str | None = None):
         if entity_id == _PLANT_MGMT:
@@ -492,6 +504,7 @@ def test_partial_zone_skip_uses_successful_snapshots_only() -> None:
     app._config = parse_config(args)
     app.call_service = MagicMock()
     app.log = MagicMock()
+    app._supply_trip_latched = False
 
     def get_state(entity_id: str, attribute: str | None = None):
         if entity_id == _PLANT_MGMT:
@@ -547,6 +560,7 @@ def test_partial_zone_skip_unavailable_thermostat_setpoint() -> None:
     app._config = parse_config(args)
     app.call_service = MagicMock()
     app.log = MagicMock()
+    app._supply_trip_latched = False
 
     def get_state(entity_id: str, attribute: str | None = None):
         if entity_id == _PLANT_MGMT:
@@ -912,7 +926,7 @@ def test_init_outdoor_unavailable_goes_idle() -> None:
     )
 
 
-def test_initialize_registers_outdoor_listener() -> None:
+def test_initialize_registers_outdoor_and_supply_listeners() -> None:
     app = _init_app()
     app.initialize()
 
@@ -921,4 +935,236 @@ def test_initialize_registers_outdoor_listener() -> None:
         c.args[1] for c in listens if len(c.args) >= 2 and not c.kwargs.get("attribute")
     }
     assert _OUTDOOR in entity_only
+    assert _BOILER_WATER in entity_only
     assert _PLANT_MGMT in entity_only
+    boiler_listens = [
+        c for c in listens if len(c.args) >= 2 and c.args[1] == _BOILER_WATER
+    ]
+    assert len(boiler_listens) == 1
+    assert boiler_listens[0].args[0].__func__ is HvacApp.supply_event
+
+
+def _demand_get_state(
+    *,
+    boiler_water: object = 40.0,
+    outdoor: object = _OUTDOOR_TEMP,
+    plant_management: str = "on",
+    hvac_action: str = "heating",
+):
+    """get_state for supply trip tests under configurable gates."""
+
+    def get_state(entity_id: str, attribute: str | None = None):
+        if entity_id == _PLANT_MGMT:
+            return plant_management
+        if entity_id == _OUTDOOR:
+            return outdoor
+        if entity_id == _BOILER_WATER:
+            return boiler_water
+        if entity_id == _ZONE_TEMP:
+            return 20.0
+        if entity_id == _PLANT_SETPOINT:
+            return 45.0
+        if entity_id == _CLIMATE:
+            if attribute == "temperature":
+                return 22.0
+            if attribute == "hvac_action":
+                return hvac_action
+            return "heat"
+        return None
+
+    return get_state
+
+
+def _supply_trip_app(**kwargs) -> HvacApp:
+    kwargs.setdefault("plant_management", "on")
+    return _tick_app(**kwargs)
+
+
+def test_supply_trip_latches_and_writes_zero() -> None:
+    app = _supply_trip_app()
+    times = [0.0, 60.0]
+    app._monotonic = MagicMock(side_effect=times)
+
+    app.supply_event(_BOILER_WATER, "state", 35.0, 40.0, {})
+    assert app._supply_sample == (0.0, 40.0)
+    assert not app._supply_trip_latched
+
+    app.get_state = MagicMock(side_effect=_demand_get_state(boiler_water=50.0))
+    app.supply_event(_BOILER_WATER, "state", 40.0, 50.0, {})
+
+    assert app._supply_trip_latched
+    assert _set_value_writes(app) == [0.0]
+    app.run_in.assert_called_once()
+    assert app.run_in.call_args.args[0].__func__ is HvacApp._trip_hold_expired
+    assert app.run_in.call_args.args[1] == app._config.hold
+    hold_cb = app.run_in.call_args.args[0]
+    app.call_service.reset_mock()
+    hold_cb({})
+    assert not app._supply_trip_latched
+    assert _set_value_writes(app) == [_expected_command()]
+
+
+def test_latched_demand_writes_zero_no_ff() -> None:
+    app = _supply_trip_app()
+    app._supply_trip_latched = True
+    app.control_tick({})
+    assert _set_value_writes(app) == [0.0]
+    assert not any("u_ff=" in m for m in _info_msgs(app))
+
+
+def test_trip_hold_expiry_gated_runs_curve() -> None:
+    app = _supply_trip_app(plant_setpoint=45.0)
+    app._supply_trip_latched = True
+    app._trip_hold_handle = "hold-handle"
+    expected = _expected_command()
+
+    app._trip_hold_expired({})
+
+    assert not app._supply_trip_latched
+    app.cancel_timer.assert_called_once_with("hold-handle")
+    assert _set_value_writes(app) == [expected]
+
+
+def test_trip_hold_expiry_closed_gate_clears_only() -> None:
+    app = _supply_trip_app(plant_management="off")
+    app._supply_trip_latched = True
+    app._trip_hold_handle = "hold-handle"
+
+    app._trip_hold_expired({})
+
+    assert not app._supply_trip_latched
+    assert _set_value_writes(app) == []
+
+
+def test_idle_clears_trip_state() -> None:
+    app = _supply_trip_app(
+        zone_temp=22.0, setpoint=22.0, hvac_action="idle", plant_setpoint=0.0
+    )
+    app._supply_trip_latched = True
+    app._supply_sample = (0.0, 40.0)
+    app._trip_hold_handle = "hold-handle"
+
+    app.control_tick({})
+
+    assert not app._supply_trip_latched
+    assert app._supply_sample is None
+    app.cancel_timer.assert_called_once_with("hold-handle")
+
+
+def test_plant_off_clears_trip_state() -> None:
+    app = _supply_trip_app(plant_management="off")
+    app._supply_trip_latched = True
+    app._supply_sample = (0.0, 40.0)
+    app._trip_hold_handle = "hold-handle"
+
+    app.control_tick({})
+
+    assert not app._supply_trip_latched
+    assert app._supply_sample is None
+    app.cancel_timer.assert_called_with("hold-handle")
+
+
+def test_bad_supply_warns_without_trip() -> None:
+    app = _supply_trip_app()
+    app._supply_trip_latched = True
+    app.get_state = MagicMock(side_effect=_demand_get_state(boiler_water="unavailable"))
+
+    app.supply_event(_BOILER_WATER, "state", 40.0, None, {})
+
+    assert app._supply_trip_latched
+    assert any("Supply temperature unreadable" in m for m in _warn_msgs(app))
+
+
+def test_supply_non_positive_dt_warns_keeps_latest() -> None:
+    app = _supply_trip_app()
+    app._supply_sample = (1.0, 40.0)
+    app._monotonic = MagicMock(return_value=1.0)
+    app.get_state = MagicMock(side_effect=_demand_get_state(boiler_water=41.0))
+
+    app.supply_event(_BOILER_WATER, "state", 40.0, 41.0, {})
+
+    assert not app._supply_trip_latched
+    assert any("non-positive sample interval" in m for m in _warn_msgs(app))
+    assert app._supply_sample == (1.0, 41.0)
+
+
+def test_already_latched_does_not_restart_hold() -> None:
+    app = _supply_trip_app()
+    app._supply_trip_latched = True
+    app._trip_hold_handle = "existing"
+    app._supply_sample = (0.0, 40.0)
+    app._monotonic = MagicMock(side_effect=[60.0, 120.0])
+    app.get_state = MagicMock(side_effect=_demand_get_state(boiler_water=80.0))
+
+    app.supply_event(_BOILER_WATER, "state", 40.0, 80.0, {})
+
+    app.run_in.assert_not_called()
+
+
+def test_supply_trip_under_demand_outdoor_unavailable() -> None:
+    """supply_event gates on Plant∧Demand only — not Outdoor idle."""
+    app = _supply_trip_app()
+    times = [0.0, 60.0]
+    app._monotonic = MagicMock(side_effect=times)
+    app.get_state = MagicMock(
+        side_effect=_demand_get_state(outdoor="unavailable", boiler_water=40.0)
+    )
+
+    app.supply_event(_BOILER_WATER, "state", 35.0, 40.0, {})
+    app.get_state = MagicMock(
+        side_effect=_demand_get_state(outdoor="unavailable", boiler_water=50.0)
+    )
+    app.supply_event(_BOILER_WATER, "state", 40.0, 50.0, {})
+
+    assert app._supply_trip_latched
+    assert _set_value_writes(app) == [0.0]
+    app.run_in.assert_called_once()
+    assert not any("Outdoor temperature unavailable" in m for m in _warn_msgs(app))
+
+
+def test_supply_event_plant_off_does_not_trip() -> None:
+    app = _supply_trip_app(plant_management="off")
+    times = [0.0, 60.0]
+    app._monotonic = MagicMock(side_effect=times)
+    app.get_state = MagicMock(
+        side_effect=_demand_get_state(plant_management="off", boiler_water=40.0)
+    )
+
+    app.supply_event(_BOILER_WATER, "state", 35.0, 40.0, {})
+    app.get_state = MagicMock(
+        side_effect=_demand_get_state(plant_management="off", boiler_water=50.0)
+    )
+    app.supply_event(_BOILER_WATER, "state", 40.0, 50.0, {})
+
+    assert not app._supply_trip_latched
+    app.run_in.assert_not_called()
+    assert _set_value_writes(app) == []
+
+
+def test_supply_event_no_heating_demand_does_not_trip() -> None:
+    app = _supply_trip_app(hvac_action="idle")
+    times = [0.0, 60.0]
+    app._monotonic = MagicMock(side_effect=times)
+    app.get_state = MagicMock(
+        side_effect=_demand_get_state(hvac_action="idle", boiler_water=40.0)
+    )
+
+    app.supply_event(_BOILER_WATER, "state", 35.0, 40.0, {})
+    app.get_state = MagicMock(
+        side_effect=_demand_get_state(hvac_action="idle", boiler_water=50.0)
+    )
+    app.supply_event(_BOILER_WATER, "state", 40.0, 50.0, {})
+
+    assert not app._supply_trip_latched
+    app.run_in.assert_not_called()
+    assert _set_value_writes(app) == []
+
+
+def test_orphan_hold_callback_after_clear_no_demand_write() -> None:
+    app = _supply_trip_app(plant_setpoint=45.0)
+    app._supply_trip_latched = False
+    app._trip_hold_handle = None
+
+    app._trip_hold_expired({})
+
+    assert _set_value_writes(app) == []
