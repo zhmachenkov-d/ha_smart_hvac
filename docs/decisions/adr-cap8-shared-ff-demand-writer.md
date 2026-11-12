@@ -1,0 +1,3 @@
+# CAP-8 shared FF demand writer (no sticky latch)
+
+After restoring weather-curve demand SWT, tick and every eligible `control_event` share one FF writer (`_gate_prelude` → `_run_demand`); the PID-era sticky `_gated_demand` / rising-edge-only demand write is removed. Equal-float skip remains the write throttle. Recorded from story 1.1 plan Intent CAP-8 (`story-tracer-weather-curve-swt-law-plan.md`) and commits `17d4960e` / `75cae7cf`, because the trade-off (mid-demand Outdoor and zone/thermostat events refresh SWT vs event/log churn) is hard to reverse and surprises anyone still reading AGENTS sticky-latch prose until epic 3.
