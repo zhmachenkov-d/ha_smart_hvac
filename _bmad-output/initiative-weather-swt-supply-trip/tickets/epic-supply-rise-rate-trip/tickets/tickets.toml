@@ -1,0 +1,49 @@
+# Epic 2 breakdown — leaf build order. `id` is stable; table order is build order.
+# Approved 2026-11-12. Tracer = config + supply listener + r_obs + latch + gate FF writer + example yaml.
+
+[[entry]]
+id = 1
+type = "story"
+title = "Tracer: supply rise-rate trip"
+description = "Accepts boiler_water / r_max (default 2) / hold (default 900) in parse_config and apps.yaml.example (top-level, not under weather_feedforward); listens on supply; under Plant∧Demand two successive valid samples yield r_obs (°C/min); r_obs > r_max latches and writes SWT 0; while latched, _run_demand does not apply the weather curve (commands 0, equal-float skip); hold timer from latch moment; clear latch and wipe supply samples on hold expiry / idle write-0 / plant-off; unreadable or non-finite supply → WARN, no trip, no auto-clear of an existing latch; Critical Zone does not drive the trip; latch is RAM-only; zone rising-edge clear is entry 2."
+verify = "Under Plant on + Heating Demand, a supply rise faster than r_max latches and plant Set Water Temperature is commanded 0 (weather curve not applied while latched); hold expiry, idle, and plant-off clear latch and supply sample history; bad supply warns without tripping or auto-clearing; apps.yaml.example commissions boiler_water / r_max / hold; boiler_water is no longer an ignored leftover key; uv run pytest and uv run ruff check apps/ha_smart_hvac tests clean."
+covers = ["R5", "R6", "R7"]
+after = ["1.1"]
+hitl = false
+risk = "high"
+notes = ["Tracer bullet: config parse + supply listener + r_obs + latch/hold + gate CAP-8 FF writer + example yaml in one path.", "R6 here: hold / idle / plant-off clears; zone rising-edge clear is entry 2.", "R7 here: supply entity commission in example + parse; house accept-check is entry 3.", "after 1.1: weather-curve demand SWT path and Outdoor control listener live under Plant/Demand gates."]
+
+[[entry]]
+id = 2
+type = "story"
+title = "Zone rising-edge latch clear"
+description = "Clears the supply rise-rate latch (and cancels the hold timer, wiping supply samples as on other clears) when Heating Demand appears on a zone that previously had none; after clear, demand SWT follows the weather curve when gates allow. Needs per-zone prior Heating Demand tracking (today only aggregate has_heating_demand)."
+verify = "With the trip latched under Plant∧Demand, a zone rising-edge into Heating Demand clears the latch and cancels hold; subsequent demand path applies weather-curve SWT again when gates allow; aggregate-only demand with no new zone edge does not clear; uv run pytest and uv run ruff check apps/ha_smart_hvac tests clean."
+covers = ["R6"]
+after = [1]
+hitl = false
+risk = "high"
+notes = ["Least-certain: per-zone prior Heating Demand state does not exist yet; must not use Critical Zone."]
+
+[[entry]]
+id = 3
+type = "story"
+title = "House: accept boiler_water"
+description = "Operator confirms house apps/apps.yaml accepts the existing boiler_water entity id (sensor.opentherm_bridge_boiler_water_temperature_degc) — no longer ignored_keys WARN; entity id unchanged unless the owner confirms a change. No live Exclusive Session required in this story."
+verify = "House apps/apps.yaml parses with boiler_water accepted (not in ignored_keys); entity id matches the pre-change value unless the owner confirmed a change."
+covers = ["R7"]
+after = [1]
+hitl = true
+risk = "medium"
+notes = ["HITL: ask before changing house entity IDs (AGENTS.md).", "R7 part: house accept-check only; example + parse already entry 1."]
+
+[[entry]]
+id = 4
+type = "story"
+title = "Refactor sweep"
+description = "Cleans deferred review findings and orphans left by the supply rise-rate trip; no new scope."
+verify = "uv run pytest and uv run ruff check clean; no unused trip/latch leftovers called out in this epic's deferred notes."
+covers = []
+after = [1, 2, 3]
+hitl = false
+risk = "low"
