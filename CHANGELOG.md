@@ -2,6 +2,36 @@
 
 <!-- version list -->
 
+## v3.7.0 (2026-11-13)
+
+### Bug Fixes
+
+- **hvac**: Harden supply rise-rate trip from review
+  ([`d7e5262`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/d7e526217c93fc7e9093074e924f594f12adbc1c))
+
+### Chores
+
+- **bmad**: Capture 2.1 supply rise-rate trip plan
+  ([`93157ee`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/93157eee2504bc820fd872bf41d4109dfb4aef9e))
+
+- **bmad**: Close weather-curve SWT restore epic
+  ([`1badea3`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/1badea34d2b4edd9d46ba6a5d44fe7d070d2349e))
+
+- **bmad**: Mark story 1.4 refactor sweep done
+  ([`802578b`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/802578b75101a32c678720dc0bcbfe722d3c6df1))
+
+- **bmad**: Refine supply rise-rate trip epic
+  ([`3d375aa`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/3d375aa68aabeee933934690bc79eee76ec4849e))
+
+- **bmad**: Slice supply rise-rate trip into stories
+  ([`4642c0f`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/4642c0fca8953f76b6a150442691d494b78a4497))
+
+### Features
+
+- **hvac**: Add supply rise-rate SWT trip
+  ([`fbe647f`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/fbe647fd26a32edc9d8b51ab9fd61265d426fa14))
+
+
 ## v3.6.1 (2026-11-12)
 
 ### Bug Fixes
