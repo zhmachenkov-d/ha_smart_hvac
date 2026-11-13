@@ -103,3 +103,30 @@ Reuse 2.1 `_clear_trip_state` / latched `_run_demand`→`0` / hold re-prelude (h
 | CZ test does not mock `select_max_error_demand_zone` | false | Clear path never calls CZ; demand path still logs CZ after clear — non-consultation of CZ for clear is already true. |
 | Edge: `_two_zone_app` plant_setpoint not forwarded | medium | Same defect as blind-hunter plant_setpoint finding. Route: patch (grouped). |
 | Verification-gap: latched partial zone fall untested | medium | Pre-verified: True→False under continued demand would not fail existing tests if edge became any-change. Route: patch. |
+
+## Code Review
+
+### 2026-11-13
+**Code review complete.** 0 `decision-needed`, 2 `patch`, 0 `defer`, 15 rejected (F2→A leave-as-is).
+
+- [x] [Review][Decision] Version 3.7.0 on this branch can ship 2.2 code without CHANGELOG naming rising-edge clear — resolved: **A leave as-is** (3.7.0 documents 2.1 only; next release after merge notes 2.2).
+
+- [x] [Review][Patch] Latched all-False prior under demand not pinned against empty-seed regression [apps/ha_smart_hvac/hvac_app.py:120] — added test_latched_all_false_prior_rising_edge_clears
+- [x] [Review][Patch] Latched no-edge path missing control_event coverage [tests/test_hvac_app.py] — added test_latched_no_new_edge_via_control_event
+
+#### Rejected
+- F2/R1 leave-as-is — User chose A: 3.7.0 documents 2.1 only; next release notes 2.2.
+- R2 false — Plan Never forbids docs/ADR; docs epic owns AGENTS/CONTEXT.
+- R3 false — Fix would edit plan intent/matrix.
+- R4 low — By-design supply_event non-update; extra test not worth complexity.
+- R5 false — `test_latched_missing_prior_key_is_not_edge` already covers missing key ≠ edge.
+- R6 low — Plan Execution checkbox hygiene only.
+- R7 low — tickets.toml notes hygiene only.
+- R8 low — Clear is in prelude before CZ logging; mock adds little.
+- R9 low — Sibling no-edge test pins hold/sample; `_clear_trip_state` would clear latch too.
+- R11 low — Cosmetic overwritten get_state kwargs.
+- R13 false — Hold-timer arm is story 2.1 by epic split.
+- R14 false — Outdoor gating matches existing prelude/plan.
+- R15 false — Plan-in-diff expected; release overlap handled as F2/R1.
+- R16 false — Decision A / seed / missing-key are plan-approved.
+- R17 false — edge-case-hunter returned no findings.

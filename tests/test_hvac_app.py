@@ -1477,6 +1477,25 @@ def test_rising_edge_clear_via_control_event() -> None:
     assert app._zone_heating_prior == {"zone_one": True, "zone_two": True}
 
 
+def test_latched_no_new_edge_via_control_event() -> None:
+    """Latched; same zones still heating on control_event → latch stays; SWT 0."""
+    app = _two_zone_app(zone_one_action="heating", zone_two_action="heating")
+    app._supply_trip_latched = True
+    app._supply_sample = (0.0, 40.0)
+    app._trip_hold_handle = "hold-handle"
+    app._zone_heating_prior = {"zone_one": True, "zone_two": True}
+
+    _fire_control_event(app, entity="climate.zone_two")
+
+    assert app._supply_trip_latched
+    assert app._supply_sample == (0.0, 40.0)
+    assert app._trip_hold_handle == "hold-handle"
+    app.cancel_timer.assert_not_called()
+    assert _set_value_writes(app) == [0.0]
+    assert app._zone_heating_prior == {"zone_one": True, "zone_two": True}
+    assert not any("u_ff=" in m for m in _info_msgs(app))
+
+
 def test_rising_edge_not_latched_updates_prior_and_writes_curve() -> None:
     """Not latched; zone rises → prior updates; weather-curve path unchanged."""
     app = _two_zone_app(zone_one_action="heating", zone_two_action="idle")
@@ -1510,6 +1529,25 @@ def test_latched_empty_prior_seeds_without_clear() -> None:
     assert _set_value_writes(app) == [0.0]
     assert app._zone_heating_prior == {"zone_one": True, "zone_two": True}
     assert not any("u_ff=" in m for m in _info_msgs(app))
+
+
+def test_latched_all_false_prior_rising_edge_clears() -> None:
+    """Non-empty all-False prior (not empty seed) + heating → clear + curve SWT."""
+    app = _two_zone_app(zone_one_action="heating", zone_two_action="heating")
+    app._supply_trip_latched = True
+    app._supply_sample = (0.0, 40.0)
+    app._trip_hold_handle = "hold-handle"
+    app._zone_heating_prior = {"zone_one": False, "zone_two": False}
+    expected = _expected_command()
+
+    app.control_tick({})
+
+    assert not app._supply_trip_latched
+    assert app._supply_sample is None
+    app.cancel_timer.assert_called_once_with("hold-handle")
+    assert _set_value_writes(app) == [expected]
+    assert app._zone_heating_prior == {"zone_one": True, "zone_two": True}
+    assert any("u_ff=" in m for m in _info_msgs(app))
 
 
 def test_idle_no_demand_updates_prior_all_false() -> None:
