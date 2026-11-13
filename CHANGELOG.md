@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## v3.8.0 (2026-11-13)
+
+### Bug Fixes
+
+- **hvac**: Harden zone rising-edge latch clear from review
+  ([`52320dc`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/52320dca1871a05e2c90aa7099496d5672f8dd7f))
+
+### Chores
+
+- **bmad**: Mark story 2.2 zone rising-edge latch clear done
+  ([`cf0f6d5`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/cf0f6d54d12aa2b287d3d5ae1f74c629ad27b9c7))
+
+
 ## v3.7.0 (2026-11-13)
 
 ### Bug Fixes
