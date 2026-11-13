@@ -2,7 +2,7 @@
 title: 'Tracer: supply rise-rate trip'
 ticket: '1'
 created: '2026-11-12'
-status: 'built'
+status: 'done'
 risk: 'high'
 route: 'full'
 route_source: 'auto'
@@ -57,11 +57,11 @@ Vacuous clear → trip clear (`adr-vacuous-clear-after-pid-detach`). No CAP-7 (`
 
 ## Tasks & Acceptance
 **Execution:**
-- [ ] `models.py`+`config.py` — fields; require `boiler_water`; rate rules.
-- [ ] `hvac_app.py` — `supply_event` (no prelude); injectable clock; latch/hold; latched→`0`; clear hooks; hold cb re-prelude; unit logs.
-- [ ] `apps.yaml.example` — commission + comments.
-- [ ] `tests/test_config.py` — `_minimal_args`+example accept; defaults; reject; flip ignore/absent.
-- [ ] `tests/test_hvac_app.py` — fixtures + `run_in`/`cancel_timer` mocks; listener; trip; latched; hold gated/closed; idle/plant-off; bad supply; `dt_s≤0`.
+- [x] `models.py`+`config.py` — fields; require `boiler_water`; rate rules.
+- [x] `hvac_app.py` — `supply_event` (no prelude); injectable clock; latch/hold; latched→`0`; clear hooks; hold cb re-prelude; unit logs.
+- [x] `apps.yaml.example` — commission + comments.
+- [x] `tests/test_config.py` — `_minimal_args`+example accept; defaults; reject; flip ignore/absent.
+- [x] `tests/test_hvac_app.py` — fixtures + `run_in`/`cancel_timer` mocks; listener; trip; latched; hold gated/closed; idle/plant-off; bad supply; `dt_s≤0`.
 
 **Acceptance Criteria:**
 - Given Plant∧Demand and `r_obs > r_max`, when second sample arrives, then latch + SWT `0`.
@@ -107,3 +107,32 @@ Vacuous clear → trip clear (`adr-vacuous-clear-after-pid-detach`). No CAP-7 (`
 
 **Manual checks:**
 - Exclusive Session: fast rise → SWT `0` for `hold`; idle/plant-off clears; curve after hold if gated.
+
+## Code Review
+### 2026-11-13
+**Code review complete.** 0 `decision-needed`, 12 `patch`, 2 `defer`, 8 rejected. Decisions resolved 2026-11-13: F4→A, F5→C, F8→defer, F11→B.
+
+- [x] [Review][Patch] Stale supply sample retained across ungated supply_event early-return — resolved Decision A: wipe `_supply_sample` on ungated `supply_event` early-return [`apps/ha_smart_hvac/hvac_app.py:135-136`]
+- [x] [Review][Patch] `_go_idle` clears trip state before confirming idle SWT write succeeds — resolved Decision C: cancel hold/wipe sample always; keep latch until idle write 0 succeeds [`apps/ha_smart_hvac/hvac_app.py:243-246`]
+- [x] [Review][Defer] Critical Zone non-trip Always rule unverified in this change — deferred: deferred-work already scoped CZ×trip suite out of 2.1 tracer band
+- [x] [Review][Patch] Fractional hold silently truncated (e.g. 90.9→90) — resolved Decision B: keep int() truncate; document whole seconds after coerce in example [`apps.yaml.example` / `config.py:205-208`]
+- [x] [Review][Patch] Failed first-trip SWT write advances sample without latching, blocking re-trip while plant stays hot [apps/ha_smart_hvac/hvac_app.py:160-174]
+- [x] [Review][Patch] Orphan hold callback after clear→re-trip can clear the new latch and rewrite curve [apps/ha_smart_hvac/hvac_app.py:115-124]
+- [x] [Review][Patch] hold values in (0, 1) parse then coerce to 0 [apps/ha_smart_hvac/config.py:205-208]
+- [x] [Review][Patch] Trip path never asserts _trip_hold_handle is stored from run_in [tests/test_hvac_app.py:983-1004]
+- [x] [Review][Patch] Non-string boiler_water reject untested [tests/test_config.py (missing)]
+- [x] [Review][Patch] Example hold comments disagree (retry vs latch duration) [apps.yaml.example:14-17]
+- [x] [Review][Patch] Stale test_parse_apps_yaml_example docstring (FF-only) [tests/test_config.py:66-67]
+- [x] [Review][Patch] Plan status/checkboxes out of sync with built [story-tracer-supply-rise-rate-trip-plan.md]
+- [x] [Review][Patch] Equal-float under latch not asserted [tests/test_hvac_app.py latched demand/trip paths]
+- [x] [Review][Defer] run_in None after latch is unverified [apps/ha_smart_hvac/hvac_app.py:163-167] — deferred: Unverified medium/high — settle by confirming whether AppDaemon run_in can return None on failure; if yes, treat as medium+ and guard.
+
+#### Rejected
+- R7 (false): Plan I/O matrix dropped deferred edge rows — Fix is an edit to the plan intent/matrix section.
+- R8 (false): Design Notes collapsed; rationale lost — Fix is a plan-intent/design-notes edit.
+- R10 (false): Already-latched re-trip write omits plant_reading reuse — Alleged unwanted behavior does not occur — latch already held.
+- R12 (low): Plan file missing trailing newline — low, rarely visible; prior plan triage dismissed as cosmetic.
+- R23 (false): R6 zone rising-edge clear absent vs parent R6 — Intentional out-of-scope; not a defect in this change.
+- R24 (false): Write-gated latch (D2) vs unqualified "latches and writes" — Intentional prior-review patch, not an accidental divergence.
+- R27 (false): Verify pytest/ruff green not evidenced in diff — Process claim not a code defect.
+- R28 (false): Same diff rewrites frozen plan Intent/matrix — Plan-intent surface; reject per plan-intent rule.

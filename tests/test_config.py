@@ -64,7 +64,7 @@ def test_parse_weight_override() -> None:
 
 
 def test_parse_apps_yaml_example() -> None:
-    """Real example file parses with Outdoor + FF only water-law commission."""
+    """Real example file parses Outdoor + FF + supply rise-rate trip commission."""
     example_text = (ROOT / "apps.yaml.example").read_text()
     raw = yaml.safe_load(example_text)
     assert isinstance(raw, dict) and "hvac" in raw
@@ -277,6 +277,26 @@ def test_outdoor_temperature_rejects_non_string() -> None:
     args["outdoor_temperature"] = 42
     with pytest.raises(ConfigError, match="outdoor_temperature must be a non-empty"):
         parse_config(args)
+
+
+def test_boiler_water_rejects_non_string() -> None:
+    args = _minimal_args()
+    args["boiler_water"] = 42
+    with pytest.raises(ConfigError, match="boiler_water must be a non-empty"):
+        parse_config(args)
+
+
+def test_parse_rejects_hold_in_open_unit_interval() -> None:
+    args = _minimal_args()
+    args["hold"] = 0.5
+    with pytest.raises(ConfigError, match="hold must be >= 1"):
+        parse_config(args)
+
+
+def test_parse_hold_truncates_fractional_seconds() -> None:
+    args = _minimal_args()
+    args["hold"] = 90.9
+    assert parse_config(args).hold == 90
 
 
 # --- Commission parse hardening ----------------------------------------------

@@ -206,6 +206,8 @@ def parse_config(args: dict[str, Any]) -> HvacConfig:
     if hold_raw <= 0:
         raise ConfigError("hold must be > 0")
     hold = int(hold_raw)
+    if hold < 1:
+        raise ConfigError("hold must be >= 1")
 
     setpoint_min = _number(args, "setpoint_min")
     setpoint_max = _number(args, "setpoint_max")

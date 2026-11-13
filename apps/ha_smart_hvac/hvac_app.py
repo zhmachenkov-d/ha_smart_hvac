@@ -40,6 +40,7 @@ class HvacApp(hass.Hass):
         self._supply_trip_latched = False
         self._supply_sample: tuple[float, float] | None = None
         self._trip_hold_handle: object | None = None
+        self._trip_hold_token = 0
 
         self._register_control_listeners()
         self.listen_state(self.supply_event, self._config.boiler_water)
@@ -107,14 +108,19 @@ class HvacApp(hass.Hass):
     def _clear_trip_state(self) -> None:
         """Clear latch, supply samples, and hold timer (idempotent)."""
         self._supply_trip_latched = False
+        self._disarm_trip_hold()
+
+    def _disarm_trip_hold(self) -> None:
+        """Cancel hold timer and wipe samples; invalidate pending hold callbacks."""
         self._supply_sample = None
+        self._trip_hold_token += 1
         if self._trip_hold_handle is not None:
             self.cancel_timer(self._trip_hold_handle)
             self._trip_hold_handle = None
 
     def _trip_hold_expired(self, kwargs: dict) -> None:
         """Hold elapsed: clear trip RAM, then re-run Outdoor prelude + demand."""
-        if not self._supply_trip_latched and self._trip_hold_handle is None:
+        if kwargs.get("token") != self._trip_hold_token:
             return
         self._clear_trip_state()
         outcome = self._gate_prelude()
@@ -133,6 +139,7 @@ class HvacApp(hass.Hass):
     ) -> None:
         """Supply rise-rate trip — Plant∧Demand only; never Outdoor prelude."""
         if not self._plant_and_heating_demand():
+            self._supply_sample = None
             return
 
         config = self._config
@@ -160,17 +167,28 @@ class HvacApp(hass.Hass):
             if r_obs > config.r_max:
                 if self._supply_trip_latched:
                     self._write_setpoint(0.0)
-                elif self._write_setpoint(0.0):
+                    self._supply_sample = (now, supply)
+                    return
+                if self._write_setpoint(0.0):
                     self._supply_trip_latched = True
+                    token = self._trip_hold_token + 1
+                    self._trip_hold_token = token
                     self._trip_hold_handle = self.run_in(
-                        self._trip_hold_expired, config.hold
+                        self._trip_hold_expired, config.hold, token=token
                     )
                     self.log(
                         f"Supply rise-rate trip: r_obs={r_obs:.2f} °C/min > "
                         f"r_max={config.r_max:.2f} °C/min; latching SWT 0",
                         level="WARNING",
                     )
-                self._supply_sample = (now, supply)
+                    self._supply_sample = (now, supply)
+                    return
+                self.log(
+                    f"Supply rise-rate trip: r_obs={r_obs:.2f} °C/min > "
+                    f"r_max={config.r_max:.2f} °C/min; SWT write failed, "
+                    "not latching",
+                    level="WARNING",
+                )
                 return
 
         self._supply_sample = (now, supply)
@@ -241,8 +259,9 @@ class HvacApp(hass.Hass):
         self.log(message, level="WARNING")
 
     def _go_idle(self, message: str, *, level: str = "WARNING") -> None:
-        self._clear_trip_state()
-        self._write_setpoint(0.0)
+        self._disarm_trip_hold()
+        if self._write_setpoint(0.0):
+            self._supply_trip_latched = False
         self.log(message, level=level)
 
     def _read_zones(self, config: HvacConfig) -> list[ZoneSnapshot]:

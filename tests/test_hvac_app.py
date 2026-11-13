@@ -96,6 +96,7 @@ def _tick_app(
     app._supply_trip_latched = False
     app._supply_sample = None
     app._trip_hold_handle = None
+    app._trip_hold_token = 0
     app._monotonic = MagicMock(return_value=0.0)
 
     def get_state(entity_id: str, attribute: str | None = None):
@@ -446,6 +447,9 @@ def test_critical_zone_does_not_change_swt() -> None:
     app.call_service = MagicMock()
     app.log = MagicMock()
     app._supply_trip_latched = False
+    app._supply_sample = None
+    app._trip_hold_handle = None
+    app._trip_hold_token = 0
 
     def get_state(entity_id: str, attribute: str | None = None):
         if entity_id == _PLANT_MGMT:
@@ -505,6 +509,9 @@ def test_partial_zone_skip_uses_successful_snapshots_only() -> None:
     app.call_service = MagicMock()
     app.log = MagicMock()
     app._supply_trip_latched = False
+    app._supply_sample = None
+    app._trip_hold_handle = None
+    app._trip_hold_token = 0
 
     def get_state(entity_id: str, attribute: str | None = None):
         if entity_id == _PLANT_MGMT:
@@ -561,6 +568,9 @@ def test_partial_zone_skip_unavailable_thermostat_setpoint() -> None:
     app.call_service = MagicMock()
     app.log = MagicMock()
     app._supply_trip_latched = False
+    app._supply_sample = None
+    app._trip_hold_handle = None
+    app._trip_hold_token = 0
 
     def get_state(entity_id: str, attribute: str | None = None):
         if entity_id == _PLANT_MGMT:
@@ -950,6 +960,7 @@ def _demand_get_state(
     outdoor: object = _OUTDOOR_TEMP,
     plant_management: str = "on",
     hvac_action: str = "heating",
+    plant_setpoint: object = 45.0,
 ):
     """get_state for supply trip tests under configurable gates."""
 
@@ -963,7 +974,7 @@ def _demand_get_state(
         if entity_id == _ZONE_TEMP:
             return 20.0
         if entity_id == _PLANT_SETPOINT:
-            return 45.0
+            return plant_setpoint
         if entity_id == _CLIMATE:
             if attribute == "temperature":
                 return 22.0
@@ -997,9 +1008,12 @@ def test_supply_trip_latches_and_writes_zero() -> None:
     app.run_in.assert_called_once()
     assert app.run_in.call_args.args[0].__func__ is HvacApp._trip_hold_expired
     assert app.run_in.call_args.args[1] == app._config.hold
+    assert app._trip_hold_handle == app.run_in.return_value
+    assert app.run_in.call_args.kwargs.get("token") == app._trip_hold_token
     hold_cb = app.run_in.call_args.args[0]
+    hold_kwargs = dict(app.run_in.call_args.kwargs)
     app.call_service.reset_mock()
-    hold_cb({})
+    hold_cb(hold_kwargs)
     assert not app._supply_trip_latched
     assert _set_value_writes(app) == [_expected_command()]
 
@@ -1016,9 +1030,10 @@ def test_trip_hold_expiry_gated_runs_curve() -> None:
     app = _supply_trip_app(plant_setpoint=45.0)
     app._supply_trip_latched = True
     app._trip_hold_handle = "hold-handle"
+    app._trip_hold_token = 7
     expected = _expected_command()
 
-    app._trip_hold_expired({})
+    app._trip_hold_expired({"token": 7})
 
     assert not app._supply_trip_latched
     app.cancel_timer.assert_called_once_with("hold-handle")
@@ -1029,8 +1044,9 @@ def test_trip_hold_expiry_closed_gate_clears_only() -> None:
     app = _supply_trip_app(plant_management="off")
     app._supply_trip_latched = True
     app._trip_hold_handle = "hold-handle"
+    app._trip_hold_token = 3
 
-    app._trip_hold_expired({})
+    app._trip_hold_expired({"token": 3})
 
     assert not app._supply_trip_latched
     assert _set_value_writes(app) == []
@@ -1164,7 +1180,76 @@ def test_orphan_hold_callback_after_clear_no_demand_write() -> None:
     app = _supply_trip_app(plant_setpoint=45.0)
     app._supply_trip_latched = False
     app._trip_hold_handle = None
+    app._trip_hold_token = 2
 
-    app._trip_hold_expired({})
+    app._trip_hold_expired({"token": 1})
 
     assert _set_value_writes(app) == []
+
+
+def test_orphan_hold_callback_after_retrip_does_not_clear_new_latch() -> None:
+    app = _supply_trip_app(plant_setpoint=45.0)
+    app._supply_trip_latched = True
+    app._trip_hold_handle = "new-handle"
+    app._trip_hold_token = 5
+
+    app._trip_hold_expired({"token": 4})
+
+    assert app._supply_trip_latched
+    assert app._trip_hold_handle == "new-handle"
+    assert _set_value_writes(app) == []
+
+
+def test_supply_trip_write_fail_does_not_latch_or_advance_sample() -> None:
+    app = _supply_trip_app()
+    times = [0.0, 60.0]
+    app._monotonic = MagicMock(side_effect=times)
+
+    app.supply_event(_BOILER_WATER, "state", 35.0, 40.0, {})
+    assert app._supply_sample == (0.0, 40.0)
+
+    app.get_state = MagicMock(
+        side_effect=_demand_get_state(boiler_water=50.0, plant_setpoint="unavailable")
+    )
+    app.supply_event(_BOILER_WATER, "state", 40.0, 50.0, {})
+
+    assert not app._supply_trip_latched
+    assert app._supply_sample == (0.0, 40.0)
+    app.run_in.assert_not_called()
+    assert _set_value_writes(app) == []
+    assert any("SWT write failed, not latching" in m for m in _warn_msgs(app))
+
+
+def test_latched_demand_equal_float_skips_set_value() -> None:
+    app = _supply_trip_app(plant_setpoint=0.0)
+    app._supply_trip_latched = True
+    app.control_tick({})
+    assert _set_value_writes(app) == []
+    assert app._supply_trip_latched
+
+
+def test_idle_write_fail_keeps_latch_disarms_hold() -> None:
+    app = _supply_trip_app(
+        zone_temp=22.0, setpoint=22.0, hvac_action="idle", plant_setpoint="unavailable"
+    )
+    app._supply_trip_latched = True
+    app._supply_sample = (0.0, 40.0)
+    app._trip_hold_handle = "hold-handle"
+    app._trip_hold_token = 1
+
+    app.control_tick({})
+
+    assert app._supply_trip_latched
+    assert app._supply_sample is None
+    assert app._trip_hold_handle is None
+    app.cancel_timer.assert_called_once_with("hold-handle")
+
+
+def test_ungated_supply_event_wipes_sample() -> None:
+    app = _supply_trip_app(plant_management="off")
+    app._supply_sample = (0.0, 40.0)
+
+    app.supply_event(_BOILER_WATER, "state", 40.0, 50.0, {})
+
+    assert app._supply_sample is None
+    assert not app._supply_trip_latched
