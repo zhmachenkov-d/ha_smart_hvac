@@ -41,6 +41,7 @@ class HvacApp(hass.Hass):
         self._supply_sample: tuple[float, float] | None = None
         self._trip_hold_handle: object | None = None
         self._trip_hold_token = 0
+        self._zone_heating_prior: dict[str, bool] = {}
 
         self._register_control_listeners()
         self.listen_state(self.supply_event, self._config.boiler_water)
@@ -86,14 +87,44 @@ class HvacApp(hass.Hass):
 
         zones = self._read_zones(config)
         if not zones:
+            # Empty read: leave per-zone Heating Demand prior unchanged.
             self._go_idle("No zones with valid readings this tick")
             return None
+
+        had_edge = self._detect_and_update_zone_heating_prior(zones)
 
         if not has_heating_demand(zones):
             self._go_idle("No heating demand; setpoint 0", level="INFO")
             return None
 
+        if had_edge and self._supply_trip_latched:
+            self._clear_trip_state()
+
         return zones, outdoor
+
+    def _detect_and_update_zone_heating_prior(self, zones: list[ZoneSnapshot]) -> bool:
+        """Detect per-zone False→True Heating Demand; update prior.
+
+        Missing snapshot for a configured zone → current False (Decision A).
+        Empty prior → seed from currents and return False (no clear).
+        Only prior keys already present with value False count as an edge.
+        """
+        by_name = {z.name: z for z in zones}
+        current: dict[str, bool] = {}
+        for zone in self._config.zones:
+            snap = by_name.get(zone.name)
+            current[zone.name] = (
+                snap.has_heating_eligible if snap is not None else False
+            )
+
+        prior = self._zone_heating_prior
+        if not prior:
+            self._zone_heating_prior = current
+            return False
+
+        had_edge = any(current[name] and prior.get(name) is False for name in current)
+        self._zone_heating_prior = current
+        return had_edge
 
     def _plant_and_heating_demand(self) -> bool:
         """Plant on ∧ Heating Demand — no Outdoor read (supply path gate)."""

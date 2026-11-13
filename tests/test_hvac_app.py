@@ -97,6 +97,7 @@ def _tick_app(
     app._supply_sample = None
     app._trip_hold_handle = None
     app._trip_hold_token = 0
+    app._zone_heating_prior = {}
     app._monotonic = MagicMock(return_value=0.0)
 
     def get_state(entity_id: str, attribute: str | None = None):
@@ -450,6 +451,7 @@ def test_critical_zone_does_not_change_swt() -> None:
     app._supply_sample = None
     app._trip_hold_handle = None
     app._trip_hold_token = 0
+    app._zone_heating_prior = {}
 
     def get_state(entity_id: str, attribute: str | None = None):
         if entity_id == _PLANT_MGMT:
@@ -512,6 +514,7 @@ def test_partial_zone_skip_uses_successful_snapshots_only() -> None:
     app._supply_sample = None
     app._trip_hold_handle = None
     app._trip_hold_token = 0
+    app._zone_heating_prior = {}
 
     def get_state(entity_id: str, attribute: str | None = None):
         if entity_id == _PLANT_MGMT:
@@ -571,6 +574,7 @@ def test_partial_zone_skip_unavailable_thermostat_setpoint() -> None:
     app._supply_sample = None
     app._trip_hold_handle = None
     app._trip_hold_token = 0
+    app._zone_heating_prior = {}
 
     def get_state(entity_id: str, attribute: str | None = None):
         if entity_id == _PLANT_MGMT:
@@ -1253,3 +1257,384 @@ def test_ungated_supply_event_wipes_sample() -> None:
 
     assert app._supply_sample is None
     assert not app._supply_trip_latched
+
+
+def _two_zone_trip_args() -> dict:
+    args = _tick_args()
+    args["zones"] = [
+        {
+            "name": "zone_one",
+            "temperature": _ZONE_TEMP,
+            "thermostats": [_CLIMATE],
+        },
+        {
+            "name": "zone_two",
+            "temperature": "sensor.zone_two_temp",
+            "thermostats": ["climate.zone_two"],
+        },
+    ]
+    return args
+
+
+def _two_zone_get_state(
+    *,
+    zone_one_action: str = "heating",
+    zone_two_action: str = "idle",
+    zone_two_temp: object = 19.0,
+    plant_setpoint: object = 45.0,
+    plant_management: str = "on",
+    outdoor: object = _OUTDOOR_TEMP,
+):
+    def get_state(entity_id: str, attribute: str | None = None):
+        if entity_id == _PLANT_MGMT:
+            return plant_management
+        if entity_id == _OUTDOOR:
+            return outdoor
+        if entity_id == _BOILER_WATER:
+            return 40.0
+        if entity_id == _ZONE_TEMP:
+            return 20.0
+        if entity_id == "sensor.zone_two_temp":
+            return zone_two_temp
+        if entity_id == _PLANT_SETPOINT:
+            return plant_setpoint
+        if entity_id == _CLIMATE:
+            if attribute == "temperature":
+                return 22.0
+            if attribute == "hvac_action":
+                return zone_one_action
+            return "heat"
+        if entity_id == "climate.zone_two":
+            if attribute == "temperature":
+                return 22.0
+            if attribute == "hvac_action":
+                return zone_two_action
+            return "heat"
+        return None
+
+    return get_state
+
+
+def _two_zone_app(**kwargs) -> HvacApp:
+    plant_setpoint = kwargs.pop("plant_setpoint", 45.0)
+    app = _tick_app(args=_two_zone_trip_args(), plant_setpoint=plant_setpoint)
+    app.get_state = MagicMock(
+        side_effect=_two_zone_get_state(plant_setpoint=plant_setpoint, **kwargs)
+    )
+    return app
+
+
+def test_empty_zone_read_leaves_prior_unchanged() -> None:
+    """Empty `_read_zones` → prior unchanged (no seed, no edge)."""
+    app = _two_zone_app(zone_one_action="heating", zone_two_temp="unavailable")
+    # Force both zones unreadable: zone_one temp unavailable too.
+    base = _two_zone_get_state(zone_one_action="heating", zone_two_temp="unavailable")
+
+    def get_state(entity_id: str, attribute: str | None = None):
+        if entity_id == _ZONE_TEMP:
+            return "unavailable"
+        return base(entity_id, attribute)
+
+    app.get_state = MagicMock(side_effect=get_state)
+    prior = {"zone_one": True, "zone_two": False}
+    app._zone_heating_prior = dict(prior)
+
+    app.control_tick({})
+
+    assert app._zone_heating_prior == prior
+    assert any("No zones with valid readings" in m for m in _warn_msgs(app))
+
+
+def test_plant_off_leaves_zone_heating_prior_unchanged() -> None:
+    """Plant-off: no zone read → prior unchanged; `_hands_off` clear unchanged."""
+    app = _two_zone_app(plant_management="off")
+    prior = {"zone_one": True, "zone_two": False}
+    app._zone_heating_prior = dict(prior)
+    app._supply_trip_latched = True
+    app._supply_sample = (0.0, 40.0)
+    app._trip_hold_handle = "hold-handle"
+
+    app.control_tick({})
+
+    assert app._zone_heating_prior == prior
+    assert not app._supply_trip_latched
+    assert app._supply_sample is None
+    app.cancel_timer.assert_called_with("hold-handle")
+    assert "Plant Management disabled" in _warn_msgs(app)
+
+
+def test_outdoor_miss_leaves_zone_heating_prior_unchanged() -> None:
+    """Outdoor unavailable before zone read → prior unchanged; idle clear path."""
+    app = _two_zone_app(outdoor="unavailable")
+    prior = {"zone_one": True, "zone_two": False}
+    app._zone_heating_prior = dict(prior)
+    app._supply_trip_latched = True
+    app._supply_sample = (0.0, 40.0)
+    app._trip_hold_handle = "hold-handle"
+
+    app.control_tick({})
+
+    assert app._zone_heating_prior == prior
+    assert not app._supply_trip_latched
+    assert app._supply_sample is None
+    app.cancel_timer.assert_called_with("hold-handle")
+    assert any(
+        f"Outdoor temperature unavailable: {_OUTDOOR}" in m for m in _warn_msgs(app)
+    )
+
+
+def test_rising_edge_clears_latch_and_writes_curve() -> None:
+    """Latched; prior A=True B=False; B idle→heating → clear + weather-curve SWT."""
+    app = _two_zone_app(zone_one_action="heating", zone_two_action="idle")
+    app._supply_trip_latched = True
+    app._supply_sample = (0.0, 40.0)
+    app._trip_hold_handle = "hold-handle"
+    app._zone_heating_prior = {"zone_one": True, "zone_two": False}
+    expected = _expected_command()
+
+    app.get_state = MagicMock(
+        side_effect=_two_zone_get_state(
+            zone_one_action="heating", zone_two_action="heating"
+        )
+    )
+    app.control_tick({})
+
+    assert not app._supply_trip_latched
+    assert app._supply_sample is None
+    app.cancel_timer.assert_called_once_with("hold-handle")
+    assert _set_value_writes(app) == [expected]
+    assert app._zone_heating_prior == {"zone_one": True, "zone_two": True}
+    assert any("u_ff=" in m for m in _info_msgs(app))
+
+
+def test_latched_no_new_edge_keeps_latch_and_writes_zero() -> None:
+    """Latched; same zones still heating → latch stays; SWT 0."""
+    app = _two_zone_app(zone_one_action="heating", zone_two_action="heating")
+    app._supply_trip_latched = True
+    app._supply_sample = (0.0, 40.0)
+    app._trip_hold_handle = "hold-handle"
+    app._zone_heating_prior = {"zone_one": True, "zone_two": True}
+
+    app.control_tick({})
+
+    assert app._supply_trip_latched
+    assert app._supply_sample == (0.0, 40.0)
+    assert app._trip_hold_handle == "hold-handle"
+    app.cancel_timer.assert_not_called()
+    assert _set_value_writes(app) == [0.0]
+    assert not any("u_ff=" in m for m in _info_msgs(app))
+    assert app._zone_heating_prior == {"zone_one": True, "zone_two": True}
+
+
+def test_latched_one_zone_falls_idle_keeps_latch() -> None:
+    """Latched; one zone falls idle, another still heats → latch stays."""
+    app = _two_zone_app(zone_one_action="heating", zone_two_action="idle")
+    app._supply_trip_latched = True
+    app._zone_heating_prior = {"zone_one": True, "zone_two": True}
+
+    app.control_tick({})
+
+    assert app._supply_trip_latched
+    assert _set_value_writes(app) == [0.0]
+    assert app._zone_heating_prior == {"zone_one": True, "zone_two": False}
+
+
+def test_latched_missing_prior_key_is_not_edge() -> None:
+    """Missing prior key ≠ False→True edge; latch stays; prior is filled in."""
+    app = _two_zone_app(zone_one_action="heating", zone_two_action="heating")
+    app._supply_trip_latched = True
+    app._trip_hold_handle = "hold-handle"
+    app._zone_heating_prior = {"zone_one": True}  # zone_two key absent
+
+    app.control_tick({})
+
+    assert app._supply_trip_latched
+    assert app._trip_hold_handle == "hold-handle"
+    assert _set_value_writes(app) == [0.0]
+    assert app._zone_heating_prior == {"zone_one": True, "zone_two": True}
+
+
+def test_rising_edge_clear_via_control_event() -> None:
+    """Rising-edge clear also runs on control_event (same prelude path)."""
+    app = _two_zone_app(zone_one_action="heating", zone_two_action="idle")
+    app._supply_trip_latched = True
+    app._supply_sample = (0.0, 40.0)
+    app._trip_hold_handle = "hold-handle"
+    app._zone_heating_prior = {"zone_one": True, "zone_two": False}
+    expected = _expected_command()
+
+    app.get_state = MagicMock(
+        side_effect=_two_zone_get_state(
+            zone_one_action="heating", zone_two_action="heating"
+        )
+    )
+    _fire_control_event(app, entity="climate.zone_two")
+
+    assert not app._supply_trip_latched
+    assert app._supply_sample is None
+    app.cancel_timer.assert_called_once_with("hold-handle")
+    assert _set_value_writes(app) == [expected]
+    assert app._zone_heating_prior == {"zone_one": True, "zone_two": True}
+
+
+def test_latched_no_new_edge_via_control_event() -> None:
+    """Latched; same zones still heating on control_event → latch stays; SWT 0."""
+    app = _two_zone_app(zone_one_action="heating", zone_two_action="heating")
+    app._supply_trip_latched = True
+    app._supply_sample = (0.0, 40.0)
+    app._trip_hold_handle = "hold-handle"
+    app._zone_heating_prior = {"zone_one": True, "zone_two": True}
+
+    _fire_control_event(app, entity="climate.zone_two")
+
+    assert app._supply_trip_latched
+    assert app._supply_sample == (0.0, 40.0)
+    assert app._trip_hold_handle == "hold-handle"
+    app.cancel_timer.assert_not_called()
+    assert _set_value_writes(app) == [0.0]
+    assert app._zone_heating_prior == {"zone_one": True, "zone_two": True}
+    assert not any("u_ff=" in m for m in _info_msgs(app))
+
+
+def test_rising_edge_not_latched_updates_prior_and_writes_curve() -> None:
+    """Not latched; zone rises → prior updates; weather-curve path unchanged."""
+    app = _two_zone_app(zone_one_action="heating", zone_two_action="idle")
+    app._zone_heating_prior = {"zone_one": True, "zone_two": False}
+    expected = _expected_command()
+
+    app.get_state = MagicMock(
+        side_effect=_two_zone_get_state(
+            zone_one_action="heating", zone_two_action="heating"
+        )
+    )
+    app.control_tick({})
+
+    assert not app._supply_trip_latched
+    assert _set_value_writes(app) == [expected]
+    assert app._zone_heating_prior == {"zone_one": True, "zone_two": True}
+    assert any("u_ff=" in m for m in _info_msgs(app))
+
+
+def test_latched_empty_prior_seeds_without_clear() -> None:
+    """Prior empty while latched and zones heating → seed prior; latch stays."""
+    app = _two_zone_app(zone_one_action="heating", zone_two_action="heating")
+    app._supply_trip_latched = True
+    app._zone_heating_prior = {}
+    app._trip_hold_handle = "hold-handle"
+
+    app.control_tick({})
+
+    assert app._supply_trip_latched
+    assert app._trip_hold_handle == "hold-handle"
+    assert _set_value_writes(app) == [0.0]
+    assert app._zone_heating_prior == {"zone_one": True, "zone_two": True}
+    assert not any("u_ff=" in m for m in _info_msgs(app))
+
+
+def test_latched_all_false_prior_rising_edge_clears() -> None:
+    """Non-empty all-False prior (not empty seed) + heating → clear + curve SWT."""
+    app = _two_zone_app(zone_one_action="heating", zone_two_action="heating")
+    app._supply_trip_latched = True
+    app._supply_sample = (0.0, 40.0)
+    app._trip_hold_handle = "hold-handle"
+    app._zone_heating_prior = {"zone_one": False, "zone_two": False}
+    expected = _expected_command()
+
+    app.control_tick({})
+
+    assert not app._supply_trip_latched
+    assert app._supply_sample is None
+    app.cancel_timer.assert_called_once_with("hold-handle")
+    assert _set_value_writes(app) == [expected]
+    assert app._zone_heating_prior == {"zone_one": True, "zone_two": True}
+    assert any("u_ff=" in m for m in _info_msgs(app))
+
+
+def test_idle_no_demand_updates_prior_all_false() -> None:
+    """Zones read; none heating → update prior (all false); then idle 0 path."""
+    app = _two_zone_app(zone_one_action="idle", zone_two_action="idle")
+    app._zone_heating_prior = {"zone_one": True, "zone_two": False}
+
+    app.control_tick({})
+
+    assert _set_value_writes(app) == [0.0]
+    assert "No heating demand; setpoint 0" in _info_msgs(app)
+    assert app._zone_heating_prior == {"zone_one": False, "zone_two": False}
+
+
+def test_skip_then_return_rising_edge_clears_latch() -> None:
+    """Decision A: skipped zone forced False in prior; later heating → clear."""
+    app = _two_zone_app(zone_one_action="heating", zone_two_temp="unavailable")
+    app._supply_trip_latched = True
+    app._supply_sample = (0.0, 40.0)
+    app._trip_hold_handle = "hold-handle"
+    # Seed via prelude while zone_two skipped → prior zone_two False (Decision A).
+    app.control_tick({})
+    assert app._supply_trip_latched
+    assert app._zone_heating_prior == {"zone_one": True, "zone_two": False}
+    app.call_service.reset_mock()
+    app.cancel_timer.reset_mock()
+
+    expected = _expected_command()
+    app.get_state = MagicMock(
+        side_effect=_two_zone_get_state(
+            zone_one_action="heating",
+            zone_two_action="heating",
+            zone_two_temp=19.0,
+        )
+    )
+    app.control_tick({})
+
+    assert not app._supply_trip_latched
+    assert app._supply_sample is None
+    app.cancel_timer.assert_called_once_with("hold-handle")
+    assert _set_value_writes(app) == [expected]
+    assert app._zone_heating_prior == {"zone_one": True, "zone_two": True}
+
+
+def test_rising_edge_clear_does_not_use_critical_zone() -> None:
+    """Rising-edge clear is _clear_trip_state; CZ stays diagnostics after clear."""
+    app = _two_zone_app(zone_one_action="heating", zone_two_action="idle")
+    app._supply_trip_latched = True
+    app._zone_heating_prior = {"zone_one": True, "zone_two": False}
+
+    # Rising zone_two (small error); CZ would be zone_one if used for clear.
+    def get_state(entity_id: str, attribute: str | None = None):
+        if entity_id == _PLANT_MGMT:
+            return "on"
+        if entity_id == _OUTDOOR:
+            return _OUTDOOR_TEMP
+        if entity_id == _BOILER_WATER:
+            return 40.0
+        if entity_id == _ZONE_TEMP:
+            return 15.0  # error 7 → Critical Zone
+        if entity_id == "sensor.zone_two_temp":
+            return 21.0  # error 1 → rising zone
+        if entity_id == _PLANT_SETPOINT:
+            return 45.0
+        if entity_id == _CLIMATE:
+            if attribute == "temperature":
+                return 22.0
+            if attribute == "hvac_action":
+                return "heating"
+            return "heat"
+        if entity_id == "climate.zone_two":
+            if attribute == "temperature":
+                return 22.0
+            if attribute == "hvac_action":
+                return "heating"
+            return "heat"
+        return None
+
+    app.get_state = MagicMock(side_effect=get_state)
+    clear = MagicMock(wraps=app._clear_trip_state)
+    app._clear_trip_state = clear  # type: ignore[method-assign]
+
+    app.control_tick({})
+
+    clear.assert_called_once()
+    assert not app._supply_trip_latched
+    assert _set_value_writes(app) == [_expected_command()]
+    joined = " ".join(_info_msgs(app))
+    assert "critical_zone=zone_one" in joined
+    assert "u_ff=" in joined
