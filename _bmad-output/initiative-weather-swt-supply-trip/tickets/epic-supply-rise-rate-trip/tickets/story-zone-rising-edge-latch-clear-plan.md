@@ -3,7 +3,7 @@ title: 'Zone rising-edge latch clear'
 type: 'feature'
 ticket: '2'
 created: '2026-11-13'
-status: 'built'
+status: done
 baseline_revision: 'd19294cf1009afd8d5175f015db526d931ce8968'
 route: 'full'
 route_source: 'auto'
