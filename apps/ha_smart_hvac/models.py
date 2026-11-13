@@ -64,11 +64,14 @@ def plant_management_enabled(switch_state: str | None) -> bool:
 @dataclass(frozen=True)
 class HvacConfig:
     outdoor_temperature: str
+    boiler_water: str
     plant_management: str
     plant_setpoint: str
     setpoint_min: float
     setpoint_max: float
     control_interval: int
+    r_max: float
+    hold: int
     weather_feedforward: WeatherFeedforwardConfig
     zones: tuple[ZoneConfig, ...]
     ignored_keys: tuple[str, ...] = ()

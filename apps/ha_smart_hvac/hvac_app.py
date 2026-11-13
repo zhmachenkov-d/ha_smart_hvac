@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import math
+import time
+from collections.abc import Callable
 
 import appdaemon.plugins.hass.hassapi as hass
 
@@ -34,7 +36,14 @@ class HvacApp(hass.Hass):
                 level="WARNING",
             )
 
+        self._monotonic: Callable[[], float] = time.monotonic
+        self._supply_trip_latched = False
+        self._supply_sample: tuple[float, float] | None = None
+        self._trip_hold_handle: object | None = None
+        self._trip_hold_token = 0
+
         self._register_control_listeners()
+        self.listen_state(self.supply_event, self._config.boiler_water)
         self.run_every(
             self.control_tick,
             "now",
@@ -86,6 +95,104 @@ class HvacApp(hass.Hass):
 
         return zones, outdoor
 
+    def _plant_and_heating_demand(self) -> bool:
+        """Plant on ∧ Heating Demand — no Outdoor read (supply path gate)."""
+        config = self._config
+        if not plant_management_enabled(self.get_state(config.plant_management)):
+            return False
+        zones = self._read_zones(config)
+        if not zones:
+            return False
+        return has_heating_demand(zones)
+
+    def _clear_trip_state(self) -> None:
+        """Clear latch, supply samples, and hold timer (idempotent)."""
+        self._supply_trip_latched = False
+        self._disarm_trip_hold()
+
+    def _disarm_trip_hold(self) -> None:
+        """Cancel hold timer and wipe samples; invalidate pending hold callbacks."""
+        self._supply_sample = None
+        self._trip_hold_token += 1
+        if self._trip_hold_handle is not None:
+            self.cancel_timer(self._trip_hold_handle)
+            self._trip_hold_handle = None
+
+    def _trip_hold_expired(self, kwargs: dict) -> None:
+        """Hold elapsed: clear trip RAM, then re-run Outdoor prelude + demand."""
+        if kwargs.get("token") != self._trip_hold_token:
+            return
+        self._clear_trip_state()
+        outcome = self._gate_prelude()
+        if outcome is None:
+            return
+        zones, outdoor = outcome
+        self._run_demand(zones, outdoor)
+
+    def supply_event(
+        self,
+        entity: str,
+        attribute: str,
+        old: object,
+        new: object,
+        kwargs: dict,
+    ) -> None:
+        """Supply rise-rate trip — Plant∧Demand only; never Outdoor prelude."""
+        if not self._plant_and_heating_demand():
+            self._supply_sample = None
+            return
+
+        config = self._config
+        supply = self._read_float(config.boiler_water)
+        if supply is None:
+            self.log(
+                f"Supply temperature unreadable: {config.boiler_water}",
+                level="WARNING",
+            )
+            return
+
+        now = self._monotonic()
+        prev = self._supply_sample
+        if prev is not None:
+            t_prev, temp_prev = prev
+            dt_s = now - t_prev
+            if dt_s <= 0:
+                self.log(
+                    "Supply rise-rate: non-positive sample interval; keeping latest",
+                    level="WARNING",
+                )
+                self._supply_sample = (now, supply)
+                return
+            r_obs = (supply - temp_prev) / (dt_s / 60.0)
+            if r_obs > config.r_max:
+                if self._supply_trip_latched:
+                    self._write_setpoint(0.0)
+                    self._supply_sample = (now, supply)
+                    return
+                if self._write_setpoint(0.0):
+                    self._supply_trip_latched = True
+                    token = self._trip_hold_token + 1
+                    self._trip_hold_token = token
+                    self._trip_hold_handle = self.run_in(
+                        self._trip_hold_expired, config.hold, token=token
+                    )
+                    self.log(
+                        f"Supply rise-rate trip: r_obs={r_obs:.2f} °C/min > "
+                        f"r_max={config.r_max:.2f} °C/min; latching SWT 0",
+                        level="WARNING",
+                    )
+                    self._supply_sample = (now, supply)
+                    return
+                self.log(
+                    f"Supply rise-rate trip: r_obs={r_obs:.2f} °C/min > "
+                    f"r_max={config.r_max:.2f} °C/min; SWT write failed, "
+                    "not latching",
+                    level="WARNING",
+                )
+                return
+
+        self._supply_sample = (now, supply)
+
     def control_tick(self, kwargs: dict) -> None:
         outcome = self._gate_prelude()
         if outcome is None:
@@ -110,8 +217,14 @@ class HvacApp(hass.Hass):
         self._run_demand(zones, outdoor)
 
     def _run_demand(self, zones: list[ZoneSnapshot], outdoor: float) -> None:
-        """Shared FF demand writer for tick and every eligible control_event."""
+        """Shared demand writer for tick and every eligible control_event."""
         config = self._config
+        if self._supply_trip_latched:
+            plant_current = self._read_float(config.plant_setpoint)
+            if not self._write_setpoint(0.0, plant_reading=plant_current):
+                return
+            return
+
         u_ff = weather_feedforward(outdoor, config.weather_feedforward)
         if not math.isfinite(u_ff):
             self._go_idle(f"Non-finite weather feedforward u_ff for outdoor={outdoor}")
@@ -142,10 +255,13 @@ class HvacApp(hass.Hass):
         self.log(", ".join(parts))
 
     def _hands_off(self, message: str) -> None:
+        self._clear_trip_state()
         self.log(message, level="WARNING")
 
     def _go_idle(self, message: str, *, level: str = "WARNING") -> None:
-        self._write_setpoint(0.0)
+        self._disarm_trip_hold()
+        if self._write_setpoint(0.0):
+            self._supply_trip_latched = False
         self.log(message, level=level)
 
     def _read_zones(self, config: HvacConfig) -> list[ZoneSnapshot]:

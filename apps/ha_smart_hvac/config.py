@@ -25,10 +25,16 @@ _DEFAULT_FF_COMFORT_REF = 20.0
 # One day; also keeps run_every's timedelta from overflowing.
 _MAX_CONTROL_INTERVAL = 86400
 
+_DEFAULT_R_MAX = 2.0
+_DEFAULT_HOLD = 900
+
 # Top-level keys parse_config reads.
 _KNOWN_KEYS = frozenset(
     {
         "outdoor_temperature",
+        "boiler_water",
+        "r_max",
+        "hold",
         "plant_management",
         "plant_setpoint",
         "setpoint_min",
@@ -180,14 +186,28 @@ def _ignored_keys(args: dict[Any, Any]) -> tuple[str, ...]:
 def parse_config(args: dict[str, Any]) -> HvacConfig:
     """Parse AppDaemon app arguments into a validated HvacConfig."""
     outdoor_temperature = _require(args, "outdoor_temperature")
+    boiler_water = _require(args, "boiler_water")
     plant_management = _require(args, "plant_management")
     plant_setpoint = _require(args, "plant_setpoint")
     if not isinstance(outdoor_temperature, str) or not outdoor_temperature:
         raise ConfigError("outdoor_temperature must be a non-empty entity id")
+    if not isinstance(boiler_water, str) or not boiler_water:
+        raise ConfigError("boiler_water must be a non-empty entity id")
     if not isinstance(plant_management, str) or not plant_management:
         raise ConfigError("plant_management must be a non-empty entity id")
     if not isinstance(plant_setpoint, str) or not plant_setpoint:
         raise ConfigError("plant_setpoint must be a non-empty entity id")
+
+    r_max = _number(args, "r_max", _DEFAULT_R_MAX)
+    if r_max <= 0:
+        raise ConfigError("r_max must be > 0")
+
+    hold_raw = _number(args, "hold", _DEFAULT_HOLD)
+    if hold_raw <= 0:
+        raise ConfigError("hold must be > 0")
+    hold = int(hold_raw)
+    if hold < 1:
+        raise ConfigError("hold must be >= 1")
 
     setpoint_min = _number(args, "setpoint_min")
     setpoint_max = _number(args, "setpoint_max")
@@ -215,11 +235,14 @@ def parse_config(args: dict[str, Any]) -> HvacConfig:
 
     return HvacConfig(
         outdoor_temperature=outdoor_temperature,
+        boiler_water=boiler_water,
         plant_management=plant_management,
         plant_setpoint=plant_setpoint,
         setpoint_min=setpoint_min,
         setpoint_max=setpoint_max,
         control_interval=control_interval,
+        r_max=r_max,
+        hold=hold,
         weather_feedforward=weather_feedforward,
         zones=tuple(_parse_zone(z) for z in zones_raw),
         ignored_keys=_ignored_keys(args),
