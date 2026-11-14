@@ -3,7 +3,7 @@ title: 'Refactor sweep'
 type: 'chore'
 ticket: '4'
 created: '2026-11-14'
-status: 'built'
+status: done
 baseline_revision: '40e6a2a1806328aaded7ada74f3490ee1fdda257'
 route: 'oneshot'
 route_source: 'auto'
