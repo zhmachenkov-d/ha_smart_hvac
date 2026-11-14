@@ -13,7 +13,7 @@ description: Index of concepts in the knowledge bundle.
 | [Extended State Observer](/concepts/extended-state-observer.md) | Observer that estimates plant output (or state) and an extra state for total disturbance — the sensing core of ADRC/LADRC. |
 | [LADRC](/concepts/ladrc.md) | Linear Active Disturbance Rejection Control — linear ESO plus linear state feedback; practical ADRC form with fewer tuning knobs. |
 | [MADRC](/concepts/madrc.md) | Modified ADRC — delay the ESO’s command input with an inertia compensator so it stays synchronized with a high-order lag plant’s delayed output. |
-| [Multi-Zone Coordinator](/concepts/multi-zone-coordinator.md) | App logic that computes Zone Error, Heating Demand, and Critical Zone selection; Critical Zone selection is diagnostics-only. Does not own the OpenTherm Set Water Temperature write. |
+| [Multi-Zone Coordinator](/concepts/multi-zone-coordinator.md) | App logic that computes Zone Error, Heating Demand, and Critical Zone selection; Critical Zone selection is diagnostics-only. Does not own the OpenTherm Set Water Temperature write or the supply trip. |
 | [Outdoor Temperature](/concepts/outdoor-temperature.md) | Measured outdoor air T_out; required on the SWT demand path and a control_event listener (ADR 0007). |
 | [Plant](/concepts/plant.md) | Boiler and primary water circuit supplying heat to Zones, commanded via OpenTherm. |
 | [RLS adaptive PID](/concepts/rls-adaptive-pid.md) | Historical RLS retune of Kp/Ki — not on the live water path; superseded by ADR 0007. |

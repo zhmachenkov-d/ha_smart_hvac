@@ -21,5 +21,5 @@ In Huang et al. (2018) the Simulink scenario fixes outdoor temperature at 0 °C;
 
 # Citations
 
-- [`CONTEXT.md`](../../CONTEXT.md) — Outdoor Temperature
+- [`CONTEXT.md`](../../CONTEXT.md) — Outdoor Temperature, Weather Feedforward
 - [ADR 0007](../../docs/adr/0007-weather-curve-supply-trip-swt.md) — Outdoor required on the demand path

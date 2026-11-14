@@ -16,7 +16,7 @@ RLS adaptive PID is **not on the live water path** — **superseded by ADR 0007*
 
 **RLS adaptive PID** was the optional online retune of only **Kp** and **Ki** (derivative stays 0) on top of [ADR 0005](../../docs/adr/0005-fixed-pid-swt.md)’s fixed-PID Set Water Temperature law. `pid.adaptive` defaulted **off**. When adaptive was on, `boiler_water` was required; off or unhealthy RLS used yaml-commissioned fixed `kp` / `ki`. At most one RLS step per periodic `control_tick` — never on `control_event`.
 
-Learned state lived in `rls_state.json` under the AppDaemon app directory, separate from PID ephemeral clears (∫ / `y_prev`). Idle / plant-off / no-valid-zones / weights-unusable did not wipe that file; reset learned state by deleting the JSON. The unhealthy/rails latch was process memory only (starts false after reload); JSON could restore adapted gains with latch false. CAP-7 / `ff_auto_correct_state.json` were never on the live water path after ADR 0007.
+Learned state lived in `rls_state.json` under the AppDaemon app directory, separate from PID ephemeral clears (∫ / `y_prev`). Idle / plant-off / no-valid-zones / weights-unusable did not wipe that file; reset learned state by deleting the JSON. The unhealthy/rails latch was process memory only (started false after reload); JSON could restore adapted gains with latch false.
 
 ## Related
 

@@ -27,7 +27,7 @@ u_0 = k_p(T_r - z_1),\quad u = (u_0 - z_2)/b_0
 
 ## Project note
 
-LADRC-on-Critical-Zone water control is **removed** — **superseded by ADR 0007** (ADR 0002 / 0004 / 0005 are historical). Live [Set Water Temperature](/concepts/set-water-temperature.md) is Weather Feedforward `round-to-0.1(clamp(u_ff))` with supply rise-rate trip under Plant Management / Heating Demand; the [Multi-Zone Coordinator](/concepts/multi-zone-coordinator.md) selects [Critical Zone](/concepts/critical-zone.md) for diagnostics and logging only. Huang’s plant (coil water **flow**) and gains remain literature only, not the App path.
+LADRC-on-Critical-Zone water control is **removed** — **superseded by ADR 0007**. Live [Set Water Temperature](/concepts/set-water-temperature.md) is Weather Feedforward `round-to-0.1(clamp(u_ff))` with supply rise-rate trip under Plant Management / Heating Demand; the [Multi-Zone Coordinator](/concepts/multi-zone-coordinator.md) selects [Critical Zone](/concepts/critical-zone.md) for diagnostics and logging only. Huang’s plant (coil water **flow**) and gains remain literature only, not the App path.
 
 ## Related
 

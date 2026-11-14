@@ -119,23 +119,23 @@ Evidence commit `f433d43886f4b80452db77c071b9a55fa7ba4a6f` (`main` tip after ADR
 
 | lens | finding | verdict | route | evidence |
 | --- | --- | --- | --- | --- |
-| blind-hunter | Missing trailing newlines on CZ/Outdoor/RLS/SWT | low | patch | Diff shows `No newline at end of file` on those four paths |
-| blind-hunter | log Fact omits round-to-0.1 | medium | patch | knowledge/log.md Fact says clamp(u_ff) only; SWT/index use round-to-0.1(clamp(u_ff)) |
-| blind-hunter | concepts/index CZ blurb omits supply trip | medium | patch | index L12 still «never drives SWT» only; critical-zone.md now excludes trip |
-| blind-hunter | multi-zone CZ fence omits trip; timestamp stale | medium | patch | multi-zone-coordinator.md L11 SWT-only; timestamp still 2026-11-08 |
-| blind-hunter | adrc/ladrc/madrc timestamps not bumped | low | patch | timestamps still 2026-11-08 after live-pointer edits |
+| blind-hunter | Missing trailing newlines on CZ/Outdoor/RLS/SWT | low | fixed | Applied in knowledge hunks; no `No newline at end of file` on those paths in current tree |
+| blind-hunter | log Fact omits round-to-0.1 | medium | fixed | knowledge/log.md Fact now uses round-to-0.1(clamp(u_ff)) |
+| blind-hunter | concepts/index CZ blurb omits supply trip | medium | fixed | CZ index cell includes supply trip |
+| blind-hunter | multi-zone CZ fence omits trip; timestamp stale | medium | fixed | multi-zone-coordinator.md fences trip; timestamp bumped in knowledge hunk |
+| blind-hunter | adrc/ladrc/madrc timestamps not bumped | low | fixed | timestamps 2026-11-14T14:58:00Z |
 | blind-hunter | SWT omits clamp rails / hold / boiler_water / decision docs | false | — | Plan/Impl Notes: knowledge depth without full ADR paste / commissioning recipe |
 | blind-hunter | SWT omits debounce / control_interval / _hands_off detail | false | — | Same intentional density; AGENTS/ADR remain SoT for those clauses |
-| blind-hunter | RLS historical body present-tense pid.adaptive defaults | medium | patch | rls-adaptive-pid.md L17 still «defaults off» under Project note fence |
+| blind-hunter | RLS historical body present-tense pid.adaptive defaults | medium | fixed | body uses defaulted / was; latch started false (walkthrough formal review patch) |
 | blind-hunter | Plan Execution checkboxes still unchecked | false | — | Reject: fix would edit this build's plan workflow artifact |
 | blind-hunter | Append-only log Facts contradict without cross-ref | false | — | Intent: append-only; prior Facts must stay; latest dated entry is current |
 | blind-hunter | No Weather Feedforward concept page | false | — | Intent approach does not require a new OKF concept |
-| edge-case-hunter | CZ index blurb omits supply trip | medium | patch | Same root as blind-hunter index CZ |
-| edge-case-hunter | log Fact omits round-to-0.1 | medium | patch | Same root as blind-hunter log Fact |
-| edge-case-hunter | RLS present-tense pid.adaptive | medium | patch | Same root as blind-hunter RLS tense |
+| edge-case-hunter | CZ index blurb omits supply trip | medium | fixed | Same root as blind-hunter index CZ — fixed |
+| edge-case-hunter | log Fact omits round-to-0.1 | medium | fixed | Same root as blind-hunter log Fact — fixed |
+| edge-case-hunter | RLS present-tense pid.adaptive | medium | fixed | Same root as blind-hunter RLS tense — fixed |
 | edge-case-hunter | ladrc/madrc parenthetical omits ADR 0006 | false | — | Live pointer already ADR 0007 weather FF + trip; 0006 not implied live |
-| edge-case-hunter | trailing newlines CZ/Outdoor/RLS/SWT | low | patch | Same root as blind-hunter newlines |
-| edge-case-hunter | RLS spot-read historical claim | medium | patch | Same root as RLS tense |
+| edge-case-hunter | trailing newlines CZ/Outdoor/RLS/SWT | low | fixed | Same root as blind-hunter newlines — fixed |
+| edge-case-hunter | RLS spot-read historical claim | medium | fixed | Same root as RLS tense — fixed |
 | verification-gap | (none) | — | — | Lens: docs-only; no behavioral verification gaps |
 | intent-alignment | Diff implements R3/R4 prose; verification not in diff | false | — | Descriptive; pytest/rg ran outside diff; not a knowledge defect |
 
@@ -152,6 +152,7 @@ Reuse ADRC/LADRC project-note demotion shape; SWT page is the primary live rewri
 - `rg -n "Rising-edge into gated demand|stay no-op until clear" knowledge/concepts/set-water-temperature.md` — expected: no matches (no sticky demand-edge ghost).
 - `rg -n "fixed-PID SWT|live water path: \\*\\*ADR 0005\\*\\*|optional RLS adaptive: \\*\\*ADR 0006\\*\\*" knowledge/index.md` — expected: no matches (frontmatter + body).
 - `rg -n "Optional online retune of PID" knowledge/concepts/index.md` — expected: no match (RLS blurb demoted / historical).
+- `rg -n "Does not own.*supply trip|supply trip" knowledge/concepts/index.md` — expected: Multi-Zone Coordinator cell mentions supply trip non-ownership.
 - `rg -n "fixed-gain PID|ADR 0005\\)\\s*— live SWT" knowledge/concepts/adrc.md knowledge/concepts/ladrc.md knowledge/concepts/madrc.md` — expected: no live-pointer matches (historical mentions only if clearly non-live).
 - `rg -n "ADR 0007|ADR-0007" knowledge/concepts/multi-zone-coordinator.md knowledge/references/huang-2018-ladrc-hvac.md knowledge/references/wang-2026-madrc-sst.md` — expected: matches in each (1A live-pointer).
 - `rg -n "base_water_temp \\+ u_pid|fixed-gain PID \\(.*ADR 0005|Live water path is fixed-gain PID" knowledge/concepts/multi-zone-coordinator.md knowledge/references/huang-2018-ladrc-hvac.md knowledge/references/wang-2026-madrc-sst.md` — expected: no live-PID claims.
@@ -166,3 +167,28 @@ Reuse ADRC/LADRC project-note demotion shape; SWT page is the primary live rewri
 - Spot-read RLS Project note: opening does not read as live commissioning; technical body clearly historical.
 - Spot-read ADRC family + 1A companions for historical fence + live 0007 pointer.
 - Diff excludes apps/, tests/, `docs/adr/**` bodies, AGENTS.md, CONTEXT.md; prior `log.md` Facts unchanged.
+
+## Code Review
+
+### 2026-11-14
+**Code review complete.** 0 `decision-needed`, 9 `patch`, 0 `defer`, 6 rejected. Decision ADRC→(b) resolved to patch.
+
+- [x] [Review][Patch] ADRC family: drop prior-ADR parentheticals; cite only ADR 0007 + literature [knowledge/concepts/{adrc,ladrc,madrc}.md] — decided 2026-11-14: option (b)
+- [x] [Review][Patch] concepts/index Multi-Zone blurb omits supply-trip non-ownership [knowledge/concepts/index.md:16]
+- [x] [Review][Patch] SWT page drops live control_interval non-reset clause [knowledge/concepts/set-water-temperature.md:15]
+- [x] [Review][Patch] RLS historical latch clause still present tense [knowledge/concepts/rls-adaptive-pid.md:19]
+- [x] [Review][Patch] Plan Review Triage Log stale vs already-applied knowledge patches [story-knowledge-live-curve-trip-demote-pid-rls-plan.md Review Triage Log]
+- [x] [Review][Patch] Plan Verification greps miss Multi-Zone index trip fence [plan Verification]
+- [x] [Review][Patch] RLS CAP-7 hard-out sentence awkward in historical paragraph [knowledge/concepts/rls-adaptive-pid.md:19]
+- [x] [Review][Patch] Outdoor CONTEXT citation omits Weather Feedforward [knowledge/concepts/outdoor-temperature.md:24]
+- [x] [Review][Patch] Huang fit omits CZ must not drive supply trip [knowledge/references/huang-2018-ladrc-hvac.md:39]
+
+Rejected:
+- R7 SWT hold/Decision C density — intentional knowledge depth per plan Impl Notes; ADR 0007 remains SoT
+- R9 Intent Approach clamp vs round-to-0.1 — would edit frozen Intent
+- R10 Plan status built vs unchecked Execution — workflow artifact
+- R15 Full epic R4 code/commissioning — out of story 3.2 scope by design
+- R16 pytest/ruff in Verify — hygiene outside docs diff by design
+- R17 multi-zone/Huang/Wang beyond Title list — plan Decision 1A
+
+Applied 2026-11-14 (walkthrough Formal review option 1): Multi-Zone index trip fence; SWT `control_interval`; RLS latch past tense + drop CAP-7 clause; ADRC family drop prior-ADR parentheticals (b); Outdoor CONTEXT+WF cite; Huang CZ trip fence; Verification Multi-Zone index grep; Review Triage Log rows marked fixed.
