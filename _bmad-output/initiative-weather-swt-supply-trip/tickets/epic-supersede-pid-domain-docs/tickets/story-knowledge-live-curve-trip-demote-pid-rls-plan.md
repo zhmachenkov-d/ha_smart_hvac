@@ -3,7 +3,7 @@ title: 'knowledge/: live curve+trip; demote PID/RLS'
 type: 'feature'
 ticket: '2'
 created: '2026-11-14'
-status: built
+status: done
 baseline_revision: 'f433d43886f4b80452db77c071b9a55fa7ba4a6f'
 route: 'full'
 route_source: 'auto'
