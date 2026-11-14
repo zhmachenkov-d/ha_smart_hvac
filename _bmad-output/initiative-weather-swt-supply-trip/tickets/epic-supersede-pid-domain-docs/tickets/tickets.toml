@@ -1,0 +1,49 @@
+# Epic 3 breakdown — leaf build order. `id` is stable; table order is build order.
+# Approved 2026-11-14. Tracer = ADR 0007 + AGENTS/CONTEXT live law (curve + trip).
+
+[[entry]]
+id = 1
+type = "story"
+title = "Tracer: ADR 0007 + AGENTS/CONTEXT"
+description = "Adds ADR 0007 as the live water law (weather curve + supply rise-rate trip; CAP-7 out), marks ADR 0005 / 0006 superseded, and rewrites AGENTS.md and CONTEXT.md to match the shipped App: Plant/Demand gates, round-to-0.1(clamp(u_ff)), Outdoor control listener, supply trip latch/clear (hold + zone rising-edge; Decision C write-fail keep-latch), dual-gate Outdoor vs supply, Critical Zone diagnostics-only; no live PID/∫/RLS / rls_state.json. ADR 0004 stays historical."
+verify = "docs/adr/0007 exists and supersedes 0005/0006 for this water law; 0005/0006 state they are superseded; AGENTS.md and CONTEXT.md describe clamp(u_ff) + supply trip (not base_water_temp + u_pid / RLS); CAP-7 / ff_auto_correct_state.json remain absent from live commissioning language; uv run pytest and uv run ruff check apps/ha_smart_hvac tests clean."
+covers = ["R4"]
+after = ["2.4"]
+hitl = false
+risk = "high"
+notes = ["Tracer bullet: ADR + AGENTS + CONTEXT in one path so agents/operators read one water law.", "R4 here: ADR/AGENTS/CONTEXT; knowledge demotion is entry 2; dead modules are entry 3.", "after 2.4: weather-curve + supply trip shipped so docs match the App.", "Include dual-gate Outdoor vs supply and Decision C latch clear from epic 2 retrospective."]
+
+[[entry]]
+id = 2
+type = "story"
+title = "knowledge/: live curve+trip; demote PID/RLS"
+description = "Updates knowledge/ live SWT and related concept pages (set-water-temperature, outdoor-temperature, critical-zone, indexes, ADRC/LADRC/MADRC live-law pointers) to weather curve + supply trip under ADR 0007; demotes rls-adaptive-pid and PID-as-live-law language to historical prior art (like LADRC); updates knowledge/log. Does not restore CAP-7."
+verify = "Live SWT-facing knowledge pages cite ADR 0007 / clamp(u_ff) + trip and do not present fixed-PID or RLS as live law; rls-adaptive-pid (and similar) read as historical prior art; knowledge indexes/log consistent; uv run pytest and uv run ruff check apps/ha_smart_hvac tests clean."
+covers = ["R4"]
+after = [1]
+hitl = false
+risk = "medium"
+notes = ["Least-certain: breadth of knowledge pages and historical-demotion pattern.", "Shared R4: knowledge here; ADR/AGENTS/CONTEXT in entry 1; module delete in entry 3."]
+
+[[entry]]
+id = 3
+type = "story"
+title = "Delete dead pid/rls modules"
+description = "Removes unused pid.py and rls.py and their unit tests (test_pid.py, test_rls.py); adjusts import-lock / F6-B style tests that still assume pid.py exists on disk so the suite locks absence of PID/RLS on the App without keeping dead modules."
+verify = "apps/ha_smart_hvac/pid.py and rls.py are gone; tests/test_pid.py and tests/test_rls.py are gone; hvac_app still import-locks against pid/rls; apps.yaml.example has no pid / RLS / base_water_temp nest; uv run pytest and uv run ruff check apps/ha_smart_hvac tests clean."
+covers = ["R4"]
+after = [1]
+hitl = false
+risk = "medium"
+notes = ["Path/commissioning already detached in epic 1; this epic owns file deletion.", "example yaml and house apps.yaml already have no pid nest — no house HITL."]
+
+[[entry]]
+id = 4
+type = "story"
+title = "Refactor sweep"
+description = "Cleans deferred review findings and orphans left by the docs supersede and dead-module delete; no new scope."
+verify = "uv run pytest and uv run ruff check clean; no leftover PID-as-live-law docs or dead pid/rls modules called out in this epic's deferred notes."
+covers = []
+after = [1, 2, 3]
+hitl = false
+risk = "low"
