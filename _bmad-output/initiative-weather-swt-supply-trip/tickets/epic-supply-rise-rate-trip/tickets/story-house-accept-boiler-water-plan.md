@@ -2,7 +2,7 @@
 title: 'House: accept boiler_water'
 ticket: '3'
 created: '2026-11-14'
-status: 'built'
+status: done
 baseline_revision: 'bade2292d5f530f6157d666e2671a76684b4c108'
 route: 'oneshot'
 route_source: 'auto'
