@@ -1,0 +1,3 @@
+# Rising-edge clear: missing zone → False; empty prior seeds without clear
+
+Per-zone Heating Demand prior for latch clear treats a configured zone missing from this `_read_zones` snapshot as current `False` (Decision A). An empty prior is seeded from currents without clearing the latch; only keys already present in prior with value `False` that become `True` count as an edge. Recorded from story 2.2 plan Intent Decision A (`story-zone-rising-edge-latch-clear-plan.md`) and commits `70d4ccb` / `52320dc`, because treating a missing key as an edge (or clearing on first seed) would spuriously drop the trip when zones flicker or first appear under latch.
