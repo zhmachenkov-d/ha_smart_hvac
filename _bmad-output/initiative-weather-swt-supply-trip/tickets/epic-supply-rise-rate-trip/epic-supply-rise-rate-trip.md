@@ -9,6 +9,7 @@ companions: []
 after: []
 refined: true
 risk: high
+status: done
 ---
 
 # Supply rise-rate trip
@@ -79,3 +80,4 @@ Owns supply rise-rate observation, latch/hold/clear, trip-state clear on idle/pl
 - Decision: Yaml keys top-level `boiler_water`, `r_max` (default 2), `hold` (default 900) — not under `weather_feedforward` (2026-11-12).
 - Decision: Shared R6 — entry 1 delivers hold/idle/plant-off clears; entry 2 delivers zone rising-edge clear (2026-11-12).
 - Decision: Shared R7 — entry 1 delivers example + parse accept; entry 3 delivers house accept-check (2026-11-12).
+- Decision: Closure — retrospective verdict accepted-with-open-items; post-close docstring/hardening tests; Exclusive Session E2E not required by Done when; AGENTS/CONTEXT/ADR PID supersede → epic 3 (2026-11-14).
