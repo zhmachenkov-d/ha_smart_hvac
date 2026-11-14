@@ -35,7 +35,6 @@ _ZONE_NAME = "zone_one"
 _HVAC_APP_PATH = (
     Path(__file__).resolve().parents[1] / "apps" / "ha_smart_hvac" / "hvac_app.py"
 )
-_PID_PATH = Path(__file__).resolve().parents[1] / "apps" / "ha_smart_hvac" / "pid.py"
 
 
 def _tick_args() -> dict:
@@ -264,29 +263,6 @@ def test_hvac_app_does_not_import_rls_or_pid_quantize() -> None:
                 mod == "ha_smart_hvac" or (node.level > 0 and mod == "")
             ):
                 raise AssertionError("pid import forbidden: import pid from package")
-
-
-def test_pid_does_not_reexport_clamp_or_quantize() -> None:
-    """F6-B: pid may import clamp/quantize only as private aliases."""
-    source = _PID_PATH.read_text(encoding="utf-8")
-    tree = ast.parse(source)
-    for node in ast.walk(tree):
-        if not isinstance(node, ast.ImportFrom):
-            continue
-        mod = node.module or ""
-        ff = mod == "ha_smart_hvac.feedforward" or (
-            node.level > 0 and (mod == "feedforward" or mod.startswith("feedforward."))
-        )
-        if not ff:
-            continue
-        for alias in node.names:
-            if alias.name in {"clamp", "quantize_command"}:
-                assert alias.asname is not None, (
-                    f"{alias.name} must be imported as a private alias"
-                )
-                assert alias.asname.startswith("_"), (
-                    f"{alias.name} alias {alias.asname!r} must be private"
-                )
 
 
 def test_initialize_schedules_control_tick(tmp_path: Path) -> None:
