@@ -127,3 +127,11 @@ Session: 1bcea44b-3df8-4468-bd3b-bd49cf563a52 · Timestamp: 2026-11-14T16:03:45+
 - Result: Proposed: commit knowledge+plan+walkthrough (exclude party memlog unless asked), push branch, update/merge PR #143 — awaiting user confirm before any git/gh action
 - Evidence: dirty tree knowledge/* plan walkthrough; PR #143 open
 - Open: user confirm follow-through yes/no/variant
+
+## 19 — Wrap-up — committed and pushed
+Session: 1bcea44b-3df8-4468-bd3b-bd49cf563a52 · Timestamp: 2026-11-14T16:11:49+00:00
+
+- Action: User confirmed да без merge
+- Result: Commit d555957 docs(knowledge): apply walkthrough formal-review patches; pushed to origin docs/3-2-knowledge-live-curve-trip-demote-pid-rls; PR #143 remains OPEN; .memlog.md unstaged
+- Evidence: git push 3291a01..d555957; https://github.com/zhmachenkov-d/ha_smart_hvac/pull/143
+- Open: none for walkthrough (merge deferred by user)

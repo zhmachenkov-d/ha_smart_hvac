@@ -1,7 +1,7 @@
 # Walkthrough: Story 3.2 — knowledge live curve+trip; demote PID/RLS
 Target: [PR #143](https://github.com/zhmachenkov-d/ha_smart_hvac/pull/143) · branch `docs/3-2-knowledge-live-curve-trip-demote-pid-rls` · `3291a01`
 
-**Current block:** Wrap-up (awaiting follow-through)
+**Current block:** Wrap-up (done — committed+pushed; PR open)
 
 ## Blocks
 - [x] **Intent** — done
@@ -10,7 +10,7 @@ Target: [PR #143](https://github.com/zhmachenkov-d/ha_smart_hvac/pull/143) · br
 - [x] **Slice: Historical demotions** — done
 - [x] **Slice: Indexes + log** — done
 - [x] **Periphery** — done (presented; Wrap-up chosen)
-- [ ] **Wrap-up** — awaiting follow-through
+- [x] **Wrap-up** — done (review complete)
 
 ---
 
@@ -83,4 +83,4 @@ Review notes: Test PASS.
 ---
 
 ### Wrap-up
-Review finished; follow-through proposed (commit knowledge + plan + walkthrough, push branch, update/merge [PR #143](https://github.com/zhmachenkov-d/ha_smart_hvac/pull/143)) — awaiting user confirm before any git/gh action.
+Review complete. Follow-through: commit `d555957` (`docs(knowledge): apply walkthrough formal-review patches`) pushed to `docs/3-2-knowledge-live-curve-trip-demote-pid-rls`; [PR #143](https://github.com/zhmachenkov-d/ha_smart_hvac/pull/143) left **open** (merge deferred). Party `.memlog.md` unstaged.
