@@ -3,7 +3,7 @@ title: 'Tracer: ADR 0007 + AGENTS/CONTEXT'
 type: 'feature'
 ticket: '1'
 created: '2026-11-14'
-status: built
+status: done
 baseline_revision: '5416a81e2afdf15dd586534cf86c5fa92f092080'
 route: 'full'
 route_source: 'auto'
@@ -77,12 +77,12 @@ Do not change: `knowledge/**`, `apps/ha_smart_hvac/pid.py`, `rls.py`, runtime te
 
 ## Tasks & Acceptance
 **Execution:**
-- [ ] `docs/adr/0007-weather-curve-supply-trip-swt.md` — create with 0006-style YAML frontmatter `status: accepted`; agent-law live SWT = weather curve + supply trip; supersedes 0005/0006; CAP-7 hard out; dual-gate; **Trip latch** and **Idle clear (Decision C)** as separate sections (Decision C = all Plant-on non-demand `_go_idle` exits); CZ diagnostics-only.
-- [ ] `docs/adr/0004-weather-curve-swt.md` — add one live-pointer line to ADR-0007; leave status `superseded by ADR-0005`; no other body rewrite.
-- [ ] `docs/adr/0005-fixed-pid-swt.md` + `docs/adr/0006-optional-rls-adaptive-pid.md` — set frontmatter `status: superseded by ADR-0007` **and** one live-pointer line each; bodies otherwise unchanged.
-- [ ] `AGENTS.md` — rewrite `bmad:context` ADR pointer + Conventions to match App (u_ff, Outdoor listener, trip latch/clear, dual-gate, Decision C `_go_idle` exits, no PID/RLS/sticky, CAP-7 hard out); **keep** initialize tick / equal-float throttle / unreadable skip / Heating Demand listener coupling / initiative done rule; set Verified to `5416a81e2afdf15dd586534cf86c5fa92f092080` @ `2026-11-14`.
-- [ ] `CONTEXT.md` — rewrite Outdoor / Plant Management / PID→FF+trip terms, avoid-lists; rewrite dialogues **4, 6, 7** to the same law (hard CAP-7 out).
-- [ ] Verify — `uv run pytest`; `uv run ruff check apps/ha_smart_hvac tests`; grep guards below; spot-read AC below.
+- [x] `docs/adr/0007-weather-curve-supply-trip-swt.md` — create with 0006-style YAML frontmatter `status: accepted`; agent-law live SWT = weather curve + supply trip; supersedes 0005/0006; CAP-7 hard out; dual-gate; **Trip latch** and **Idle clear (Decision C)** as separate sections (Decision C = all Plant-on non-demand `_go_idle` exits); CZ diagnostics-only.
+- [x] `docs/adr/0004-weather-curve-swt.md` — add one live-pointer line to ADR-0007; leave status `superseded by ADR-0005`; no other body rewrite.
+- [x] `docs/adr/0005-fixed-pid-swt.md` + `docs/adr/0006-optional-rls-adaptive-pid.md` — set frontmatter `status: superseded by ADR-0007` **and** one live-pointer line each; bodies otherwise unchanged.
+- [x] `AGENTS.md` — rewrite `bmad:context` ADR pointer + Conventions to match App (u_ff, Outdoor listener, trip latch/clear, dual-gate, Decision C `_go_idle` exits, no PID/RLS/sticky, CAP-7 hard out); **keep** initialize tick / equal-float throttle / unreadable skip / Heating Demand listener coupling / initiative done rule; set Verified to `5416a81e2afdf15dd586534cf86c5fa92f092080` @ `2026-11-14`.
+- [x] `CONTEXT.md` — rewrite Outdoor / Plant Management / PID→FF+trip terms, avoid-lists; rewrite dialogues **4, 6, 7** to the same law (hard CAP-7 out).
+- [x] Verify — `uv run pytest`; `uv run ruff check apps/ha_smart_hvac tests`; grep guards below; spot-read AC below.
 
 **Acceptance Criteria:**
 - Given the repo after this story, when an agent reads ADR 0007, then it is the accepted **agent-law** live water law: Plant∧Demand → round-to-0.1(clamp(u_ff)); supply trip with **separate** trip-latch (only after successful trip write `0`) and Decision C sections covering all Plant-on non-demand `_go_idle` exits; dual-gate; CAP-7 hard out (not on water path; do not commission; out of scope); no live PID/RLS.
@@ -140,6 +140,7 @@ Do not change: `knowledge/**`, `apps/ha_smart_hvac/pid.py`, `rls.py`, runtime te
 - `uv run pytest` — expected: all pass (docs-only; no runtime drift).
 - `uv run ruff check apps/ha_smart_hvac tests` — expected: clean.
 - `test -f docs/adr/0007-weather-curve-supply-trip-swt.md` — expected: exists.
+- `rg -n "^status: accepted$" docs/adr/0007-weather-curve-supply-trip-swt.md` — expected: match.
 - `rg -n "status: superseded by ADR-0007" docs/adr/0005-fixed-pid-swt.md docs/adr/0006-optional-rls-adaptive-pid.md` — expected: both files match.
 - `rg -n "ADR-0007|ADR 0007" docs/adr/0004-weather-curve-swt.md docs/adr/0005-fixed-pid-swt.md docs/adr/0006-optional-rls-adaptive-pid.md` — expected: live-pointer present in all three.
 - `rg -n "base_water_temp \\+ u_pid|rls_state\\.json|pid\\.adaptive|advance PID|u_pid|∫|sticky|not a control listener|weighted demand-zone" AGENTS.md CONTEXT.md` — expected: no live-path matches (historical avoid-list mentions of PID ok only if clearly non-live).
@@ -151,3 +152,31 @@ Do not change: `knowledge/**`, `apps/ha_smart_hvac/pid.py`, `rls.py`, runtime te
 **Manual checks (supports AC spot-read):**
 - Spot-read ADR 0007 vs `hvac_app.py`: `_gate_prelude` vs `_plant_and_heating_demand`; trip latch only after successful write `0`; Decision C on all `_go_idle` exits (disarm vs keep-latch on write fail) — two ADR sections.
 - AGENTS Conventions vs CONTEXT glossary + dialogues 4/6/7 for the same law.
+
+## Code Review
+
+### 2026-11-14
+**Code review complete.** 0 `decision-needed`, 8 `patch`, 0 `defer`, 16 rejected. Decisions: 1A→patch, 2B→rejected.
+
+- [x] [Review][Patch] AGENTS points at knowledge/ without live-law caveat [AGENTS.md Where things are] — resolved decision 1A: add one-line caveat that live water law is ADR 0007; knowledge/ may lag until 3.2.
+- [x] [Review][Rejected] CONTEXT dual-gate stated without helper symbol names — user chose 2B: leave CONTEXT prose-only; helper names stay in AGENTS/ADR.
+- [x] [Review][Patch] ADR 0007 missing required status: accepted YAML frontmatter [docs/adr/0007-weather-curve-supply-trip-swt.md:1]
+- [x] [Review][Patch] Plan Verification omits positive check for ADR 0007 status: accepted [story-tracer-adr-0007-agents-context-plan.md Verification]
+- [x] [Review][Patch] CONTEXT Outdoor Avoid “Weather” collides with live Weather Feedforward [CONTEXT.md Outdoor Temperature]
+- [x] [Review][Patch] AGENTS dropped still-valid control_interval non-reset convention [AGENTS.md CAP-8 / control_event conventions]
+- [x] [Review][Patch] AGENTS hold-expiry clear omits prelude+demand resume [AGENTS.md supply-trip bullet]
+- [x] [Review][Patch] Plan Execution tasks unchecked while status is built [story-tracer-adr-0007-agents-context-plan.md Tasks]
+- [x] [Review][Patch] ADR hold-expiry prose overstates demand always re-runs [docs/adr/0007 Trip latch]
+
+#### Rejected
+- R3/R14/R15 clamp rails in AGENTS/CONTEXT — false: Intent MUST-floor / AC use `clamp(u_ff)`; rails live in ADR 0007.
+- R5 Decision C unconditional latch wording — false: AGENTS already says clear only after successful idle write.
+- R7 omit boiler_water/hold from AGENTS/CONTEXT — false: MUST-floor not commissioning recipe.
+- R10 trailing newlines — low: cosmetic; not worth fixing in this pass.
+- R11 CONTEXT heading blank lines — low: cosmetic readability only.
+- R12 stale Review Triage Log routes — low: process artifact; Decision C already fixed in AGENTS.
+- R16 supply_event sample wipe undocumented — false: Intent excludes ADR test-matrix dump.
+- R20 R4 as runtime removal — false: this tracer is docs cutover (Reading A/B).
+- R21 pytest/ruff absent from diff — false: external cleanliness gate for docs-only change.
+- R23 process artifacts in diff — low: plan expected; memlog rarely affects water-law consumers.
+- F9 CONTEXT dual-gate without helper symbols — rejected by user (2B): prose-only glossary; symbols in AGENTS/ADR.

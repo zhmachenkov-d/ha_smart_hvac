@@ -52,7 +52,7 @@ _Avoid_: Master zone, primary room
 
 **Outdoor Temperature**:
 The measured outdoor air temperature. On the Set Water Temperature path: required for Weather Feedforward, and a `control_event` listener that re-evaluates the Outdoor-gated demand writer.
-_Avoid_: Weather (as a synonym for Outdoor Temperature), forecast (unless forecast is explicitly in scope)
+_Avoid_: Weather alone as a synonym for Outdoor Temperature (not Weather Feedforward), forecast (unless forecast is explicitly in scope)
 
 **Weather Feedforward**:
 Linear outdoor→water baseline `u_ff = base + slope × (comfort_ref − T_out)` with yaml-commissioned `base` / `slope` / `comfort_ref`. Under Plant Management and Heating Demand (and when the supply trip is not latched), demand Set Water Temperature is `round-to-0.1(clamp(u_ff))`. `initialize` runs one full `control_tick`; tick and every eligible `control_event` share that Outdoor-gated writer — every eligible event may rewrite demand SWT (not a one-shot rising-edge demand latch). Event listeners include Plant Management, Outdoor Temperature, zone air, and thermostat `hvac_action` / setpoint. CAP-7 / adapting `base`/`slope` / `ff_auto_correct_state.json` are not on the water path, must not be commissioned, and are out of scope (ADR 0007).

@@ -1,3 +1,7 @@
+---
+status: accepted
+---
+
 # Weather-curve Set Water Temperature with supply rise-rate trip
 The HVAC App commands Set Water Temperature from Weather Feedforward under Plant Management and Heating Demand gates, with a supply water rise-rate trip that can force and hold `0`. Demand command is `round-to-0.1(clamp(u_ff))` with `u_ff = base + slope × (comfort_ref − T_out)`. This supersedes ADR 0005 (fixed-PID SWT) and ADR 0006 (optional RLS adaptive Kp/Ki). CAP-7 rise-rate auto-correct, adapting `base`/`slope`, and `ff_auto_correct_state.json` are not on the water path, must not be commissioned, and are out of scope. Fixed PID / ∫ / RLS / `rls_state.json` are not live water law.
 
@@ -29,7 +33,7 @@ There is no debounce. The write throttle is the equal-float skip on Set Water Te
 - **`supply_event`:** use `_plant_and_heating_demand` only (Plant on ∧ Heating Demand). Never call `_gate_prelude` or require Outdoor — see `docs/decisions/adr-supply-event-no-outdoor-prelude.md`.
 
 ## Trip latch
-On `supply_event` under Plant∧Demand, the App samples supply water (`boiler_water`) and compares observed rise rate `r_obs` (°C/min) to yaml `r_max`. When `r_obs > r_max`, it attempts SWT write `0`. The trip **latches only after that write succeeds**; a failed write does not latch. While latched, demand `_run_demand` keeps writing `0`. Hold timer (`hold`) starts on successful latch; on hold expiry the App clears trip RAM and re-runs Outdoor prelude + demand. A per-zone Heating Demand False→True rising edge under `_gate_prelude` also clears trip state. Plant-off clears via `_clear_trip_state` (no write).
+On `supply_event` under Plant∧Demand, the App samples supply water (`boiler_water`) and compares observed rise rate `r_obs` (°C/min) to yaml `r_max`. When `r_obs > r_max`, it attempts SWT write `0`. The trip **latches only after that write succeeds**; a failed write does not latch. While latched, demand `_run_demand` keeps writing `0`. Hold timer (`hold`) starts on successful latch; on hold expiry the App clears trip RAM and re-runs Outdoor prelude + demand only when `_gate_prelude` returns zones (prelude failure does not invent a demand write). A per-zone Heating Demand False→True rising edge under `_gate_prelude` also clears trip state. Plant-off clears via `_clear_trip_state` (no write).
 
 ## Idle clear (Decision C)
 `_go_idle` covers every Plant-on non-demand exit: no Heating Demand, unavailable Outdoor, no valid zones, and non-finite `u_ff`. It always disarms the hold timer and wipes supply samples. It clears `_supply_trip_latched` only after a successful idle SWT write `0`; write-fail keeps the latch — see `docs/decisions/adr-idle-trip-clear-after-write.md`.
