@@ -7,7 +7,7 @@ sources:
   - _bmad-output/initiative-weather-swt-supply-trip/initiative-weather-swt-supply-trip.md
 companions: []
 after: []
-refined: false
+refined: true
 risk: medium
 ---
 
@@ -20,6 +20,19 @@ Align domain language with the shipped weather-curve + supply rise-rate trip wat
 ## Outcome
 
 Operators and agents read one water law — weather curve plus supply trip — matching the App; PID/RLS language is gone from live docs and dead code.
+
+## Requirements
+
+1. **R4 (parent R4):** Fixed PID (`base_water_temp + u_pid`, ∫), optional RLS adaptive gains, and `rls_state.json` are removed from the live SWT path and commissioning; domain docs and a new ADR supersede ADR 0005 / 0006 for this water law.
+
+## Constraints
+
+1. **C1 (parent C1):** Implementation stays inside the AppDaemon `ha_smart_hvac` App writing the existing HA plant Set Water Temperature entity.
+2. **C2 (parent C2):** Exclusive Session (ADR 0001) and Heating Demand via thermostat `hvac_action=heating` are unchanged.
+3. **C3 (parent C3):** SWT uses round-to-0.1 and clamp into existing `setpoint_min` / `setpoint_max` only.
+4. **C4 (parent C4):** Critical Zone must not drive Set Water Temperature or the supply rise-rate trip.
+5. **C5 (parent C5):** Supply (and Outdoor) entity ids are yaml-commissioned; house entity ids are not hardcoded and house `apps.yaml` changes require owner confirmation.
+6. **C6 (parent C6):** CAP-7 / adapting `base`/`slope` / `ff_auto_correct_state.json` are out of scope for this initiative.
 
 ## Done when
 
@@ -50,3 +63,7 @@ Owns ADR/CONTEXT/AGENTS/`knowledge/` supersede and final PID/RLS dead-code clean
 - Waits on epic-supply-rise-rate-trip because: weather-curve demand path and supply rise-rate trip must be shipped so docs match the App.
 - Shared covers: R4 with epic 1 (docs/cleanup here; path/commissioning there).
 - Decision: Slice approved — docs/cleanup is third epic after trip (2026-11-11).
+- Decision: Refine from parent covers only — no extra companions before stories (2026-11-14).
+- Decision: R4 scope here — ADR 0007 as live law (weather curve + supply trip; CAP-7 out); supersede ADR 0005 / 0006; ADR 0004 stays historical; CONTEXT / AGENTS / knowledge live pages match App; dead `pid`/`rls` modules and remaining `pid` commissioning nests removed; path swap already epic 1 (2026-11-14).
+- Decision: knowledge/ — live SWT and related concept pages describe curve + trip; PID/RLS concept pages demoted to historical prior art (like LADRC), not live law (2026-11-14).
+- Decision: House apps.yaml — example yaml cleanup in this epic; house HITL only if a `pid` nest remains (2026-11-14).
