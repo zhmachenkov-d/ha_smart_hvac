@@ -2,6 +2,11 @@
 
 Append-only history of OKF ingest and lint passes.
 
+## 2026-11-14 — Align live SWT knowledge with ADR 0007
+
+- **Updated:** `concepts/set-water-temperature`, `outdoor-temperature`, `critical-zone`, `rls-adaptive-pid`, `adrc`, `ladrc`, `madrc`, `multi-zone-coordinator`; `references/huang-2018-ladrc-hvac`, `wang-2026-madrc-sst`; `concepts/index.md`, root `index.md`.
+- **Fact:** live SWT is Weather Feedforward `round-to-0.1(clamp(u_ff))` plus supply rise-rate trip under ADR 0007; fixed-PID / RLS demoted to historical prior art (like ADRC literature); Outdoor on demand path.
+
 ## 2026-11-08 — Align ADRC/LADRC/MADRC project notes with ADR 0005
 
 - **Updated:** `concepts/ladrc`, `madrc`, `adrc` Related; `references/huang-2018-ladrc-hvac`, `wang-2026-madrc-sst`; root `index.md`.
