@@ -1,6 +1,8 @@
 ---
-status: accepted
+status: superseded by ADR-0007
 ---
+
+Live water law: ADR-0007.
 
 # Optional RLS adaptive PID gains
 
