@@ -6,7 +6,7 @@ import ast
 import tempfile
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -1638,3 +1638,50 @@ def test_rising_edge_clear_does_not_use_critical_zone() -> None:
     joined = " ".join(_info_msgs(app))
     assert "critical_zone=zone_one" in joined
     assert "u_ff=" in joined
+
+
+def test_latched_trip_path_does_not_use_critical_zone() -> None:
+    """Latched demand writes SWT 0 without consulting Critical Zone."""
+    app = _two_zone_app(zone_one_action="heating", zone_two_action="heating")
+
+    # zone_one colder → would be Critical Zone if select_max_error ran.
+    def get_state(entity_id: str, attribute: str | None = None):
+        if entity_id == _PLANT_MGMT:
+            return "on"
+        if entity_id == _OUTDOOR:
+            return _OUTDOOR_TEMP
+        if entity_id == _BOILER_WATER:
+            return 40.0
+        if entity_id == _ZONE_TEMP:
+            return 15.0
+        if entity_id == "sensor.zone_two_temp":
+            return 21.0
+        if entity_id == _PLANT_SETPOINT:
+            return 45.0
+        if entity_id == _CLIMATE:
+            if attribute == "temperature":
+                return 22.0
+            if attribute == "hvac_action":
+                return "heating"
+            return "heat"
+        if entity_id == "climate.zone_two":
+            if attribute == "temperature":
+                return 22.0
+            if attribute == "hvac_action":
+                return "heating"
+            return "heat"
+        return None
+
+    app.get_state = MagicMock(side_effect=get_state)
+    app._supply_trip_latched = True
+    app._zone_heating_prior = {"zone_one": True, "zone_two": True}
+
+    with patch("ha_smart_hvac.hvac_app.select_max_error_demand_zone") as select_cz:
+        app.control_tick({})
+        select_cz.assert_not_called()
+
+    assert app._supply_trip_latched
+    assert _set_value_writes(app) == [0.0]
+    joined = " ".join(_info_msgs(app))
+    assert "critical_zone=" not in joined
+    assert "u_ff=" not in joined

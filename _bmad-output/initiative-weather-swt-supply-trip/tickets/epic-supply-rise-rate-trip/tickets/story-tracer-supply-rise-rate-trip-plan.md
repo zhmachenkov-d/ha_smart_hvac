@@ -114,7 +114,7 @@ Vacuous clear → trip clear (`adr-vacuous-clear-after-pid-detach`). No CAP-7 (`
 
 - [x] [Review][Patch] Stale supply sample retained across ungated supply_event early-return — resolved Decision A: wipe `_supply_sample` on ungated `supply_event` early-return [`apps/ha_smart_hvac/hvac_app.py:135-136`]
 - [x] [Review][Patch] `_go_idle` clears trip state before confirming idle SWT write succeeds — resolved Decision C: cancel hold/wipe sample always; keep latch until idle write 0 succeeds [`apps/ha_smart_hvac/hvac_app.py:243-246`]
-- [x] [Review][Defer] Critical Zone non-trip Always rule unverified in this change — deferred: deferred-work already scoped CZ×trip suite out of 2.1 tracer band
+- [x] [Review][Defer] Critical Zone non-trip Always rule unverified in this change — settled by story 2.4 (2026-11-14): `test_latched_trip_path_does_not_use_critical_zone`; deferred-work CZ×trip entry pruned
 - [x] [Review][Patch] Fractional hold silently truncated (e.g. 90.9→90) — resolved Decision B: keep int() truncate; document whole seconds after coerce in example [`apps.yaml.example` / `config.py:205-208`]
 - [x] [Review][Patch] Failed first-trip SWT write advances sample without latching, blocking re-trip while plant stays hot [apps/ha_smart_hvac/hvac_app.py:160-174]
 - [x] [Review][Patch] Orphan hold callback after clear→re-trip can clear the new latch and rewrite curve [apps/ha_smart_hvac/hvac_app.py:115-124]
@@ -125,7 +125,7 @@ Vacuous clear → trip clear (`adr-vacuous-clear-after-pid-detach`). No CAP-7 (`
 - [x] [Review][Patch] Stale test_parse_apps_yaml_example docstring (FF-only) [tests/test_config.py:66-67]
 - [x] [Review][Patch] Plan status/checkboxes out of sync with built [story-tracer-supply-rise-rate-trip-plan.md]
 - [x] [Review][Patch] Equal-float under latch not asserted [tests/test_hvac_app.py latched demand/trip paths]
-- [x] [Review][Defer] run_in None after latch is unverified [apps/ha_smart_hvac/hvac_app.py:163-167] — deferred: Unverified medium/high — settle by confirming whether AppDaemon run_in can return None on failure; if yes, treat as medium+ and guard.
+- [x] [Review][Defer] run_in None after latch is unverified [apps/ha_smart_hvac/hvac_app.py:163-167] — settled by story 2.4 (2026-11-14): AppDaemon 4.5.13 `appdaemon.adapi.ADAPI.run_in` annotated `-> str`; no production None guard; deferred-work entry pruned
 
 #### Rejected
 - R7 (false): Plan I/O matrix dropped deferred edge rows — Fix is an edit to the plan intent/matrix section.
