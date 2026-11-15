@@ -2,6 +2,103 @@
 
 <!-- version list -->
 
+## v3.9.0 (2026-11-15)
+
+### Bug Fixes
+
+- **trv**: Keep latched soft-close without accuracy
+  ([`b4d7603`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/b4d76031d1a61e184e8ec26294bb65666bd0aac9))
+
+### Chores
+
+- Delete dead pid/rls modules
+  ([`357c76f`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/357c76f91874d813077a0c432cb97a608e9ec194))
+
+- **bmad**: Append party-mode memlog for story 3.3 sequencing
+  ([`105b94f`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/105b94fda0fb84afb18b1d25177e09e99c679237))
+
+- **bmad**: Apply 2.4 full code-review findings
+  ([`ab2c90d`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/ab2c90de5a8e7d25e25efdfa6e656a0c5209a924))
+
+- **bmad**: Capture 2.3 house accept boiler_water plan
+  ([`1964164`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/19641642075dbaae51a0ed6cf12fc5f5b02f29ab))
+
+- **bmad**: Close epic-supply-rise-rate-trip after retrospective
+  ([`9ee6d32`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/9ee6d322de62803ffad239bd3152fbb9f15ebb5a))
+
+- **bmad**: Close story 3.2 walkthrough wrap-up
+  ([`a72ded1`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/a72ded17be2aa0faefd57846bde88a0f3794b8e6))
+
+- **bmad**: Mark story 2.3 house accept boiler_water done
+  ([`8e92d7f`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/8e92d7fb0e7d5184a95bb12da773ad8e1059b576))
+
+- **bmad**: Mark story 2.4 refactor sweep done
+  ([`9b5859f`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/9b5859f44f6d3ff1082bddcbdfb8660e9f0257b8))
+
+- **bmad**: Mark story 3.2 knowledge live curve+trip done
+  ([`087a730`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/087a73008b315eb97243f561a280d8e2c3a05bb8))
+
+- **bmad**: Mark story 3.3 delete dead pid/rls done
+  ([`a948d31`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/a948d31e2d9d5cd8ff32756745f6ddf51f6ad498))
+
+- **bmad**: Mark story 4.1 TRV idle max-close done
+  ([`245bb8a`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/245bb8acbeaf83cf9b5065220882aa5090add102))
+
+- **bmad**: Record party memlog for epic-3 plan reviews
+  ([`674be24`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/674be242eaae017520298ddcb782631a6d64499a))
+
+- **bmad**: Refine supersede PID domain docs epic
+  ([`b3249c0`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/b3249c08b88b3e43d401c92f07fb823854842628))
+
+- **bmad**: Slice epic-3 supersede PID domain docs into stories
+  ([`30f2b55`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/30f2b55fbed1d144482da00dda62a71e4cf2a762))
+
+- **po**: Re-slice initiative for TRV soft-close and flame trip
+  ([`097aa7d`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/097aa7d17d2148e40344c0bf7b77d39ade816ab3))
+
+### Documentation
+
+- **adr**: Establish ADR 0007 as live water law
+  ([`2be1233`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/2be12338759602d8f96a7f02a5742aca88884538))
+
+- **adr**: Harden ADR 0007 cutover after code review
+  ([`653860a`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/653860abd0d50c09956a8edddc619913dc67ab77))
+
+- **bmad**: Add story 3.3 walkthrough and review notes
+  ([`5882efc`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/5882efcb2c99900f761d577560f37bad1ea3e83b))
+
+- **bmad**: Append story 3.3 walkthrough push log
+  ([`e22ee9a`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/e22ee9af2f6a77b5dc5ac1a65cae9fd406d4dc01))
+
+- **bmad**: Close story 4.1 walkthrough wrap-up
+  ([`6c73f81`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/6c73f817da7ce1d5d90a73835d7e630315363c15))
+
+- **bmad**: Note story 4.1 walkthrough commit+push
+  ([`61dfcea`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/61dfcea6edef68751f97608bc8baf1c075f82cbf))
+
+- **knowledge**: Align live SWT with ADR 0007 curve+trip
+  ([`3291a01`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/3291a0166baee04f81f7d4cb998204951cb6a290))
+
+- **knowledge**: Apply walkthrough formal-review patches
+  ([`d555957`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/d555957260c863bd144702e370a5e4f7720c4a1b))
+
+- **tickets**: Plan epic 4 TRV soft-close stories
+  ([`272b9da`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/272b9daa7b25f000a745db8e4478dd1a0fe270b4))
+
+- **tickets**: Refine epic 4 TRV idle max-close
+  ([`ce2175d`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/ce2175df3ad2c534127a11e7f4234021fda23058))
+
+### Features
+
+- **trv**: Add idle max-close soft-close for Sonoff valves
+  ([`784fc71`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/784fc710444811c993e0324199ab625751cac8b8))
+
+### Testing
+
+- **trip**: Close epic-2 deferred CZ×trip sweep
+  ([`85076ce`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/85076ceaecf81039a18ebab714e25d05d9f60db1))
+
+
 ## v3.8.0 (2026-11-13)
 
 ### Bug Fixes
