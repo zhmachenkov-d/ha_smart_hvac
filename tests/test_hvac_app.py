@@ -165,7 +165,7 @@ def _trv_app(
     *,
     plant_management: str = "on",
     zone_temp: object = 20.0,
-    setpoint: float = 22.0,
+    setpoint: object = 22.0,
     accuracy: object = 0.5,
     closure: object = 50.0,
     hvac_action: str = "heating",
@@ -1908,6 +1908,65 @@ def test_initialize_trv_mapping_listens_on_climate_attrs() -> None:
     assert all(
         entity not in (_TRV_CLOSURE, _TRV_ACCURACY) for entity, _ in attr_listens
     )
+    assert (_TRV_CLOSURE, 100.0) in _set_value_by_entity(app)
+
+
+def test_trv_clear_at_exact_setpoint_unlatches() -> None:
+    app = _trv_app(zone_temp=22.0, setpoint=22.0, accuracy=0.5, closure=100.0)
+    app._trv_overshoot_latched.add(_TRV_CLOSURE)
+    app.control_tick({})
+    assert (_TRV_CLOSURE, 80.0) in _set_value_by_entity(app)
+    assert _TRV_CLOSURE not in app._trv_overshoot_latched
+
+
+def test_trv_exact_overshoot_threshold_writes_floor() -> None:
+    app = _trv_app(zone_temp=22.5, setpoint=22.0, accuracy=0.5, closure=10.0)
+    app.control_tick({})
+    assert (_TRV_CLOSURE, 80.0) in _set_value_by_entity(app)
+    assert _TRV_CLOSURE not in app._trv_overshoot_latched
+
+
+def test_trv_zone_temp_unreadable_skips() -> None:
+    app = _trv_app(zone_temp="unavailable", setpoint=22.0, accuracy=0.5, closure=80.0)
+    app.control_tick({})
+    assert all(eid != _TRV_CLOSURE for eid, _ in _set_value_by_entity(app))
+    assert _TRV_CLOSURE not in app._trv_overshoot_latched
+
+
+def test_trv_setpoint_unreadable_skips() -> None:
+    app = _trv_app(zone_temp=23.0, setpoint="unavailable", accuracy=0.5, closure=80.0)
+    app.control_tick({})
+    assert all(eid != _TRV_CLOSURE for eid, _ in _set_value_by_entity(app))
+    assert _TRV_CLOSURE not in app._trv_overshoot_latched
+
+
+def test_trv_latched_accuracy_unavailable_still_clears() -> None:
+    app = _trv_app(zone_temp=21.5, setpoint=22.0, accuracy="unavailable", closure=100.0)
+    app._trv_overshoot_latched.add(_TRV_CLOSURE)
+    app.control_tick({})
+    assert (_TRV_CLOSURE, 80.0) in _set_value_by_entity(app)
+    assert _TRV_CLOSURE not in app._trv_overshoot_latched
+
+
+def test_trv_latched_accuracy_unavailable_keeps_100() -> None:
+    app = _trv_app(zone_temp=22.3, setpoint=22.0, accuracy="unavailable", closure=80.0)
+    app._trv_overshoot_latched.add(_TRV_CLOSURE)
+    app.control_tick({})
+    assert (_TRV_CLOSURE, 100.0) in _set_value_by_entity(app)
+    assert _TRV_CLOSURE in app._trv_overshoot_latched
+
+
+def test_trv_plant_off_via_control_event() -> None:
+    app = _trv_app(
+        plant_management="off",
+        zone_temp=20.0,
+        setpoint=22.0,
+        closure=80.0,
+    )
+    _fire_control_event(app)
+    writes = _set_value_by_entity(app)
+    assert (_TRV_CLOSURE, 100.0) in writes
+    assert all(eid != _PLANT_SETPOINT for eid, _ in writes)
 
 
 def test_trv_no_valve_opening_degree_entity_writes() -> None:

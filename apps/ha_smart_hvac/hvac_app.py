@@ -400,8 +400,7 @@ class HvacApp(hass.Hass):
 
                 t_zone = self._read_float(zone.temperature)
                 setpoint = self._read_setpoint(thermo.climate)
-                accuracy = self._read_float(accuracy_id)
-                if t_zone is None or setpoint is None or accuracy is None:
+                if t_zone is None or setpoint is None:
                     continue
 
                 latched = closure_id in self._trv_overshoot_latched
@@ -411,7 +410,12 @@ class HvacApp(hass.Hass):
                             self._trv_overshoot_latched.discard(closure_id)
                     else:
                         self._write_number(closure_id, 100.0)
-                elif t_zone > setpoint + accuracy:
+                    continue
+
+                accuracy = self._read_float(accuracy_id)
+                if accuracy is None:
+                    continue
+                if t_zone > setpoint + accuracy:
                     if self._write_number(closure_id, 100.0):
                         self._trv_overshoot_latched.add(closure_id)
                 else:

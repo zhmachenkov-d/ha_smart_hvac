@@ -506,6 +506,13 @@ def test_parse_rejects_valve_closure_floor_out_of_range(value: float) -> None:
         parse_config(args)
 
 
+@pytest.mark.parametrize("value", [0, 100, 0.0, 100.0])
+def test_parse_accepts_valve_closure_floor_inclusive_bounds(value: float) -> None:
+    args = _minimal_args()
+    args["valve_closure_floor"] = value
+    assert parse_config(args).valve_closure_floor == pytest.approx(float(value))
+
+
 def test_parse_thermostat_mapping_commissioned() -> None:
     args = _minimal_args()
     args["zones"][0]["thermostats"] = [
@@ -529,6 +536,8 @@ def test_parse_thermostat_mapping_commissioned() -> None:
 @pytest.mark.parametrize(
     "thermostat",
     [
+        None,
+        42,
         {"climate": "climate.trv", "valve_closure": "number.trv_closure"},
         {"climate": "climate.trv", "accuracy": "number.trv_accuracy"},
         {
@@ -552,6 +561,20 @@ def test_parse_thermostat_mapping_commissioned() -> None:
             "accuracy": 0.5,
         },
         {"climate": "climate.trv"},
+        {
+            "valve_closure": "number.trv_closure",
+            "accuracy": "number.trv_accuracy",
+        },
+        {
+            "climate": "",
+            "valve_closure": "number.trv_closure",
+            "accuracy": "number.trv_accuracy",
+        },
+        {
+            "climate": 7,
+            "valve_closure": "number.trv_closure",
+            "accuracy": "number.trv_accuracy",
+        },
     ],
 )
 def test_parse_rejects_partial_or_invalid_trv_fields(thermostat: object) -> None:

@@ -116,3 +116,22 @@ Before-prelude `_apply_trv_law` stays (deferred ACs only postpone extra proofs).
 **Commands:**
 - `uv run pytest` -- expected: pass
 - `uv run ruff check apps/ha_smart_hvac tests` -- expected: clean
+
+## Code Review
+
+### 2026-11-15 (walkthrough Formal review — Config slice)
+**Code review complete.** 0 `decision-needed`, 2 `patch`, 1 `defer`, 9 rejected.
+
+- [x] [Review][Patch] Missing ConfigError tests for non-mapping thermostat items and bad climate with TRV keys [tests/test_config.py:527 / apps/ha_smart_hvac/config.py:128]
+- [x] [Review][Patch] Inclusive valve_closure_floor bounds 0 and 100 not acceptance-tested [tests/test_config.py:499 / apps/ha_smart_hvac/config.py:259]
+- [x] [Review][Defer] Whitespace-only entity ids pass `_entity_id` [apps/ha_smart_hvac/config.py:_entity_id] — deferred: pre-existing helper; already in deferred-work for this plan
+
+Rejected: R1/R10 unknown mapping keys (low — required keys still enforced); R2 house-calibration lag (false — epic 6); R3 dual default 80 (low hygiene); R6/R11 empty commissioned (false — parse rejects empty); R7 example absent from scoped diff (false — scope artifact); R8 label wording (low cosmetic); R15 intent descriptive only (false — R1 aligned).
+
+### 2026-11-15 (walkthrough Formal review — `_apply_trv_law` slice)
+**Code review complete.** 0 `decision-needed`, 2 `patch`, 0 `defer`, 11 rejected.
+
+- [x] [Review][Patch] Latched hysteresis incorrectly gated on accuracy readability [apps/ha_smart_hvac/hvac_app.py:401]
+- [x] [Review][Patch] Missing boundary and unreadable-input TRV tests [tests/test_hvac_app.py]
+
+Rejected: R3 silent skip log (low); R4 use .commissioned (low); R6 mixed-list (deferred/false for tracer); R7 docstring (low); R8 latch logs (low); R9 plant-off latch clear (false); R11 opening service shape (low); R13 negative accuracy (low, prior reject); R17 intent descriptive (false).

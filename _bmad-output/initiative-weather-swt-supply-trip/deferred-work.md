@@ -34,3 +34,6 @@
 - source_plan: `_bmad-output/initiative-weather-swt-supply-trip/tickets/epic-trv-idle-max-close/tickets/story-tracer-trv-idle-max-close-soft-close-plan.md`
   summary: `_entity_id` accepts whitespace-only strings for TRV (and other) entity fields
   evidence: Pre-existing `_entity_id` checks `isinstance(str) and not raw` only; settle by requiring `raw.strip()` (or equivalent) across entity-id parse, not TRV-only.
+
+## Deferred from: code review of story-tracer-trv-idle-max-close-soft-close-plan (2026-11-15)
+- Whitespace-only entity ids pass `_entity_id` — pre-existing; already deferred earlier for this plan; settle with `raw.strip()` across entity-id parse (not TRV-only)
