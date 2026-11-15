@@ -170,3 +170,10 @@ Session: 79403195-8518-4eb8-b65d-564f4b8883d8 · Timestamp: 2026-11-15T15:42:00+
 Session: 79403195-8518-4eb8-b65d-564f4b8883d8 · Timestamp: 2026-11-15T15:42:10+02:00
 - Action: Presented Wrap-up with proposed commit+push + merge
 - Result: in progress awaiting user
+
+## 27 — Wrap-up — commit+push
+Session: 79403195-8518-4eb8-b65d-564f4b8883d8 · Timestamp: 2026-11-15T15:43:00+02:00
+- Action: User chose follow-through 1; committed and pushed b4d7603
+- Result: origin/feat/4-1-trv-idle-max-close updated; merge not requested
+- Evidence: fix(trv): keep latched soft-close without accuracy
+- Open: Wrap-up awaiting done; optional merge PR #146

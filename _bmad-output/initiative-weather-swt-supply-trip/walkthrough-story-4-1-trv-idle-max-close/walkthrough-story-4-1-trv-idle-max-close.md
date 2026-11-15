@@ -1,7 +1,7 @@
 # Walkthrough: Story 4.1 — TRV idle max-close soft-close
 Target: [PR #146](https://github.com/zhmachenkov-d/ha_smart_hvac/pull/146) · branch `feat/4-1-trv-idle-max-close` · `784fc71`
 
-**Current block:** Wrap-up (in progress)
+**Current block:** Wrap-up (in progress — commit+push done; merge deferred)
 
 ## Blocks
 - [x] **Intent** — done (Test: 305 pytest; ruff clean)
@@ -83,4 +83,4 @@ Outside the three code slices:
 ### Wrap-up
 Review complete for [PR #146](https://github.com/zhmachenkov-d/ha_smart_hvac/pull/146) (story 4.1).
 
-Proposed follow-through: **commit + push** Formal review patches (`hvac_app`, tests, plan, deferred-work) + walkthrough folder; then **merge PR #146** (or leave merge to you). House yaml remains story 4.2.
+Follow-through so far: **commit + push** `b4d7603` (Formal review patches + walkthrough). **Merge deferred** — say if you want `gh pr merge`. House yaml remains story 4.2.
