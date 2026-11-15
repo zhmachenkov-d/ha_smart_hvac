@@ -3,7 +3,7 @@ title: 'Tracer: TRV idle max-close soft-close'
 type: 'feature'
 ticket: '1'
 created: '2026-11-15'
-status: 'built'
+status: done
 baseline_revision: '9c7bc3697a9fa155bea1ee7c60bd1ef26a17d201'
 route: 'full'
 route_source: 'auto'
