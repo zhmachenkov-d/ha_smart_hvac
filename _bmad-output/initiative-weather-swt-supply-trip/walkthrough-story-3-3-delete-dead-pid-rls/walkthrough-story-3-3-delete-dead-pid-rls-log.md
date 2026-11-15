@@ -137,3 +137,10 @@ Session: unavailable · Timestamp: 2026-11-15T09:21:00+02:00
 - Result: in progress at commit time
 - Evidence: staged walkthrough + plan + deferred-work
 - Open: push after commit
+
+## 21 — Wrap-up — pushed
+Session: unavailable · Timestamp: 2026-11-15T09:21:50+02:00
+- Action: git commit 5882efc + push to origin/chore/3-3-delete-dead-pid-rls-modules
+- Result: Success. Walkthrough + plan Code Review + deferred-work formal-review append committed. Party memlog left unstaged. Merge not done per user.
+- Evidence: 5882efc; PR #144 https://github.com/zhmachenkov-d/ha_smart_hvac/pull/144
+- Open: merge deferred; party memlog still local dirty
