@@ -9,6 +9,7 @@ companions: []
 after: []
 refined: true
 risk: medium
+status: done
 ---
 
 # Supersede PID domain docs
@@ -68,3 +69,5 @@ Owns ADR/CONTEXT/AGENTS/`knowledge/` supersede and final PID/RLS dead-code clean
 - Decision: knowledge/ — live SWT and related concept pages describe curve + trip; PID/RLS concept pages demoted to historical prior art (like LADRC), not live law (2026-11-14).
 - Decision: House apps.yaml — example yaml cleanup in this epic; house HITL only if a `pid` nest remains (2026-11-14).
 - Decision: Story slice approved — tracer bullet is 3.1 (ADR 0007 + AGENTS/CONTEXT); then 3.2 knowledge live curve+trip + demote PID/RLS (least-certain); then 3.3 delete dead pid/rls modules; 3.4 Refactor sweep. Skip house HITL (no pid nest in house apps.yaml or example). No opening refactor; no closing e2e suite; ADR written in-story (not toolsmith). 3.2 and 3.3 both after 3.1 (2026-11-14).
+- Dropped: **3.4 Refactor sweep** — obsolete after replan 2026-11-15 (forge TRV+flame; cleanup deferred to epics 5–6). (2026-11-15)
+- Decision: Epic closed via 3.1–3.3 done + 3.4 dropped; live docs amend → epic 6 (2026-11-15).
