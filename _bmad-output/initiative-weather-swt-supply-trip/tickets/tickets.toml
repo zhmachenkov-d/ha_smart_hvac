@@ -1,4 +1,5 @@
-# Weather-curve SWT + supply rise-rate trip — epics in build order (approved 2026-11-11)
+# Weather-curve SWT + TRV soft-close + flame short-on — epics in build order
+# Epics 1–3 approved 2026-11-11; re-slice 4–6 approved 2026-11-15 (forge-trv-valve-closure-anti-cycle).
 
 [[epic]]
 id = 1
@@ -11,7 +12,7 @@ covers = ["R1", "R2", "R3", "R4", "R7", "R8"]
 id = 2
 slug = "epic-supply-rise-rate-trip"
 title = "Supply rise-rate trip"
-description = "Under Plant Management on and Heating Demand, every supply temperature change computes r_obs; if r_obs > r_max (yaml, default 2 C/min) the App latches and writes SWT 0 (weather curve not applied while latched) until the hold timer (default 900s) elapses or a zone newly enters Heating Demand; supply entity is yaml-commissioned (boiler_water)."
+description = "Under Plant Management on and Heating Demand, every supply temperature change computes r_obs; if r_obs > r_max (yaml, default 2 C/min) the App latches and writes SWT 0 (weather curve not applied while latched) until the hold timer (default 900s) elapses or a zone newly enters Heating Demand; supply entity is yaml-commissioned (boiler_water). (Superseded for live law by epic 5 — historical delivery kept.)"
 covers = ["R5", "R6", "R7"]
 after = [{ epic = 1, needs = "weather-curve demand SWT path and Outdoor control listener live under Plant/Demand gates" }]
 
@@ -19,6 +20,30 @@ after = [{ epic = 1, needs = "weather-curve demand SWT path and Outdoor control 
 id = 3
 slug = "epic-supersede-pid-domain-docs"
 title = "Supersede PID domain docs"
-description = "A new ADR supersedes ADR 0005 / 0006 for the weather-curve + supply-trip water law; CONTEXT, AGENTS, and knowledge/ match the shipped App; dead PID/RLS modules and pid commissioning nests are removed from the codebase and example yaml. CAP-7 / ff_auto_correct_state.json remain absent."
+description = "A new ADR supersedes ADR 0005 / 0006 for the weather-curve + supply-trip water law; CONTEXT, AGENTS, and knowledge/ match the App as of epic 2; dead PID/RLS modules and pid commissioning nests are removed. CAP-7 / ff_auto_correct_state.json remain absent. (Live docs amended again by epic 6 after TRV + flame.)"
 covers = ["R4"]
 after = [{ epic = 2, needs = "weather-curve demand path and supply rise-rate trip shipped so docs match the App" }]
+
+[[epic]]
+id = 4
+slug = "epic-trv-idle-max-close"
+title = "TRV idle max-close soft-close"
+description = "Under Plant on, every commissioned Sonoff TRV holds idle max-close at yaml valve_closure_floor (default 80) or 100 on overshoot (T_zone > setpoint + accuracy), restored to floor when T_zone ≤ setpoint — with or without Heating Demand; Plant off writes closure 100 on all commissioned Sonoff TRVs; App never writes valve_opening_degree; wiring is explicit yaml (house ids confirmed)."
+covers = ["R9", "R10"]
+after = [{ epic = 3, needs = "PID path/docs cleanup finished (3.4 dropped); weather-curve App stable before TRV soft-close" }]
+
+[[epic]]
+id = 5
+slug = "epic-replace-supply-trip-with-flame"
+title = "Replace supply trip with flame short-on"
+description = "Supply rise-rate trip (r_obs/r_max/boiler_water trip path) is removed from code, yaml, and tests; under Plant on ∧ Heating Demand ∧ ch_active ∧ latch clear, flame_on True duration < flame_on_min_s attempts SWT 0 and latches only after successful write; clear on hold, zone rising-edge, plant-off, or successful idle write-0 (Decision C); while latched weather curve not applied and TRV soft-close keeps running."
+covers = ["R11", "R12", "R1"]
+after = [{ epic = 4, needs = "TRV soft-close primary anti-cycle live before supply trip is removed" }]
+
+[[epic]]
+id = 6
+slug = "epic-docs-trv-flame-water-law"
+title = "Docs: TRV + flame water law"
+description = "ADR/CONTEXT/AGENTS/knowledge match the shipped weather-curve + TRV soft-close + flame short-on law; supply rise-rate trip language removed from live docs; ADR 0007 trip portion amended or superseded; CAP-7 still out."
+covers = ["R4", "R7", "R8"]
+after = [{ epic = 5, needs = "TRV soft-close and flame short-on shipped so docs match the App" }]

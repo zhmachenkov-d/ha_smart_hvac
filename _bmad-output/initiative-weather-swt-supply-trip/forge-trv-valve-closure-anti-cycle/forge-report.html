@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Forge Report — TRV idle max-close + flame short-on trip</title>
+<style>
+  :root {
+    --ink: #1a1a1a;
+    --paper: #f7f3ea;
+    --rule: #c9bfa8;
+    --accent: #6b1d1d;
+    --seal: #8b1e1e;
+    --muted: #5c564c;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    background: var(--paper);
+    color: var(--ink);
+    line-height: 1.45;
+  }
+  .wrap { max-width: 42rem; margin: 0 auto; padding: 2.5rem 1.5rem 4rem; }
+  h1 { font-size: 1.65rem; font-weight: 700; margin: 0 0 0.35rem; letter-spacing: -0.02em; }
+  .sub { color: var(--muted); font-size: 0.95rem; margin-bottom: 1.75rem; }
+  h2 {
+    font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.12em;
+    color: var(--accent); border-bottom: 1px solid var(--rule); padding-bottom: 0.35rem; margin: 1.75rem 0 0.75rem;
+  }
+  ul { margin: 0.25rem 0 0; padding-left: 1.15rem; }
+  li { margin: 0.35rem 0; }
+  .seal-block { display: flex; justify-content: center; margin: 1.5rem 0 2rem; }
+  .seal {
+    width: 160px; height: 160px; filter: drop-shadow(0 4px 8px rgba(80, 20, 20, 0.35));
+  }
+  .voices { display: grid; gap: 0.65rem; }
+  .voice {
+    display: grid; grid-template-columns: 2rem 1fr; gap: 0.5rem; align-items: start;
+    padding: 0.55rem 0.65rem; border: 1px solid var(--rule); background: rgba(255,255,255,0.35);
+  }
+  .icon { font-size: 1.25rem; line-height: 1.2; }
+  .voice strong { display: block; font-size: 0.95rem; }
+  .voice span { color: var(--muted); font-size: 0.88rem; }
+  .weak { border-left: 3px solid var(--accent); padding-left: 0.75rem; }
+  footer { margin-top: 2.5rem; font-size: 0.8rem; color: var(--muted); }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Forge Report — TRV idle max-close + flame short-on trip</h1>
+    <p class="sub">Session <code>forge-trv-valve-closure-anti-cycle</code> · initiative-weather-swt-supply-trip · 2026-11-15</p>
+
+    <div class="seal-block" aria-label="Outcome HARDENED">
+      <svg class="seal" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" role="img">
+        <title>HARDENED</title>
+        <defs>
+          <radialGradient id="wax" cx="40%" cy="35%" r="70%">
+            <stop offset="0%" stop-color="#b33a3a"/>
+            <stop offset="55%" stop-color="#8b1e1e"/>
+            <stop offset="100%" stop-color="#4a0f0f"/>
+          </radialGradient>
+        </defs>
+        <circle cx="100" cy="100" r="92" fill="url(#wax)"/>
+        <circle cx="100" cy="100" r="78" fill="none" stroke="#f0d4a8" stroke-width="3" stroke-dasharray="4 3" opacity="0.85"/>
+        <circle cx="100" cy="100" r="68" fill="none" stroke="#f0d4a8" stroke-width="1.5" opacity="0.7"/>
+        <text x="100" y="96" text-anchor="middle" fill="#f7e7c8" font-family="Georgia, serif" font-size="22" font-weight="700" letter-spacing="3">HARDENED</text>
+        <text x="100" y="118" text-anchor="middle" fill="#e8c98a" font-family="Georgia, serif" font-size="9" letter-spacing="2">FORGED IDEA</text>
+      </svg>
+    </div>
+
+    <h2>Outcome</h2>
+    <p>Replace supply rise-rate SWT trip with a dual-layer anti-cycle law: Sonoff TRV idle max-close soft-close (primary) plus flame short-on SWT trip (safety net). Weather-curve SWT stays.</p>
+
+    <h2>Locked decisions</h2>
+    <ul>
+      <li>App writes only <code>valve_closure_degree</code> (idle max-close limit); never <code>valve_opening_degree</code>.</li>
+      <li>Plant on: floor 80 / overshoot 100 / clear at T≤setpoint → 80; Plant off → 100.</li>
+      <li>Overshoot per TRV: zone SNZB temp + that TRV setpoint + that TRV accuracy; explicit yaml wiring.</li>
+      <li>Remove supply rise-rate trip entirely; flame trip if <code>flame_on</code> on-duration &lt; 300s → SWT 0 after successful write.</li>
+      <li>Gate: Plant ∧ Demand ∧ <code>ch_active</code> ∧ !latch; clear: hold 900s or demand rising-edge (ADR 0007 pattern).</li>
+      <li><code>flame_on</code> / <code>ch_active</code> separate yaml entities ≠ plant_management; TRV-law continues while latched.</li>
+    </ul>
+
+    <h2>Rejected</h2>
+    <ul>
+      <li>Holding closure=80 as a heating position (would choke open).</li>
+      <li>App owning opening degree; naming-convention entity discovery.</li>
+      <li>Keeping supply rise-rate trip; flame off-gap / full-cycle metrics.</li>
+      <li>Collapsing <code>ch_active</code> into <code>ch_enabled</code>; freezing TRV law during flame latch.</li>
+    </ul>
+
+    <h2>Surviving weak points</h2>
+    <div class="weak">
+      <ul>
+        <li>Soft-close only on Sonoff TRV subset; bathroom/kitchen/wc generics can fully shut — anti-cycle then leans on flame trip.</li>
+        <li>Assumption: writing idle max-close alone leaves TRV idle/heating mode logic intact (prior TRVZB opening+closing freeze risk).</li>
+        <li>House entity ids for flame/ch_active/TRV numbers still need owner confirmation at commission.</li>
+      </ul>
+    </div>
+
+    <h2>Pressure-testers</h2>
+    <div class="voices">
+      <div class="voice"><div class="icon">🏗️</div><div><strong>Winston — System Architect</strong><span>Soft-close vs hold; non-TRV hydraulic gap; ch_active ≠ ch_enabled.</span></div></div>
+      <div class="voice"><div class="icon">🎯</div><div><strong>Sofia — Product Owner</strong><span>Forced numeric write table; rejected vague “100%” without entity.</span></div></div>
+      <div class="voice"><div class="icon">💻</div><div><strong>Amelia — Senior Software Engineer</strong><span>App owns closure limit only; opening stays with TRV.</span></div></div>
+      <div class="voice"><div class="icon">🌶️</div><div><strong>Boundary — Edge-Case Hunter</strong><span>Heating vs leftover closure; multi-TRV shared SNZB.</span></div></div>
+      <div class="voice"><div class="icon">📏</div><div><strong>Level — Claim Checker</strong><span>Anti-cycle proof incomplete without non-TRV path.</span></div></div>
+      <div class="voice"><div class="icon">👤</div><div><strong>Inga — Generated hydronics skeptic</strong><span>Residual flow only through TRV subset; flame trip as net.</span></div></div>
+    </div>
+
+    <footer>
+      Artifact: <code>forge-trv-valve-closure-anti-cycle.md</code> · hand off to Sofia (<code>bmad-agent-po</code>) for initiative replan.
+    </footer>
+  </div>
+</body>
+</html>

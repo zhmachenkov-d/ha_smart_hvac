@@ -47,3 +47,4 @@ covers = []
 after = [1, 2, 3]
 hitl = false
 risk = "low"
+notes = ["Dropped after replan 2026-11-15: obsolete under forge TRV+flame; cleanup → epics 5–6."]
