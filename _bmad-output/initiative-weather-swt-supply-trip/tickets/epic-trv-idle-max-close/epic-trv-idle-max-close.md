@@ -52,3 +52,4 @@ Owns Sonoff TRV soft-close listeners/writes and yaml commission for closure/accu
 - Waits on epic-supersede-pid-domain-docs because: PID path/docs cleanup finished (3.4 dropped); weather-curve App stable before TRV soft-close.
 - Decision: Envelope approved thin (`refined: false`) — re-slice 2026-11-15; refine before stories.
 - Decision: Refine from parent covers only — no extra companions before stories (2026-11-15).
+- Decision: Tracer bullet — entry 1 TRV idle max-close soft-close (config + law + listeners + example); entry 2 house yaml HITL; entry 3 refactor sweep; declined separate e2e suite (2026-11-15).

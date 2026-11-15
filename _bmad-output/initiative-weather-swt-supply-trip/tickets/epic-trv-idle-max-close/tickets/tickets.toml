@@ -1,0 +1,37 @@
+# Epic 4 breakdown — leaf build order. `id` is stable; table order is build order.
+# Approved 2026-11-15. Tracer = TRV idle max-close through config + listeners + writes + example yaml.
+
+[[entry]]
+id = 1
+type = "story"
+title = "Tracer: TRV idle max-close soft-close"
+description = "Adds Sonoff TRV idle max-close: yaml valve_closure_floor (default 80) and explicit per-TRV closure + accuracy wiring under zones; under Plant on writes valve_closure_degree floor or 100 on overshoot (T_zone > setpoint + accuracy) and restores floor when T_zone ≤ setpoint (with or without Heating Demand); Plant off writes 100 on all commissioned Sonoff TRVs; never writes valve_opening_degree; generic thermostats have no TRV-law keys; apps.yaml.example commissions placeholder TRV keys; automated tests lock the law."
+verify = "Under Plant on, commissioned TRV numbers show floor or 100 per overshoot/clear; Plant off shows 100 on all commissioned Sonoff TRVs; App never calls valve_opening_degree; apps.yaml.example has valve_closure_floor and per-TRV closure/accuracy keys; uv run pytest and uv run ruff check apps/ha_smart_hvac tests clean."
+covers = ["R1", "R2"]
+after = ["3.3"]
+hitl = false
+risk = "high"
+notes = ["Tracer bullet: config parse + plant-on/off law + listeners + example yaml in one path.", "Least-certain: yaml shape under thermostat vs separate list — resolved in this story.", "House entity ids stay for entry 2 HITL."]
+
+[[entry]]
+id = 2
+type = "story"
+title = "Commission house apps.yaml for TRV soft-close"
+description = "Operator updates house apps/apps.yaml with confirmed Sonoff TRV closure + accuracy entities (livingroom×2, bedroom, childroom) and valve_closure_floor; house entity IDs unchanged unless the owner confirms. No live Exclusive Session required in this story."
+verify = "House apps/apps.yaml parses with valve_closure_floor and per-TRV closure/accuracy for the confirmed entities; entity IDs match the pre-change backup unless the owner confirmed a change."
+covers = ["R1", "R2"]
+after = [1]
+hitl = true
+risk = "medium"
+notes = ["HITL: ask before changing house entity IDs (AGENTS.md).", "Confirmed ids on initiative Notes 2026-11-15."]
+
+[[entry]]
+id = 3
+type = "story"
+title = "Refactor sweep"
+description = "Cleans deferred review findings and orphans left by the TRV idle max-close soft-close; no new scope."
+verify = "uv run pytest and uv run ruff check clean; no unused TRV soft-close leftovers called out in this epic's deferred notes."
+covers = []
+after = [1, 2]
+hitl = false
+risk = "low"
