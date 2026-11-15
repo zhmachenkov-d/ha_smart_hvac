@@ -137,3 +137,27 @@ Do not change: trip/curve runtime, ADR/AGENTS/CONTEXT/`knowledge/`, house yaml, 
 
 **Manual checks (if no CLI):**
 - Spot-diff: no edits under `docs/adr/`, `AGENTS.md`, `CONTEXT.md`, `knowledge/`, or house `apps/apps.yaml`.
+
+## Code Review
+
+### 2026-11-14
+**Code review complete.** 0 `decision-needed`, 0 `patch`, 1 `defer`, 15 rejected.
+
+- [x] [Review][Defer] Stale epic-1 deferred-work bullet still frames AGENTS/CONTEXT/ADR PID supersede as outstanding [`_bmad-output/initiative-weather-swt-supply-trip/deferred-work.md`] — deferred: pre-existing epic-1 defer text; not caused by pid/rls delete; settle/prune in entry 4
+
+#### Rejected
+- R2 house-calibration outside Always/AC — low: fix would edit built plan; product wording already patched
+- R3 Plan Verification omits house-calibration — low: fix would edit built plan
+- R4 test_feedforward docstring — low: rarely visible cosmetic
+- R5 tickets.toml verify omits 1A/F6-B — false: verify still covers story outcomes; suite proves relocate/F6-B
+- R6 entry 3 description “adjusts” — false: work statement, not post-merge bulletin
+- R7 AGENTS.md unlinked in house-calibration — low: rarely visible link churn
+- R8 modules-removed vs rls_state ambiguity — false: upgrading section already says rls_state.json can be deleted
+- R9 import-lock test `_quantize` name — low: rename-only noise; body still correct
+- R10 deferred source_plan attribution — false: evidence already routes to entry 4 / Intent Never
+- R11 plan built / Change Log — false: built + deferred-work by design
+- R12 absence vs import-lock — false: intentional plan Notes
+- R13 apps.yaml.example not in diff — false: verify-only by design
+- R14 R4 docs/ADR not in diff — false: intentional story leaf after 3.1/3.2
+- R15 house-calibration vs Verify — low: same as R2; plan bookkeeping only
+- R16 clamp relocate beyond Verify — false: Decision 1A intentional

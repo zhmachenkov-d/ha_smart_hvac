@@ -15,3 +15,6 @@
 - source_plan: `_bmad-output/initiative-weather-swt-supply-trip/tickets/epic-supersede-pid-domain-docs/tickets/story-delete-dead-pid-rls-modules-plan.md`
   summary: AGENTS.md still says knowledge/ may lag until story 3.2 after 3.2 merged
   evidence: Agent-context stale pointer; Intent Never forbids AGENTS rewrite in 3.3 — entry 4 / docs hygiene
+
+## Deferred from: code review of story-delete-dead-pid-rls-modules-plan (2026-11-14)
+- Stale epic-1 deferred-work bullet still frames AGENTS/CONTEXT/ADR PID supersede as outstanding — pre-existing; not caused by module delete; settle/prune in entry 4
