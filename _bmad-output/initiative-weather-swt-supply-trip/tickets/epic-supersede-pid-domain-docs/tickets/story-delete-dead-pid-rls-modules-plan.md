@@ -3,7 +3,7 @@ title: 'Delete dead pid/rls modules'
 type: 'feature'
 ticket: '3'
 created: '2026-11-14'
-status: built
+status: done
 review: 'thorough'
 review_source: 'auto'
 baseline_revision: '5bdf49ee81aeb5ff27de65e52b83757784195aa4'
