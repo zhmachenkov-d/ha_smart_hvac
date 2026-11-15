@@ -3,7 +3,7 @@ How to calibrate the HVAC App for a specific house. Calibration is **manual `app
 
 Copy [`apps.yaml.example`](../apps.yaml.example) to `apps.yaml` next to the installed `ha_smart_hvac/` package, then work through the sections below. Never commit live house entity IDs.
 
-**Domain-docs lag:** [`CONTEXT.md`](../CONTEXT.md), ADR 0005/0006, and AGENTS.md may still describe fixed PID / RLS as the live water law until epic 3 supersedes them. Until then, **this document and [`apps.yaml.example`](../apps.yaml.example) are the commissioning source of truth** (Outdoor Temperature + Weather Feedforward only). Exclusive Session: [ADR 0001](adr/0001-exclusive-session-against-production-ha.md).
+Commission Outdoor Temperature + Weather Feedforward only ([`apps.yaml.example`](../apps.yaml.example)). Live water law: [ADR 0007](adr/0007-weather-curve-supply-trip-swt.md), [`CONTEXT.md`](../CONTEXT.md), AGENTS.md. Exclusive Session: [ADR 0001](adr/0001-exclusive-session-against-production-ha.md).
 
 ## 1. House wiring (required)
 Replace every `YOUR_*` placeholder:
@@ -82,5 +82,5 @@ Outdoor Temperature + Weather Feedforward is the live water law. Leftover `pid`,
 
 ## What is not calibrated here
 - Relay or open-loop step commissioning
-- Adaptive RLS / `rls_state.json` / fixed PID gains — not on the live water path (modules may remain on disk until epic 3)
+- Adaptive RLS / `rls_state.json` / fixed PID gains — not on the live water path (modules removed)
 - CAP-7 rise-rate auto-correct / `ff_auto_correct_state.json` — stay out
