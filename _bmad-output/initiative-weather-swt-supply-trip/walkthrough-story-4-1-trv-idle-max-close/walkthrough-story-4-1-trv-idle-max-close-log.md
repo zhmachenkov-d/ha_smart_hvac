@@ -177,3 +177,10 @@ Session: 79403195-8518-4eb8-b65d-564f4b8883d8 · Timestamp: 2026-11-15T15:43:00+
 - Result: origin/feat/4-1-trv-idle-max-close updated; merge not requested
 - Evidence: fix(trv): keep latched soft-close without accuracy
 - Open: Wrap-up awaiting done; optional merge PR #146
+
+## 28 — Wrap-up — done
+Session: 79403195-8518-4eb8-b65d-564f4b8883d8 · Timestamp: 2026-11-15T15:43:30+02:00
+- Action: User marked Wrap-up done
+- Result: Review complete; commit+push already on origin; merge deferred by choice
+- Evidence: b4d7603 + 61dfcea; PR #146 still OPEN
+- Open: optional merge; optional commit of final checkbox narrative
