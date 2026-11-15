@@ -42,6 +42,7 @@ class HvacApp(hass.Hass):
         self._trip_hold_handle: object | None = None
         self._trip_hold_token = 0
         self._zone_heating_prior: dict[str, bool] = {}
+        self._trv_overshoot_latched: set[str] = set()
 
         self._register_control_listeners()
         self.listen_state(self.supply_event, self._config.boiler_water)
@@ -62,12 +63,12 @@ class HvacApp(hass.Hass):
         self.listen_state(self.control_event, config.outdoor_temperature)
         for zone in config.zones:
             self.listen_state(self.control_event, zone.temperature)
-            for entity_id in zone.thermostats:
+            for thermo in zone.thermostats:
                 self.listen_state(
-                    self.control_event, entity_id, attribute="hvac_action"
+                    self.control_event, thermo.climate, attribute="hvac_action"
                 )
                 self.listen_state(
-                    self.control_event, entity_id, attribute="temperature"
+                    self.control_event, thermo.climate, attribute="temperature"
                 )
 
     def _gate_prelude(self) -> tuple[list[ZoneSnapshot], float] | None:
@@ -225,6 +226,7 @@ class HvacApp(hass.Hass):
         self._supply_sample = (now, supply)
 
     def control_tick(self, kwargs: dict) -> None:
+        self._apply_trv_law()
         outcome = self._gate_prelude()
         if outcome is None:
             return
@@ -241,6 +243,7 @@ class HvacApp(hass.Hass):
     ) -> None:
         """Event entry: shared prelude + FF demand writer (no sticky latch)."""
         # listen_state args ignored — re-read current Hass state in prelude.
+        self._apply_trv_law()
         outcome = self._gate_prelude()
         if outcome is None:
             return
@@ -307,7 +310,8 @@ class HvacApp(hass.Hass):
                 continue
 
             thermostats: list[ThermostatReading] = []
-            for entity_id in zone.thermostats:
+            for thermo in zone.thermostats:
+                entity_id = thermo.climate
                 setpoint = self._read_setpoint(entity_id)
                 if setpoint is None:
                     self.log(
@@ -361,6 +365,57 @@ class HvacApp(hass.Hass):
         if value in (None, "unavailable", "unknown"):
             return None
         return str(value)
+
+    def _write_number(self, entity_id: str, value: float) -> bool:
+        """Equal-float number write; True when command is confirmed or already set."""
+        current = self._read_float(entity_id)
+        if current is None:
+            self.log(
+                f"Number entity unavailable: {entity_id}",
+                level="WARNING",
+            )
+            return False
+        if current == value:
+            return True
+        self.call_service(
+            "number/set_value",
+            entity_id=entity_id,
+            value=value,
+        )
+        return True
+
+    def _apply_trv_law(self) -> None:
+        """Idle max-close on commissioned Sonoff TRVs; runs before water prelude."""
+        config = self._config
+        plant_on = plant_management_enabled(self.get_state(config.plant_management))
+        for zone in config.zones:
+            for thermo in zone.thermostats:
+                closure_id = thermo.valve_closure
+                accuracy_id = thermo.accuracy
+                if closure_id is None or accuracy_id is None:
+                    continue
+                if not plant_on:
+                    self._write_number(closure_id, 100.0)
+                    continue
+
+                t_zone = self._read_float(zone.temperature)
+                setpoint = self._read_setpoint(thermo.climate)
+                accuracy = self._read_float(accuracy_id)
+                if t_zone is None or setpoint is None or accuracy is None:
+                    continue
+
+                latched = closure_id in self._trv_overshoot_latched
+                if latched:
+                    if t_zone <= setpoint:
+                        if self._write_number(closure_id, config.valve_closure_floor):
+                            self._trv_overshoot_latched.discard(closure_id)
+                    else:
+                        self._write_number(closure_id, 100.0)
+                elif t_zone > setpoint + accuracy:
+                    if self._write_number(closure_id, 100.0):
+                        self._trv_overshoot_latched.add(closure_id)
+                else:
+                    self._write_number(closure_id, config.valve_closure_floor)
 
     def _write_setpoint(
         self, value: float, *, plant_reading: object = _READ_PLANT

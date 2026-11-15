@@ -35,7 +35,7 @@ With Plant Management on, Sonoff TRV zones soft-close at the idle max-close floo
 1. Plant on: each commissioned Sonoff TRV holds floor or 100 on overshoot and restores floor when `T_zone ≤ setpoint`, with or without Heating Demand.
 2. Plant off: all commissioned Sonoff TRVs receive `valve_closure_degree` = 100.
 3. App never writes `valve_opening_degree`; generic thermostats have no TRV-law keys.
-4. Example + house yaml wire the confirmed closure/accuracy entities; automated tests lock the law.
+4. Example yaml (story 4.1) + house yaml (story 4.2 HITL) wire closure/accuracy entities; automated tests lock the law in 4.1.
 
 ## Boundaries
 Owns Sonoff TRV soft-close listeners/writes and yaml commission for closure/accuracy/floor. Does not own flame trip or supply-trip removal (epic 5) or ADR/docs amend (epic 6). Does not change Exclusive Session or Heating Demand.

@@ -20,6 +20,8 @@ hvac:
   setpoint_min: 50
   setpoint_max: 60
   control_interval: 300
+  # Idle max-close floor on commissioned Sonoff TRVs (valve_closure_degree).
+  valve_closure_floor: 80
   weather_feedforward:
     base: 37
     slope: 0.9
@@ -29,4 +31,9 @@ hvac:
       temperature: sensor.YOUR_ZONE_ONE_TEMPERATURE
       weight: 1.0
       thermostats:
-        - climate.YOUR_ZONE_ONE_THERMOSTAT
+        # Sonoff TRV: climate + explicit closure/accuracy number entities.
+        - climate: climate.YOUR_ZONE_ONE_SONOFF_TRV
+          valve_closure: number.YOUR_ZONE_ONE_SONOFF_TRV_VALVE_CLOSURE_DEGREE
+          accuracy: number.YOUR_ZONE_ONE_SONOFF_TRV_TEMPERATURE_CONTROL_ACCURACY
+        # Generic climate-only thermostat (no TRV soft-close).
+        - climate.YOUR_ZONE_ONE_GENERIC_THERMOSTAT
