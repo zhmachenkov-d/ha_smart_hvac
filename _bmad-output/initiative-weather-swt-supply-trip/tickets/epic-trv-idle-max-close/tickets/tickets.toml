@@ -11,7 +11,7 @@ covers = ["R1", "R2"]
 after = ["3.3"]
 hitl = false
 risk = "high"
-notes = ["Tracer bullet: config parse + plant-on/off law + listeners + example yaml in one path.", "Least-certain: yaml shape under thermostat vs separate list — resolved in this story.", "House entity ids stay for entry 2 HITL."]
+notes = ["Tracer bullet: config parse + plant-on/off law + listeners + example yaml in one path.", "Must-fix 2026-11-15: _apply_trv_law before prelude; shared number helper; cold-start overshoot; mixed/multi-TRV AC.", "House entity ids stay for entry 2 HITL; epic Done when §4 split example/house."]
 
 [[entry]]
 id = 2

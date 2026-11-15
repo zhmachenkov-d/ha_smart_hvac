@@ -7,6 +7,7 @@ from typing import Any
 
 from ha_smart_hvac.models import (
     HvacConfig,
+    ThermostatConfig,
     WeatherFeedforwardConfig,
     ZoneConfig,
 )
@@ -27,6 +28,7 @@ _MAX_CONTROL_INTERVAL = 86400
 
 _DEFAULT_R_MAX = 2.0
 _DEFAULT_HOLD = 900
+_DEFAULT_VALVE_CLOSURE_FLOOR = 80.0
 
 # Top-level keys parse_config reads.
 _KNOWN_KEYS = frozenset(
@@ -41,6 +43,7 @@ _KNOWN_KEYS = frozenset(
         "setpoint_max",
         "control_interval",
         "weather_feedforward",
+        "valve_closure_floor",
         "zones",
     }
 )
@@ -112,6 +115,32 @@ def _number(
     return value
 
 
+def _entity_id(raw: Any, *, label: str) -> str:
+    if not isinstance(raw, str) or not raw:
+        raise ConfigError(f"{label} must be a non-empty entity id")
+    return raw
+
+
+def _parse_thermostat(raw: Any, *, zone_name: str) -> ThermostatConfig:
+    label = f"Zone {zone_name!r}"
+    if isinstance(raw, str):
+        return ThermostatConfig(climate=_entity_id(raw, label=f"{label}: thermostat"))
+    if not isinstance(raw, dict):
+        raise ConfigError(f"{label}: thermostat must be a string or mapping")
+    climate = _entity_id(raw.get("climate"), label=f"{label}: climate")
+    if "valve_closure" not in raw or "accuracy" not in raw:
+        raise ConfigError(
+            f"{label}: thermostat mapping requires valve_closure and accuracy"
+        )
+    valve_closure = _entity_id(
+        raw.get("valve_closure"), label=f"{label}: valve_closure"
+    )
+    accuracy = _entity_id(raw.get("accuracy"), label=f"{label}: accuracy")
+    return ThermostatConfig(
+        climate=climate, valve_closure=valve_closure, accuracy=accuracy
+    )
+
+
 def _parse_zone(raw: Any) -> ZoneConfig:
     if not isinstance(raw, dict):
         raise ConfigError("Each zone must be a mapping")
@@ -124,16 +153,14 @@ def _parse_zone(raw: Any) -> ZoneConfig:
         raise ConfigError(f"Zone {name!r}: temperature must be a non-empty entity id")
     if not isinstance(thermostats, list) or not thermostats:
         raise ConfigError(f"Zone {name!r}: thermostats must be a non-empty list")
-    for entity_id in thermostats:
-        if not isinstance(entity_id, str) or not entity_id:
-            raise ConfigError(f"Zone {name!r}: invalid thermostat entity id")
+    parsed = tuple(_parse_thermostat(item, zone_name=name) for item in thermostats)
     weight = _number(raw, "weight", 1.0, label=f"Zone {name!r}: weight")
     if weight < 0:
         raise ConfigError(f"Zone {name!r}: weight must be >= 0")
     return ZoneConfig(
         name=name,
         temperature=temperature,
-        thermostats=tuple(thermostats),
+        thermostats=parsed,
         weight=weight,
     )
 
@@ -229,6 +256,12 @@ def parse_config(args: dict[str, Any]) -> HvacConfig:
         _require(args, "weather_feedforward")
     )
 
+    valve_closure_floor = _number(
+        args, "valve_closure_floor", _DEFAULT_VALVE_CLOSURE_FLOOR
+    )
+    if not 0.0 <= valve_closure_floor <= 100.0:
+        raise ConfigError("valve_closure_floor must be between 0 and 100")
+
     zones_raw = _require(args, "zones")
     if not isinstance(zones_raw, list) or not zones_raw:
         raise ConfigError("zones must be a non-empty list")
@@ -245,5 +278,6 @@ def parse_config(args: dict[str, Any]) -> HvacConfig:
         hold=hold,
         weather_feedforward=weather_feedforward,
         zones=tuple(_parse_zone(z) for z in zones_raw),
+        valve_closure_floor=valve_closure_floor,
         ignored_keys=_ignored_keys(args),
     )

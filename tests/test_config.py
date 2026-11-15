@@ -51,7 +51,10 @@ def test_parse_omitted_defaults() -> None:
     assert config.weather_feedforward.base == pytest.approx(37.0)
     assert config.weather_feedforward.slope == pytest.approx(0.9)
     assert config.weather_feedforward.comfort_ref == pytest.approx(20.0)
+    assert config.valve_closure_floor == pytest.approx(80.0)
     assert config.zones[0].weight == pytest.approx(1.0)
+    assert config.zones[0].thermostats[0].climate == "climate.thermostat"
+    assert not config.zones[0].thermostats[0].commissioned
 
 
 def test_parse_weight_override() -> None:
@@ -98,7 +101,21 @@ def test_parse_apps_yaml_example() -> None:
     assert config.boiler_water == "sensor.YOUR_BOILER_WATER_TEMPERATURE"
     assert config.r_max == pytest.approx(2.0)
     assert config.hold == 900
+    assert config.valve_closure_floor == pytest.approx(80.0)
+    assert "valve_closure_floor" not in config.ignored_keys
     assert config.zones[0].weight == pytest.approx(1.0)
+    thermos = config.zones[0].thermostats
+    assert len(thermos) == 2
+    assert thermos[0].climate == "climate.YOUR_ZONE_ONE_SONOFF_TRV"
+    assert thermos[0].valve_closure == (
+        "number.YOUR_ZONE_ONE_SONOFF_TRV_VALVE_CLOSURE_DEGREE"
+    )
+    assert thermos[0].accuracy == (
+        "number.YOUR_ZONE_ONE_SONOFF_TRV_TEMPERATURE_CONTROL_ACCURACY"
+    )
+    assert thermos[0].commissioned
+    assert thermos[1].climate == "climate.YOUR_ZONE_ONE_GENERIC_THERMOSTAT"
+    assert not thermos[1].commissioned
     assert config.ignored_keys == ()
 
 
@@ -469,3 +486,99 @@ def test_appdaemon_keys_match_app_config_fields() -> None:
     fields = AppConfig.model_fields | GlobalModule.model_fields
     expected = {field.alias or name for name, field in fields.items()} | {"name"}
     assert expected == _APPDAEMON_KEYS
+
+
+def test_parse_valve_closure_floor_override() -> None:
+    args = _minimal_args()
+    args["valve_closure_floor"] = 85
+    config = parse_config(args)
+    assert config.valve_closure_floor == pytest.approx(85.0)
+    assert "valve_closure_floor" not in config.ignored_keys
+
+
+@pytest.mark.parametrize("value", [-0.1, 100.1, -1, 101])
+def test_parse_rejects_valve_closure_floor_out_of_range(value: float) -> None:
+    args = _minimal_args()
+    args["valve_closure_floor"] = value
+    with pytest.raises(
+        ConfigError, match="valve_closure_floor must be between 0 and 100"
+    ):
+        parse_config(args)
+
+
+@pytest.mark.parametrize("value", [0, 100, 0.0, 100.0])
+def test_parse_accepts_valve_closure_floor_inclusive_bounds(value: float) -> None:
+    args = _minimal_args()
+    args["valve_closure_floor"] = value
+    assert parse_config(args).valve_closure_floor == pytest.approx(float(value))
+
+
+def test_parse_thermostat_mapping_commissioned() -> None:
+    args = _minimal_args()
+    args["zones"][0]["thermostats"] = [
+        {
+            "climate": "climate.trv",
+            "valve_closure": "number.trv_closure",
+            "accuracy": "number.trv_accuracy",
+        },
+        "climate.generic",
+    ]
+    config = parse_config(args)
+    trv, generic = config.zones[0].thermostats
+    assert trv.climate == "climate.trv"
+    assert trv.valve_closure == "number.trv_closure"
+    assert trv.accuracy == "number.trv_accuracy"
+    assert trv.commissioned
+    assert generic.climate == "climate.generic"
+    assert not generic.commissioned
+
+
+@pytest.mark.parametrize(
+    "thermostat",
+    [
+        None,
+        42,
+        {"climate": "climate.trv", "valve_closure": "number.trv_closure"},
+        {"climate": "climate.trv", "accuracy": "number.trv_accuracy"},
+        {
+            "climate": "climate.trv",
+            "valve_closure": "",
+            "accuracy": "number.trv_accuracy",
+        },
+        {
+            "climate": "climate.trv",
+            "valve_closure": "number.trv_closure",
+            "accuracy": "",
+        },
+        {
+            "climate": "climate.trv",
+            "valve_closure": 12,
+            "accuracy": "number.trv_accuracy",
+        },
+        {
+            "climate": "climate.trv",
+            "valve_closure": "number.trv_closure",
+            "accuracy": 0.5,
+        },
+        {"climate": "climate.trv"},
+        {
+            "valve_closure": "number.trv_closure",
+            "accuracy": "number.trv_accuracy",
+        },
+        {
+            "climate": "",
+            "valve_closure": "number.trv_closure",
+            "accuracy": "number.trv_accuracy",
+        },
+        {
+            "climate": 7,
+            "valve_closure": "number.trv_closure",
+            "accuracy": "number.trv_accuracy",
+        },
+    ],
+)
+def test_parse_rejects_partial_or_invalid_trv_fields(thermostat: object) -> None:
+    args = _minimal_args()
+    args["zones"][0]["thermostats"] = [thermostat]
+    with pytest.raises(ConfigError):
+        parse_config(args)

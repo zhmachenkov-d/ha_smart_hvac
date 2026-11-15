@@ -6,10 +6,23 @@ from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
+class ThermostatConfig:
+    """Climate entity plus optional Sonoff TRV closure/accuracy wiring."""
+
+    climate: str
+    valve_closure: str | None = None
+    accuracy: str | None = None
+
+    @property
+    def commissioned(self) -> bool:
+        return self.valve_closure is not None and self.accuracy is not None
+
+
+@dataclass(frozen=True)
 class ZoneConfig:
     name: str
     temperature: str
-    thermostats: tuple[str, ...]
+    thermostats: tuple[ThermostatConfig, ...]
     weight: float = 1.0
 
 
@@ -74,4 +87,5 @@ class HvacConfig:
     hold: int
     weather_feedforward: WeatherFeedforwardConfig
     zones: tuple[ZoneConfig, ...]
+    valve_closure_floor: float = 80.0
     ignored_keys: tuple[str, ...] = ()
