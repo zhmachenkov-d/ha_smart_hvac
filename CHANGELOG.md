@@ -2,6 +2,76 @@
 
 <!-- version list -->
 
+## v3.10.0 (2026-11-16)
+
+### Bug Fixes
+
+- **flame**: Latch only after hold timer is scheduled
+  ([`02bc705`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/02bc7051181c575328cb7d7b0f0cd136f5f3a908))
+
+- **flame**: Wipe since on CH-off even after state bounce
+  ([`84af911`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/84af911d6d0df6dd69bbb28f8b657e398a0e45d8))
+
+### Chores
+
+- **bmad**: Add story 4.2 house TRV commission plan
+  ([`0f55b89`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/0f55b89417b99001bada75c107cc787b12f1f474))
+
+- **bmad**: Mark story 4.2 house TRV commission done
+  ([`8f31713`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/8f3171373701ad72e631ae73e2d45ff507928db4))
+
+- **bmad**: Mark story 4.3 refactor sweep done
+  ([`e77a98f`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/e77a98f40ec92afe457103a911a2ca10734b6647))
+
+- **bmad**: Note Sofia epic 4 close in party memlog
+  ([`3ceffd5`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/3ceffd5d04499d1d01e077924cd17a25619b9eb0))
+
+- **po**: Close epic 4 TRV idle max-close
+  ([`1f0c17b`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/1f0c17b44c077283738693d917f4a1b364278e71))
+
+- **po**: Plan epic 5 stories for flame short-on
+  ([`0307099`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/0307099194574ec3ebdc9e6dd7620d96944cd80f))
+
+- **po**: Refine epic 5 replace supply trip with flame
+  ([`f37a2cb`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/f37a2cbb7fde38ad5dba54a1046a505fda2ed345))
+
+- **trv**: Close epic-4 soft-close deferred leftovers
+  ([`e1a3c81`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/e1a3c81226a0fcb016fdf42e7b2265faee1a6125))
+
+### Documentation
+
+- **bmad**: Close story 4.2 walkthrough and plan review
+  ([`1034c46`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/1034c46222b7a17089d7d2e16c6c360321bd3be0))
+
+- **bmad**: Close story 4.3 walkthrough wrap-up
+  ([`c1c7333`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/c1c73333b7e92b92479f1a1867460128cd61b74b))
+
+- **bmad**: Continue story 4.3 walkthrough through accuracy slice
+  ([`92177d3`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/92177d31c696a354cca4b2d73c29747425b4d9f4))
+
+- **bmad**: Note story 4.3 walkthrough push to PR 148
+  ([`5a9c49f`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/5a9c49f3073f2a2bf4eae0837f7d7dbf980f7e78))
+
+- **bmad**: Record story 4.3 walkthrough and formal review
+  ([`7e2e216`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/7e2e21651b5543d473917dccbe0634a6048b1100))
+
+- **walkthrough**: Mark story 5.1 done after wrap-up
+  ([`7e408ff`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/7e408ff5e9158c06641d8e246bf3c564ee0e88d0))
+
+- **walkthrough**: Note 5.1 review commit push in log
+  ([`e2d9884`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/e2d988496e4c2d9bdc387bab14d4ffce21ca2a1a))
+
+### Features
+
+- **flame**: Replace supply trip with flame short-on
+  ([`918debc`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/918debc5fbd27b4313a5354f0ab7e6b21a94d30e))
+
+### Testing
+
+- **flame**: Pin ADV8 latch retention and TRV-while-latched edges
+  ([`202389c`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/202389c1e77f03a8c5424245f0fff5f430c13c01))
+
+
 ## v3.9.0 (2026-11-15)
 
 ### Bug Fixes
