@@ -1,0 +1,3 @@
+# Commissioned accuracy listens on shared control_event
+
+When a thermostat mapping commissions `accuracy`, `initialize` registers `listen_state(control_event, accuracy)` — the same handler as plant/outdoor/zone/climate attrs — so an accuracy change re-runs `_apply_trv_law` then the Outdoor-gated FF demand writer; there is no TRV-only callback and no listen on `valve_closure`. Recorded from story 4.3 plan Intent Always (`story-refactor-sweep-plan.md`) and commit `e1a3c81`, because a separate TRV handler would diverge from CAP-8’s single event entry while accuracy-only changes must still re-apply soft-close.
