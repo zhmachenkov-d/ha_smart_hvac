@@ -67,6 +67,7 @@
 ## Plan Change Log
 - 2026-11-16: House commission completed (backup + remove trip + add flame); Implementation Notes filled.
 - 2026-11-16: Formal review patches — hold key AC/verify, ID-stability command, Notes r_max/hold, gitignore AC, markdown blanks, trailing newline.
+- 2026-11-16: House-slice formal review — header names min/hold keys + notes boiler_water retirement.
 
 ## Review Triage Log
 | lens | finding | verdict | route | evidence |
@@ -87,7 +88,6 @@ House file only; flame law already shipped in 5.1. Match example key shape with 
 - Diff house yaml vs `apps/apps.yaml.pre-5.2`: only trip keys removed and flame block added (header comments may also change).
 
 ## Code Review
-
 ### 2026-11-16
 **Code review complete.** 0 `decision-needed`, 6 `patch`, 0 `defer`, 5 rejected.
 
@@ -105,3 +105,14 @@ Rejected:
 - R8 byte-identical Decision vs comments — low rejected: AC already scopes entity IDs
 - R11 Approach omits header comments — rejected: fix would edit frozen intent
 - R13 diff hunk omits zones — false: truncated review hunk, not a product defect
+
+### 2026-11-16 (house slice)
+**Code review complete.** 0 `decision-needed`, 2 `patch`, 0 `defer`, 3 rejected.
+
+- [x] [Review][Patch] Header should name flame_on_min_s / flame_trip_hold_s [apps/apps.yaml:4]
+- [x] [Review][Patch] Header should note boiler_water / supply-trip retirement [apps/apps.yaml:header]
+
+Rejected:
+- R1 key order vs example — low rejected: order-insensitive parse; reorder churn
+- R4 True vs on/off — false: matches apps.yaml.example L14
+- R5 asymmetric seconds — false: matches example comment

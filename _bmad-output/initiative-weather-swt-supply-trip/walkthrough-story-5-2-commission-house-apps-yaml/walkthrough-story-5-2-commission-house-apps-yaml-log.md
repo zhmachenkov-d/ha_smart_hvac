@@ -111,3 +111,51 @@ Session: unavailable · Timestamp: 2026-11-16T23:03:00+02:00
 - Result: Demo complete — removed boiler_water; added flame keys 300/900; ID mismatches []; example/config untouched
 - Evidence: [demo-broad-strokes-transcript.md](./demo-broad-strokes-transcript.md)
 - Open: Broad strokes still in progress; dirty tree commit still open
+
+## 15 — Broad strokes — commit dirty tree
+Session: unavailable · Timestamp: 2026-11-16T23:03:30+02:00
+
+- Action: User said yes to commit; committed plan + walkthrough (a0f556f)
+- Result: Branch ahead 1 of origin; working tree clean; Broad strokes still in progress
+- Evidence: docs(walkthrough): review story 5.2 house flame commission; house yaml still gitignored/uncommitted
+- Open: Broad strokes accept/done or other move
+
+## 16 — Broad strokes done; House slice presented
+Session: unavailable · Timestamp: 2026-11-16T23:04:00+02:00
+
+- Action: User marked Broad strokes done; presented House flame keys slice; noted dirty log from prior commit entry
+- Result: Broad strokes checked; House slice in progress
+- Evidence: narrative; apps/apps.yaml vs pre-5.2
+- Open: House slice accept; commit dirty log yes/no
+
+## 17 — House slice — Formal review (gather)
+Session: unavailable · Timestamp: 2026-11-16T23:04:30+02:00
+
+- Action: User chose Formal review on Slice House flame keys; prepared house-only diff vs pre-5.2; plan as intent context
+- Result: review_mode=full; checkpoint pending user confirm
+- Evidence: apps/apps.yaml vs apps/apps.yaml.pre-5.2; plan story-commission-house-apps-yaml-for-flame-short-on-plan.md
+- Open: await user confirm to run lenses
+
+## 18 — House slice — Formal review (triage)
+Session: unavailable · Timestamp: 2026-11-16T23:08:00+02:00
+
+- Action: Ran 4 lenses on house vs pre-5.2; triaged; wrote plan Code Review house slice block
+- Result: 0 decision, 2 patch (header min/hold names + boiler_water retirement note), 0 defer, 3 rejected; awaiting patch choice 1/2/3
+- Evidence: /tmp/cr-52-house-triage-511935.txt; plan ### 2026-11-16 (house slice)
+- Open: user Apply every patch / Leave / Walk through
+
+## 19 — House slice — Formal review (patches applied)
+Session: unavailable · Timestamp: 2026-11-16T23:09:00+02:00
+
+- Action: User chose Apply every patch (1); updated apps/apps.yaml header (min/hold key names + boiler_water retirement); checked off 2 house Review Patch items; VERIFY_OK
+- Result: 2/2 patches applied; Formal review awaiting next-steps Done/re-run/build; House slice still in progress
+- Evidence: apps/apps.yaml L4–5; plan ### 2026-11-16 (house slice) [x]
+- Open: code-review next-steps menu
+
+## 20 — House slice — Formal review (done)
+Session: unavailable · Timestamp: 2026-11-16T23:09:30+02:00
+
+- Action: User chose Done (3) on code-review next-steps; Formal review closed
+- Result: Returned to House slice; 2/2 header patches applied; slice still in progress
+- Evidence: apps/apps.yaml header; plan house Code Review [x]
+- Open: user accept House slice or other walkthrough move; dirty tree (plan + walkthrough + house comments gitignored)

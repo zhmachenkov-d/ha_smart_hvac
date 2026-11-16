@@ -1,12 +1,12 @@
 # Walkthrough: Story 5.2 — Commission house apps.yaml for flame short-on
 Target: house [apps/apps.yaml](../../../apps/apps.yaml) (gitignored) · backup [apps/apps.yaml.pre-5.2](../../../apps/apps.yaml.pre-5.2) · epic [tickets.toml](../tickets/epic-replace-supply-trip-with-flame/tickets/tickets.toml) entry id 2 · branch `feat/5-2-commission-house-apps-yaml-flame` (tracks origin)
 
-**Current block:** Broad strokes (in progress)
+**Current block:** Slice: House flame keys + drop supply trip (in progress)
 
 ## Blocks
 - [x] **Intent** — done (Formal review 6 patches; Second opinion accept; Test OK)
-- [ ] **Broad strokes** — in progress
-- [ ] **Slice: House flame keys + drop supply trip**
+- [x] **Broad strokes** — done (Test + Demo)
+- [ ] **Slice: House flame keys + drop supply trip** — in progress
 - [ ] **Slice: Plan / verification artifact**
 - [ ] **Periphery**
 - [ ] **Wrap-up**
@@ -38,6 +38,14 @@ Review notes: Test — house diff + untouched example/config + parse_config OK. 
 ---
 
 ### Slice: House flame keys + drop supply trip
+Plant block swaps legacy supply-trip `boiler_water` for confirmed flame short-on keys (min True duration + hold seconds); header notes flame + pre-5.2 backup; Outdoor/plant/FF/zones/TRVs stay byte-identical to the backup.
+
+- [apps/apps.yaml](../../../apps/apps.yaml) (header flame + backup comments) — documents commission purpose
+- [apps/apps.yaml](../../../apps/apps.yaml) (`flame_on` / `ch_active` / `flame_on_min_s: 300` / `flame_trip_hold_s: 900`) — required flame listeners + timings
+- [apps/apps.yaml.pre-5.2](../../../apps/apps.yaml.pre-5.2) (`boiler_water`) — baseline proving trip key removed and other IDs unchanged
+- [apps/apps.yaml](../../../apps/apps.yaml) (outdoor / plant / FF / zones) — retained entity values unchanged vs backup
+
+Review notes: Formal review — 2 patch (header); 2/2 applied.
 
 ---
 
