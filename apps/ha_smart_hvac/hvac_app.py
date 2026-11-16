@@ -196,14 +196,15 @@ class HvacApp(hass.Hass):
             if duration >= self._config.flame_on_min_s:
                 return
             if self._write_setpoint(0.0):
-                self._flame_trip_latched = True
                 token = self._flame_trip_hold_token + 1
                 self._flame_trip_hold_token = token
-                self._flame_trip_hold_handle = self.run_in(
+                handle = self.run_in(
                     self._flame_trip_hold_expired,
                     self._config.flame_trip_hold_s,
                     token=token,
                 )
+                self._flame_trip_hold_handle = handle
+                self._flame_trip_latched = True
                 self.log(
                     f"Flame short-on trip: duration={duration:.2f}s < "
                     f"flame_on_min_s={self._config.flame_on_min_s:.2f}s; "

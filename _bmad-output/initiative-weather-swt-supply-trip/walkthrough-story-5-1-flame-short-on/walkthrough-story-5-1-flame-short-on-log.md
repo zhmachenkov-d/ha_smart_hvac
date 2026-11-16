@@ -71,3 +71,66 @@ Session: unavailable · Timestamp: 2026-11-16T17:58:25+00:00
 - Result: 84af911 pushed to origin/feat/5-1-flame-short-on. Working tree clean.
 - Evidence: fix(flame): wipe since on CH-off even after state bounce
 - Open: Broad strokes still in progress (not accepted)
+
+## 8 — Broad strokes done → config/models slice
+
+Session: unavailable · Timestamp: 2026-11-16T17:59:08+00:00
+
+- Action: User accepted Broad strokes; presented config/models slice.
+- Result: Broad strokes done. Current: config/models flame fields.
+- Evidence: models.py HvacConfig; config.py parse_config/_KNOWN_KEYS
+- Open: Slice acceptance; narrative/log dirty again after push
+
+## 9 — Slice config/models — Test
+
+Session: unavailable · Timestamp: 2026-11-16T17:59:34+00:00
+
+- Action: `uv run pytest tests/test_config.py -k 'flame or legacy_water or apps_yaml_example or ignored'`; ruff on config/models/test_config.
+- Result: 20 passed, 127 deselected; ruff clean.
+- Evidence: test_config flame defaults/reject/truncate/legacy ignore/example
+- Open: Slice acceptance; dirty narrative/log
+
+## 10 — config/models done → hvac_app observe/latch slice
+
+Session: unavailable · Timestamp: 2026-11-16T18:00:15+00:00
+
+- Action: User accepted config/models; presented hvac_app observe/latch/clear slice.
+- Result: Current block is flame observe/latch (supply path removed).
+- Evidence: hvac_app.py flame_event/ch_active_event/_flame_observe_gate
+- Open: Slice acceptance; dirty narrative/log
+
+## 11 — Slice hvac_app observe — Test
+
+Session: unavailable · Timestamp: 2026-11-16T18:00:50+00:00
+
+- Action: pytest flame/ch_active/closed_gate_arm/fall_without_since/ungated_flame; ruff hvac_app+tests.
+- Result: 27 passed, 101 deselected; ruff clean.
+- Evidence: test_hvac_app flame matrix
+- Open: Slice acceptance; dirty narrative/log
+
+## 12 — Slice hvac_app observe — Formal review
+
+Session: unavailable · Timestamp: 2026-11-16T18:13:26+00:00
+
+- Action: Code review on main...HEAD hvac_app.py+test_hvac_app.py; lenses BH/ECH/VG/IA; triage.
+- Result: 5 patch, 0 defer/decision, 9 rejected (ECH empty). Awaiting patch handling.
+- Evidence: triage /tmp/cr-5-1-hvac-triage-VqMC0y.md; plan Code Review 2026-11-16 (hvac observe/latch slice)
+- Open: user patch option 1/2/3
+
+## 13 — Slice hvac_app observe — Formal review patches applied
+
+Session: unavailable · Timestamp: 2026-11-16T18:28:54+00:00
+
+- Action: Applied 5 patch findings; focused pytest 33 + spot checks; ruff clean.
+- Result: latch after run_in; commissioned min/hold AC; orphan asserts; plant-off/idle armed-since wipe; e2e latch→expiry→curve.
+- Evidence: hvac_app.py flame_event; new tests in test_hvac_app.py; plan boxes checked
+- Open: code-review next-steps; slice still in progress; dirty tree
+
+## 14 — hvac observe done → _run_demand/ADV8; commit+push
+
+Session: unavailable · Timestamp: 2026-11-16T18:31:59+00:00
+
+- Action: User accepted observe slice + requested commit+push; advanced to _run_demand/ADV8 slice.
+- Result: Observe slice done. Staging review patches + walkthrough for push.
+- Evidence: narrative current block ADV8; dirty tree includes hvac_app latch-after-run_in + tests
+- Open: ADV8 slice in progress after push

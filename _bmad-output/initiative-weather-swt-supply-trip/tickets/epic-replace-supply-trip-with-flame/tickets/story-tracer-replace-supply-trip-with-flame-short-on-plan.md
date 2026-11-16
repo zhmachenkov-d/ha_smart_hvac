@@ -129,3 +129,14 @@ Dual-gate observe stays Outdoor-free. Latched SWT only via `_run_demand`. ADV8 a
 - [x] [Review][Patch] _flame_trip_app silently drops ch_active/flame_on kwargs [tests/test_hvac_app.py:1060]
 
 Rejected: R1 Always arm wording vs code (frozen Always; Never+code correct); R2/R18 stale triage predicates (process noise); R3 status/checkbox drift (cosmetic); R4 AC vs legacy-ignore fixtures (intentional); R5 E1 example comments (deferred); R6 V1 900.9 golden (deferred); R9 non-positive duration (monotonic unreachable); R11 init warn only boiler_water (parse already covers); R12 True→False vs on/off (E1/Intent); R13 AGENTS/ADR supply trip (Never/epic 6); R15 Outdoor idle wipes since (Always requires disarm); R19 R-C vs R-D (aligned); R20 docs/house out of scope (intentional).
+
+### 2026-11-16 (hvac observe/latch slice)
+**Code review complete.** 0 decision-needed, 5 patch, 0 defer, 9 rejected.
+
+- [x] [Review][Patch] Latch assigned before run_in completes [apps/ha_smart_hvac/hvac_app.py:198]
+- [x] [Review][Patch] App tests never commission non-default flame_on_min_s / flame_trip_hold_s [tests/test_hvac_app.py]
+- [x] [Review][Patch] Orphan-after-clear hold callback does not pin latch/handle unchanged [tests/test_hvac_app.py:1412]
+- [x] [Review][Patch] Armed (unlatched) since wipe via plant-off/idle untested [tests/test_hvac_app.py]
+- [x] [Review][Patch] No single e2e flame latch to hold expiry to curve golden [tests/test_hvac_app.py]
+
+Rejected: R2 cancel-before-rearm (gate closed while latched); R3 non-positive duration (monotonic); R4 no mid-burn re-arm (Never); R5 no latched re-assert (Always); R6 Decision C disarm (Always+tested); R10 silent suppressions (noise); R13 ADV8 vs R2 (Always); R14 config outside slice diff (same PR elsewhere).

@@ -1097,6 +1097,71 @@ def test_flame_short_on_latches_and_writes_zero() -> None:
     assert app.run_in.call_args.kwargs.get("token") == app._flame_trip_hold_token
 
 
+def test_flame_commissioned_min_and_hold_used_by_app() -> None:
+    """Non-default yaml min/hold drive latch threshold and run_in delay."""
+    args = _tick_args()
+    args["flame_on_min_s"] = 60
+    args["flame_trip_hold_s"] = 180
+    app = _flame_trip_app(args=args)
+    assert app._config.flame_on_min_s == 60
+    assert app._config.flame_trip_hold_s == 180
+
+    # duration 100 >= 60 → no latch
+    times = iter([0.0, 100.0])
+    app._monotonic = MagicMock(side_effect=lambda: next(times))
+    _fire_flame(app, old="off", new="on")
+    _fire_flame(app, old="on", new="off")
+    assert not app._flame_trip_latched
+    app.run_in.assert_not_called()
+    assert _set_value_writes(app) == []
+
+    # duration 50 < 60 → latch with hold 180
+    app.call_service.reset_mock()
+    app.run_in.reset_mock()
+    times = iter([0.0, 50.0])
+    app._monotonic = MagicMock(side_effect=lambda: next(times))
+    _fire_flame(app, old="off", new="on")
+    _fire_flame(app, old="on", new="off")
+    assert app._flame_trip_latched
+    assert _set_value_writes(app) == [0.0]
+    assert app.run_in.call_args.args[1] == 180
+
+
+def test_flame_short_on_hold_expiry_runs_curve_e2e() -> None:
+    """Short-on latch via flame_event then hold expiry ADV8 → weather-curve demand."""
+    app = _flame_trip_app(plant_setpoint=45.0)
+    times = iter([100.0, 150.0])
+    app._monotonic = MagicMock(side_effect=lambda: next(times))
+    order: list[str] = []
+    real_trv = app._apply_trv_law
+    real_prelude = app._gate_prelude
+
+    def trv_tracking():
+        order.append("trv")
+        return real_trv()
+
+    def prelude_tracking():
+        order.append("prelude")
+        return real_prelude()
+
+    app._apply_trv_law = trv_tracking  # type: ignore[method-assign]
+    app._gate_prelude = prelude_tracking  # type: ignore[method-assign]
+
+    _fire_flame(app, old="off", new="on")
+    _fire_flame(app, old="on", new="off")
+    assert app._flame_trip_latched
+    token = app._flame_trip_hold_token
+    handle = app._flame_trip_hold_handle
+
+    app._flame_trip_hold_expired({"token": token})
+
+    assert not app._flame_trip_latched
+    assert app._flame_trip_hold_handle is None
+    app.cancel_timer.assert_called_with(handle)
+    assert order[:2] == ["trv", "prelude"]
+    assert _set_value_writes(app) == [0.0, _expected_command()]
+
+
 def test_flame_long_on_does_not_latch() -> None:
     app = _flame_trip_app()
     times = iter([0.0, 301.0])
@@ -1390,6 +1455,37 @@ def test_plant_off_clears_flame_trip_state() -> None:
     assert _set_value_writes(app) == []
 
 
+def test_plant_off_wipes_armed_since_without_latch() -> None:
+    """Plant-off mid-burn wipes armed since; no latch and no SWT write."""
+    app = _flame_trip_app(plant_management="off")
+    app.get_state = MagicMock(side_effect=_demand_get_state(plant_management="off"))
+    app._flame_trip_latched = False
+    app._flame_on_since = 42.0
+    app._flame_trip_hold_handle = None
+
+    app.control_tick({})
+
+    assert not app._flame_trip_latched
+    assert app._flame_on_since is None
+    assert _set_value_writes(app) == []
+
+
+def test_idle_wipes_armed_since_without_latch() -> None:
+    """Idle mid-burn disarms since; successful idle write-0; never latched."""
+    app = _flame_trip_app(zone_temp=22.0, setpoint=22.0, hvac_action="idle")
+    app.get_state = MagicMock(
+        side_effect=_demand_get_state(hvac_action="idle", plant_setpoint=45.0)
+    )
+    app._flame_trip_latched = False
+    app._flame_on_since = 42.0
+
+    app.control_tick({})
+
+    assert not app._flame_trip_latched
+    assert app._flame_on_since is None
+    assert _set_value_writes(app) == [0.0]
+
+
 def test_already_latched_flame_observe_wipes_since_no_reassert() -> None:
     """Latched observer never re-asserts or restarts hold."""
     app = _flame_trip_app()
@@ -1417,6 +1513,9 @@ def test_orphan_hold_callback_after_clear_no_demand_write() -> None:
 
     app._flame_trip_hold_expired({"token": 1})
 
+    assert not app._flame_trip_latched
+    assert app._flame_trip_hold_handle is None
+    assert app._flame_trip_hold_token == 2
     assert _set_value_writes(app) == []
 
 
