@@ -1,4 +1,4 @@
-"""Config parse smoke: Outdoor + weather feedforward commission args."""
+"""Config parse smoke: Outdoor + weather feedforward + flame short-on."""
 
 from __future__ import annotations
 
@@ -18,7 +18,8 @@ ROOT = Path(__file__).resolve().parents[1]
 def _minimal_args() -> dict:
     return {
         "outdoor_temperature": "sensor.outdoor",
-        "boiler_water": "sensor.boiler_water",
+        "flame_on": "binary_sensor.flame_on",
+        "ch_active": "binary_sensor.ch_active",
         "plant_management": "switch.pm",
         "plant_setpoint": "number.setpoint",
         "setpoint_min": 40,
@@ -67,7 +68,7 @@ def test_parse_weight_override() -> None:
 
 
 def test_parse_apps_yaml_example() -> None:
-    """Real example file parses Outdoor + FF + supply rise-rate trip commission."""
+    """Real example file parses Outdoor + FF + flame short-on commission."""
     example_text = (ROOT / "apps.yaml.example").read_text()
     raw = yaml.safe_load(example_text)
     assert isinstance(raw, dict) and "hvac" in raw
@@ -78,11 +79,13 @@ def test_parse_apps_yaml_example() -> None:
     assert "tune_state_path" not in args
     assert "pid" not in args
     assert "base_water_temp" not in args
-    assert "boiler_water" in args
-    assert "r_max" in args
-    assert "hold" in args
-    assert "°C/min" in example_text
-    assert "seconds" in example_text.lower()
+    assert "boiler_water" not in args
+    assert "r_max" not in args
+    assert "hold" not in args
+    assert "flame_on" in args
+    assert "ch_active" in args
+    assert "flame_on_min_s" in args
+    assert "flame_trip_hold_s" in args
     assert "auto_correct" not in args.get("weather_feedforward", {})
     assert "ff_auto_correct" not in example_text
     assert "rls_state" not in example_text
@@ -98,9 +101,10 @@ def test_parse_apps_yaml_example() -> None:
     assert config.weather_feedforward.base == pytest.approx(37.0)
     assert config.weather_feedforward.slope == pytest.approx(0.9)
     assert config.weather_feedforward.comfort_ref == pytest.approx(20.0)
-    assert config.boiler_water == "sensor.YOUR_BOILER_WATER_TEMPERATURE"
-    assert config.r_max == pytest.approx(2.0)
-    assert config.hold == 900
+    assert config.flame_on == "binary_sensor.YOUR_FLAME_ON"
+    assert config.ch_active == "binary_sensor.YOUR_CH_ACTIVE"
+    assert config.flame_on_min_s == pytest.approx(300.0)
+    assert config.flame_trip_hold_s == 900
     assert config.valve_closure_floor == pytest.approx(80.0)
     assert "valve_closure_floor" not in config.ignored_keys
     assert config.zones[0].weight == pytest.approx(1.0)
@@ -119,43 +123,46 @@ def test_parse_apps_yaml_example() -> None:
     assert config.ignored_keys == ()
 
 
-def test_parse_boiler_water_trip_defaults() -> None:
+def test_parse_flame_short_on_defaults() -> None:
     config = parse_config(_minimal_args())
-    assert config.boiler_water == "sensor.boiler_water"
-    assert config.r_max == pytest.approx(2.0)
-    assert config.hold == 900
+    assert config.flame_on == "binary_sensor.flame_on"
+    assert config.ch_active == "binary_sensor.ch_active"
+    assert config.flame_on_min_s == pytest.approx(300.0)
+    assert config.flame_trip_hold_s == 900
 
 
-def test_parse_rejects_missing_boiler_water() -> None:
+@pytest.mark.parametrize("key", ["flame_on", "ch_active"])
+def test_parse_rejects_missing_flame_entities(key: str) -> None:
     args = _minimal_args()
-    del args["boiler_water"]
-    with pytest.raises(ConfigError, match="boiler_water"):
+    del args[key]
+    with pytest.raises(ConfigError, match=key):
         parse_config(args)
 
 
-def test_parse_rejects_empty_boiler_water() -> None:
+@pytest.mark.parametrize("key", ["flame_on", "ch_active"])
+def test_parse_rejects_empty_flame_entities(key: str) -> None:
     args = _minimal_args()
-    args["boiler_water"] = ""
-    with pytest.raises(ConfigError, match="boiler_water must be a non-empty"):
+    args[key] = ""
+    with pytest.raises(ConfigError, match=rf"{key} must be a non-empty"):
         parse_config(args)
 
 
-@pytest.mark.parametrize("key", ["r_max", "hold"])
+@pytest.mark.parametrize("key", ["flame_on_min_s", "flame_trip_hold_s"])
 @pytest.mark.parametrize("value", [0, -1, math.nan, math.inf])
-def test_parse_rejects_non_positive_trip_scalars(key: str, value: object) -> None:
+def test_parse_rejects_non_positive_flame_scalars(key: str, value: object) -> None:
     args = _minimal_args()
     args[key] = value
     with pytest.raises(ConfigError, match=rf"^{re.escape(key)} must be"):
         parse_config(args)
 
 
-def test_parse_accepts_trip_overrides() -> None:
+def test_parse_accepts_flame_overrides() -> None:
     args = _minimal_args()
-    args["r_max"] = 3.5
-    args["hold"] = 120
+    args["flame_on_min_s"] = 120.5
+    args["flame_trip_hold_s"] = 180
     config = parse_config(args)
-    assert config.r_max == pytest.approx(3.5)
-    assert config.hold == 120
+    assert config.flame_on_min_s == pytest.approx(120.5)
+    assert config.flame_trip_hold_s == 180
 
 
 def test_parse_rejects_setpoint_min_not_less_than_max() -> None:
@@ -167,13 +174,22 @@ def test_parse_rejects_setpoint_min_not_less_than_max() -> None:
 
 
 def test_parse_ignores_legacy_water_law_keys() -> None:
-    """Leftover pid / base_water_temp are ignored; boiler_water is commissioned."""
+    """Leftover pid / base_water_temp / trip keys ignored; flame commissioned."""
     args = _minimal_args()
     args["pid"] = {"kp": 2.0, "integral_min": -10, "adaptive": True}
     args["base_water_temp"] = 42
+    args["boiler_water"] = "sensor.legacy_boiler"
+    args["r_max"] = 2
+    args["hold"] = 900
     config = parse_config(args)
-    assert config.ignored_keys == ("base_water_temp", "pid")
-    assert config.boiler_water == "sensor.boiler_water"
+    assert config.ignored_keys == (
+        "base_water_temp",
+        "boiler_water",
+        "hold",
+        "pid",
+        "r_max",
+    )
+    assert config.flame_on == "binary_sensor.flame_on"
     assert config.outdoor_temperature == "sensor.outdoor"
     assert config.weather_feedforward.base == pytest.approx(37.0)
     assert config.weather_feedforward.slope == pytest.approx(0.9)
@@ -296,24 +312,25 @@ def test_outdoor_temperature_rejects_non_string() -> None:
         parse_config(args)
 
 
-def test_boiler_water_rejects_non_string() -> None:
+@pytest.mark.parametrize("key", ["flame_on", "ch_active"])
+def test_flame_entities_reject_non_string(key: str) -> None:
     args = _minimal_args()
-    args["boiler_water"] = 42
-    with pytest.raises(ConfigError, match="boiler_water must be a non-empty"):
+    args[key] = 42
+    with pytest.raises(ConfigError, match=rf"{key} must be a non-empty"):
         parse_config(args)
 
 
-def test_parse_rejects_hold_in_open_unit_interval() -> None:
+def test_parse_rejects_flame_trip_hold_in_open_unit_interval() -> None:
     args = _minimal_args()
-    args["hold"] = 0.5
-    with pytest.raises(ConfigError, match="hold must be >= 1"):
+    args["flame_trip_hold_s"] = 0.5
+    with pytest.raises(ConfigError, match="flame_trip_hold_s must be >= 1"):
         parse_config(args)
 
 
-def test_parse_hold_truncates_fractional_seconds() -> None:
+def test_parse_flame_trip_hold_truncates_fractional_seconds() -> None:
     args = _minimal_args()
-    args["hold"] = 90.9
-    assert parse_config(args).hold == 90
+    args["flame_trip_hold_s"] = 90.9
+    assert parse_config(args).flame_trip_hold_s == 90
 
 
 # --- Commission parse hardening ----------------------------------------------
@@ -588,7 +605,8 @@ def test_parse_rejects_partial_or_invalid_trv_fields(thermostat: object) -> None
     "field_path",
     [
         ("outdoor_temperature",),
-        ("boiler_water",),
+        ("flame_on",),
+        ("ch_active",),
         ("plant_management",),
         ("plant_setpoint",),
         ("zones", 0, "temperature"),
@@ -623,7 +641,8 @@ def test_parse_rejects_whitespace_only_trv_entity_fields() -> None:
 def test_parse_strips_padded_entity_ids() -> None:
     args = _minimal_args()
     args["outdoor_temperature"] = "  sensor.outdoor  "
-    args["boiler_water"] = "\tsensor.boiler_water\n"
+    args["flame_on"] = "\tbinary_sensor.flame_on\n"
+    args["ch_active"] = " binary_sensor.ch_active "
     args["plant_management"] = " switch.pm "
     args["plant_setpoint"] = "  number.setpoint  "
     args["zones"] = [
@@ -642,7 +661,8 @@ def test_parse_strips_padded_entity_ids() -> None:
     ]
     config = parse_config(args)
     assert config.outdoor_temperature == "sensor.outdoor"
-    assert config.boiler_water == "sensor.boiler_water"
+    assert config.flame_on == "binary_sensor.flame_on"
+    assert config.ch_active == "binary_sensor.ch_active"
     assert config.plant_management == "switch.pm"
     assert config.plant_setpoint == "number.setpoint"
     zone = config.zones[0]

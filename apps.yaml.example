@@ -11,10 +11,11 @@ hvac:
   module: ha_smart_hvac
   class: HvacApp
   outdoor_temperature: sensor.YOUR_OUTDOOR_TEMPERATURE
-  # Supply rise-rate trip (°C/min threshold; hold = whole seconds latched at SWT 0).
-  boiler_water: sensor.YOUR_BOILER_WATER_TEMPERATURE
-  r_max: 2          # °C/min; trip when observed rise exceeds this
-  hold: 900         # whole seconds to hold SWT at 0 after trip (fractional values truncate)
+  # Flame short-on trip (min True duration; hold = whole seconds latched at SWT 0).
+  flame_on: binary_sensor.YOUR_FLAME_ON
+  ch_active: binary_sensor.YOUR_CH_ACTIVE
+  flame_on_min_s: 300
+  flame_trip_hold_s: 900
   plant_management: switch.YOUR_PLANT_MANAGEMENT
   plant_setpoint: number.YOUR_PLANT_SETPOINT
   setpoint_min: 50

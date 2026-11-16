@@ -77,14 +77,15 @@ def plant_management_enabled(switch_state: str | None) -> bool:
 @dataclass(frozen=True)
 class HvacConfig:
     outdoor_temperature: str
-    boiler_water: str
+    flame_on: str
+    ch_active: str
     plant_management: str
     plant_setpoint: str
     setpoint_min: float
     setpoint_max: float
     control_interval: int
-    r_max: float
-    hold: int
+    flame_on_min_s: float
+    flame_trip_hold_s: int
     weather_feedforward: WeatherFeedforwardConfig
     zones: tuple[ZoneConfig, ...]
     valve_closure_floor: float = 80.0

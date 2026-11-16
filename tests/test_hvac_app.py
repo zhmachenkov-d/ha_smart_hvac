@@ -25,7 +25,8 @@ _FF_COMFORT_REF = 20.0
 _OUTDOOR_TEMP = 10.0  # u_ff = 37 + 0.9*(20-10) = 46.0
 
 _OUTDOOR = "sensor.outdoor"
-_BOILER_WATER = "sensor.boiler_water"
+_FLAME_ON = "binary_sensor.flame_on"
+_CH_ACTIVE = "binary_sensor.ch_active"
 _PLANT_MGMT = "switch.pm"
 _PLANT_SETPOINT = "number.plant_setpoint"
 _ZONE_TEMP = "sensor.zone_one_temp"
@@ -47,7 +48,8 @@ _HVAC_APP_PATH = (
 def _tick_args() -> dict:
     return {
         "outdoor_temperature": _OUTDOOR,
-        "boiler_water": _BOILER_WATER,
+        "flame_on": _FLAME_ON,
+        "ch_active": _CH_ACTIVE,
         "plant_management": _PLANT_MGMT,
         "plant_setpoint": _PLANT_SETPOINT,
         "setpoint_min": _SETPOINT_MIN,
@@ -99,10 +101,10 @@ def _tick_app(
     app.set_state = MagicMock()
     app.run_in = MagicMock(return_value="hold-handle")
     app.cancel_timer = MagicMock()
-    app._supply_trip_latched = False
-    app._supply_sample = None
-    app._trip_hold_handle = None
-    app._trip_hold_token = 0
+    app._flame_trip_latched = False
+    app._flame_on_since = None
+    app._flame_trip_hold_handle = None
+    app._flame_trip_hold_token = 0
     app._zone_heating_prior = {}
     app._trv_overshoot_latched = set()
     app._monotonic = MagicMock(return_value=0.0)
@@ -112,8 +114,10 @@ def _tick_app(
             return plant_management
         if entity_id == _OUTDOOR:
             return outdoor
-        if entity_id == _BOILER_WATER:
-            return 40.0
+        if entity_id == _FLAME_ON:
+            return "off"
+        if entity_id == _CH_ACTIVE:
+            return "on"
         if entity_id == _ZONE_TEMP:
             return zone_temp
         if entity_id == _PLANT_SETPOINT:
@@ -459,10 +463,11 @@ def test_initialize_clean_args_no_warning() -> None:
 
 
 def test_initialize_warns_on_legacy_water_law_keys() -> None:
-    """Leftover pid / base_water_temp → ignored_keys WARN; boiler_water commissioned."""
+    """Leftover pid / base_water_temp / supply-trip keys → ignored_keys WARN."""
     args = _tick_args()
     args["pid"] = {"kp": 1.0, "adaptive": True}
     args["base_water_temp"] = 51
+    args["boiler_water"] = "sensor.legacy"
     app = _init_app(args=args)
 
     app.initialize()
@@ -470,7 +475,7 @@ def test_initialize_warns_on_legacy_water_law_keys() -> None:
     warns = _warn_msgs(app)
     assert warns[0].startswith("HVAC config: ignoring legacy or unknown keys:")
     assert "base_water_temp" in warns[0]
-    assert "boiler_water" not in warns[0]
+    assert "boiler_water" in warns[0]
     assert "pid" in warns[0]
     assert "Plant Management disabled" in warns
     app.run_every.assert_called_once()
@@ -501,11 +506,12 @@ def test_critical_zone_does_not_change_swt() -> None:
     app._config = parse_config(args)
     app.call_service = MagicMock()
     app.log = MagicMock()
-    app._supply_trip_latched = False
-    app._supply_sample = None
-    app._trip_hold_handle = None
-    app._trip_hold_token = 0
+    app._flame_trip_latched = False
+    app._flame_on_since = None
+    app._flame_trip_hold_handle = None
+    app._flame_trip_hold_token = 0
     app._zone_heating_prior = {}
+    app._trv_overshoot_latched = set()
 
     def get_state(entity_id: str, attribute: str | None = None):
         if entity_id == _PLANT_MGMT:
@@ -564,11 +570,12 @@ def test_partial_zone_skip_uses_successful_snapshots_only() -> None:
     app._config = parse_config(args)
     app.call_service = MagicMock()
     app.log = MagicMock()
-    app._supply_trip_latched = False
-    app._supply_sample = None
-    app._trip_hold_handle = None
-    app._trip_hold_token = 0
+    app._flame_trip_latched = False
+    app._flame_on_since = None
+    app._flame_trip_hold_handle = None
+    app._flame_trip_hold_token = 0
     app._zone_heating_prior = {}
+    app._trv_overshoot_latched = set()
 
     def get_state(entity_id: str, attribute: str | None = None):
         if entity_id == _PLANT_MGMT:
@@ -624,11 +631,12 @@ def test_partial_zone_skip_unavailable_thermostat_setpoint() -> None:
     app._config = parse_config(args)
     app.call_service = MagicMock()
     app.log = MagicMock()
-    app._supply_trip_latched = False
-    app._supply_sample = None
-    app._trip_hold_handle = None
-    app._trip_hold_token = 0
+    app._flame_trip_latched = False
+    app._flame_on_since = None
+    app._flame_trip_hold_handle = None
+    app._flame_trip_hold_token = 0
     app._zone_heating_prior = {}
+    app._trv_overshoot_latched = set()
 
     def get_state(entity_id: str, attribute: str | None = None):
         if entity_id == _PLANT_MGMT:
@@ -994,7 +1002,7 @@ def test_init_outdoor_unavailable_goes_idle() -> None:
     )
 
 
-def test_initialize_registers_outdoor_and_supply_listeners() -> None:
+def test_initialize_registers_outdoor_and_flame_listeners() -> None:
     app = _init_app()
     app.initialize()
 
@@ -1003,32 +1011,37 @@ def test_initialize_registers_outdoor_and_supply_listeners() -> None:
         c.args[1] for c in listens if len(c.args) >= 2 and not c.kwargs.get("attribute")
     }
     assert _OUTDOOR in entity_only
-    assert _BOILER_WATER in entity_only
+    assert _FLAME_ON in entity_only
+    assert _CH_ACTIVE in entity_only
     assert _PLANT_MGMT in entity_only
-    boiler_listens = [
-        c for c in listens if len(c.args) >= 2 and c.args[1] == _BOILER_WATER
-    ]
-    assert len(boiler_listens) == 1
-    assert boiler_listens[0].args[0].__func__ is HvacApp.supply_event
+    flame_listens = [c for c in listens if len(c.args) >= 2 and c.args[1] == _FLAME_ON]
+    ch_listens = [c for c in listens if len(c.args) >= 2 and c.args[1] == _CH_ACTIVE]
+    assert len(flame_listens) == 1
+    assert flame_listens[0].args[0].__func__ is HvacApp.flame_event
+    assert len(ch_listens) == 1
+    assert ch_listens[0].args[0].__func__ is HvacApp.ch_active_event
 
 
 def _demand_get_state(
     *,
-    boiler_water: object = 40.0,
+    flame_on: object = "off",
+    ch_active: object = "on",
     outdoor: object = _OUTDOOR_TEMP,
     plant_management: str = "on",
     hvac_action: str = "heating",
     plant_setpoint: object = 45.0,
 ):
-    """get_state for supply trip tests under configurable gates."""
+    """get_state for flame short-on tests under configurable gates."""
 
     def get_state(entity_id: str, attribute: str | None = None):
         if entity_id == _PLANT_MGMT:
             return plant_management
         if entity_id == _OUTDOOR:
             return outdoor
-        if entity_id == _BOILER_WATER:
-            return boiler_water
+        if entity_id == _FLAME_ON:
+            return flame_on
+        if entity_id == _CH_ACTIVE:
+            return ch_active
         if entity_id == _ZONE_TEMP:
             return 20.0
         if entity_id == _PLANT_SETPOINT:
@@ -1044,273 +1057,365 @@ def _demand_get_state(
     return get_state
 
 
-def _supply_trip_app(**kwargs) -> HvacApp:
-    kwargs.setdefault("plant_management", "on")
-    return _tick_app(**kwargs)
+def _flame_trip_app(**kwargs) -> HvacApp:
+    app = _tick_app(**kwargs)
+    gate_kwargs = {
+        "plant_management": kwargs.get("plant_management", "on"),
+        "hvac_action": kwargs.get("hvac_action", "heating"),
+        "plant_setpoint": kwargs.get("plant_setpoint", 45.0),
+        "outdoor": kwargs.get("outdoor", _OUTDOOR_TEMP),
+    }
+    app.get_state = MagicMock(side_effect=_demand_get_state(**gate_kwargs))
+    return app
 
 
-def test_supply_trip_latches_and_writes_zero() -> None:
-    app = _supply_trip_app()
-    times = [0.0, 60.0]
-    app._monotonic = MagicMock(side_effect=times)
+def _fire_flame(app: HvacApp, *, old: object, new: object) -> None:
+    app.flame_event(_FLAME_ON, "state", old, new, {})
 
-    app.supply_event(_BOILER_WATER, "state", 35.0, 40.0, {})
-    assert app._supply_sample == (0.0, 40.0)
-    assert not app._supply_trip_latched
 
-    app.get_state = MagicMock(side_effect=_demand_get_state(boiler_water=50.0))
-    app.supply_event(_BOILER_WATER, "state", 40.0, 50.0, {})
+def test_flame_short_on_latches_and_writes_zero() -> None:
+    app = _flame_trip_app()
+    times = iter([100.0, 150.0])
+    app._monotonic = MagicMock(side_effect=lambda: next(times))
 
-    assert app._supply_trip_latched
+    _fire_flame(app, old="off", new="on")
+    assert app._flame_on_since == 100.0
+    assert not app._flame_trip_latched
+
+    _fire_flame(app, old="on", new="off")
+    assert app._flame_on_since is None
+    assert app._flame_trip_latched
     assert _set_value_writes(app) == [0.0]
     app.run_in.assert_called_once()
-    assert app.run_in.call_args.args[0].__func__ is HvacApp._trip_hold_expired
-    assert app.run_in.call_args.args[1] == app._config.hold
-    assert app._trip_hold_handle == app.run_in.return_value
-    assert app.run_in.call_args.kwargs.get("token") == app._trip_hold_token
-    hold_cb = app.run_in.call_args.args[0]
-    hold_kwargs = dict(app.run_in.call_args.kwargs)
-    app.call_service.reset_mock()
-    hold_cb(hold_kwargs)
-    assert not app._supply_trip_latched
-    assert _set_value_writes(app) == [_expected_command()]
+    assert app.run_in.call_args.args[0].__func__ is HvacApp._flame_trip_hold_expired
+    assert app.run_in.call_args.args[1] == app._config.flame_trip_hold_s
+    assert app._flame_trip_hold_handle == app.run_in.return_value
+    assert app.run_in.call_args.kwargs.get("token") == app._flame_trip_hold_token
 
 
-def test_latched_demand_writes_zero_no_ff() -> None:
-    app = _supply_trip_app()
-    app._supply_trip_latched = True
-    app.control_tick({})
-    assert _set_value_writes(app) == [0.0]
-    assert not any("u_ff=" in m for m in _info_msgs(app))
+def test_flame_long_on_does_not_latch() -> None:
+    app = _flame_trip_app()
+    times = iter([0.0, 301.0])
+    app._monotonic = MagicMock(side_effect=lambda: next(times))
 
+    _fire_flame(app, old="off", new="on")
+    _fire_flame(app, old="on", new="off")
 
-def test_trip_hold_expiry_gated_runs_curve() -> None:
-    app = _supply_trip_app(plant_setpoint=45.0)
-    app._supply_trip_latched = True
-    app._trip_hold_handle = "hold-handle"
-    app._trip_hold_token = 7
-    expected = _expected_command()
-
-    app._trip_hold_expired({"token": 7})
-
-    assert not app._supply_trip_latched
-    app.cancel_timer.assert_called_once_with("hold-handle")
-    assert _set_value_writes(app) == [expected]
-
-
-def test_trip_hold_expiry_closed_gate_clears_only() -> None:
-    app = _supply_trip_app(plant_management="off")
-    app._supply_trip_latched = True
-    app._trip_hold_handle = "hold-handle"
-    app._trip_hold_token = 3
-
-    app._trip_hold_expired({"token": 3})
-
-    assert not app._supply_trip_latched
-    assert _set_value_writes(app) == []
-
-
-def test_idle_clears_trip_state() -> None:
-    app = _supply_trip_app(
-        zone_temp=22.0, setpoint=22.0, hvac_action="idle", plant_setpoint=0.0
-    )
-    app._supply_trip_latched = True
-    app._supply_sample = (0.0, 40.0)
-    app._trip_hold_handle = "hold-handle"
-
-    app.control_tick({})
-
-    assert not app._supply_trip_latched
-    assert app._supply_sample is None
-    app.cancel_timer.assert_called_once_with("hold-handle")
-
-
-def test_plant_off_clears_trip_state() -> None:
-    app = _supply_trip_app(plant_management="off")
-    app._supply_trip_latched = True
-    app._supply_sample = (0.0, 40.0)
-    app._trip_hold_handle = "hold-handle"
-
-    app.control_tick({})
-
-    assert not app._supply_trip_latched
-    assert app._supply_sample is None
-    app.cancel_timer.assert_called_with("hold-handle")
-
-
-def test_bad_supply_warns_without_trip() -> None:
-    app = _supply_trip_app()
-    app._supply_trip_latched = True
-    app.get_state = MagicMock(side_effect=_demand_get_state(boiler_water="unavailable"))
-
-    app.supply_event(_BOILER_WATER, "state", 40.0, None, {})
-
-    assert app._supply_trip_latched
-    assert any("Supply temperature unreadable" in m for m in _warn_msgs(app))
-
-
-def test_supply_non_positive_dt_warns_keeps_latest() -> None:
-    app = _supply_trip_app()
-    app._supply_sample = (1.0, 40.0)
-    app._monotonic = MagicMock(return_value=1.0)
-    app.get_state = MagicMock(side_effect=_demand_get_state(boiler_water=41.0))
-
-    app.supply_event(_BOILER_WATER, "state", 40.0, 41.0, {})
-
-    assert not app._supply_trip_latched
-    assert any("non-positive sample interval" in m for m in _warn_msgs(app))
-    assert app._supply_sample == (1.0, 41.0)
-
-
-def test_already_latched_does_not_restart_hold() -> None:
-    app = _supply_trip_app()
-    app._supply_trip_latched = True
-    app._trip_hold_handle = "existing"
-    app._supply_sample = (0.0, 40.0)
-    app._monotonic = MagicMock(side_effect=[60.0, 120.0])
-    app.get_state = MagicMock(side_effect=_demand_get_state(boiler_water=80.0))
-
-    app.supply_event(_BOILER_WATER, "state", 40.0, 80.0, {})
-
-    app.run_in.assert_not_called()
-
-
-def test_supply_trip_under_demand_outdoor_unavailable() -> None:
-    """supply_event gates on Plant∧Demand only — not Outdoor idle."""
-    app = _supply_trip_app()
-    times = [0.0, 60.0]
-    app._monotonic = MagicMock(side_effect=times)
-    app.get_state = MagicMock(
-        side_effect=_demand_get_state(outdoor="unavailable", boiler_water=40.0)
-    )
-
-    app.supply_event(_BOILER_WATER, "state", 35.0, 40.0, {})
-    app.get_state = MagicMock(
-        side_effect=_demand_get_state(outdoor="unavailable", boiler_water=50.0)
-    )
-    app.supply_event(_BOILER_WATER, "state", 40.0, 50.0, {})
-
-    assert app._supply_trip_latched
-    assert _set_value_writes(app) == [0.0]
-    app.run_in.assert_called_once()
-    assert not any("Outdoor temperature unavailable" in m for m in _warn_msgs(app))
-
-
-def test_supply_event_plant_off_does_not_trip() -> None:
-    app = _supply_trip_app(plant_management="off")
-    times = [0.0, 60.0]
-    app._monotonic = MagicMock(side_effect=times)
-    app.get_state = MagicMock(
-        side_effect=_demand_get_state(plant_management="off", boiler_water=40.0)
-    )
-
-    app.supply_event(_BOILER_WATER, "state", 35.0, 40.0, {})
-    app.get_state = MagicMock(
-        side_effect=_demand_get_state(plant_management="off", boiler_water=50.0)
-    )
-    app.supply_event(_BOILER_WATER, "state", 40.0, 50.0, {})
-
-    assert not app._supply_trip_latched
+    assert app._flame_on_since is None
+    assert not app._flame_trip_latched
     app.run_in.assert_not_called()
     assert _set_value_writes(app) == []
 
 
-def test_supply_event_no_heating_demand_does_not_trip() -> None:
-    app = _supply_trip_app(hvac_action="idle")
-    times = [0.0, 60.0]
-    app._monotonic = MagicMock(side_effect=times)
+def test_flame_write_fail_does_not_latch_clears_since() -> None:
+    app = _flame_trip_app(plant_setpoint="unavailable")
+    times = iter([0.0, 10.0])
+    app._monotonic = MagicMock(side_effect=lambda: next(times))
     app.get_state = MagicMock(
-        side_effect=_demand_get_state(hvac_action="idle", boiler_water=40.0)
+        side_effect=_demand_get_state(plant_setpoint="unavailable")
     )
 
-    app.supply_event(_BOILER_WATER, "state", 35.0, 40.0, {})
-    app.get_state = MagicMock(
-        side_effect=_demand_get_state(hvac_action="idle", boiler_water=50.0)
-    )
-    app.supply_event(_BOILER_WATER, "state", 40.0, 50.0, {})
+    _fire_flame(app, old="off", new="on")
+    assert app._flame_on_since == 0.0
+    _fire_flame(app, old="on", new="off")
 
-    assert not app._supply_trip_latched
-    app.run_in.assert_not_called()
-    assert _set_value_writes(app) == []
-
-
-def test_orphan_hold_callback_after_clear_no_demand_write() -> None:
-    app = _supply_trip_app(plant_setpoint=45.0)
-    app._supply_trip_latched = False
-    app._trip_hold_handle = None
-    app._trip_hold_token = 2
-
-    app._trip_hold_expired({"token": 1})
-
-    assert _set_value_writes(app) == []
-
-
-def test_orphan_hold_callback_after_retrip_does_not_clear_new_latch() -> None:
-    app = _supply_trip_app(plant_setpoint=45.0)
-    app._supply_trip_latched = True
-    app._trip_hold_handle = "new-handle"
-    app._trip_hold_token = 5
-
-    app._trip_hold_expired({"token": 4})
-
-    assert app._supply_trip_latched
-    assert app._trip_hold_handle == "new-handle"
-    assert _set_value_writes(app) == []
-
-
-def test_supply_trip_write_fail_does_not_latch_or_advance_sample() -> None:
-    app = _supply_trip_app()
-    times = [0.0, 60.0]
-    app._monotonic = MagicMock(side_effect=times)
-
-    app.supply_event(_BOILER_WATER, "state", 35.0, 40.0, {})
-    assert app._supply_sample == (0.0, 40.0)
-
-    app.get_state = MagicMock(
-        side_effect=_demand_get_state(boiler_water=50.0, plant_setpoint="unavailable")
-    )
-    app.supply_event(_BOILER_WATER, "state", 40.0, 50.0, {})
-
-    assert not app._supply_trip_latched
-    assert app._supply_sample == (0.0, 40.0)
+    assert app._flame_on_since is None
+    assert not app._flame_trip_latched
     app.run_in.assert_not_called()
     assert _set_value_writes(app) == []
     assert any("SWT write failed, not latching" in m for m in _warn_msgs(app))
 
 
+def test_flame_fall_gate_closed_wipes_since_no_latch() -> None:
+    """Armed under open gate; demand lost before fall → wipe since, no latch."""
+    app = _flame_trip_app()
+    times = iter([0.0, 10.0])
+    app._monotonic = MagicMock(side_effect=lambda: next(times))
+
+    _fire_flame(app, old="off", new="on")
+    assert app._flame_on_since == 0.0
+
+    app.get_state = MagicMock(side_effect=_demand_get_state(hvac_action="idle"))
+    _fire_flame(app, old="on", new="off")
+
+    assert app._flame_on_since is None
+    assert not app._flame_trip_latched
+    app.run_in.assert_not_called()
+    assert _set_value_writes(app) == []
+
+
+def test_flame_ch_active_off_before_fall_wipes_since() -> None:
+    app = _flame_trip_app()
+    times = iter([0.0, 10.0])
+    app._monotonic = MagicMock(side_effect=lambda: next(times))
+
+    _fire_flame(app, old="off", new="on")
+    assert app._flame_on_since == 0.0
+
+    app.get_state = MagicMock(side_effect=_demand_get_state(ch_active="off"))
+    _fire_flame(app, old="on", new="off")
+
+    assert app._flame_on_since is None
+    assert not app._flame_trip_latched
+    assert _set_value_writes(app) == []
+
+
+def test_ch_active_listener_wipes_since_without_latch() -> None:
+    app = _flame_trip_app()
+    app._flame_on_since = 42.0
+    app.get_state = MagicMock(side_effect=_demand_get_state(ch_active="off"))
+
+    app.ch_active_event(_CH_ACTIVE, "state", "on", "off", {})
+
+    assert app._flame_on_since is None
+    assert not app._flame_trip_latched
+    assert _set_value_writes(app) == []
+
+
+def test_flame_short_on_under_demand_outdoor_unavailable() -> None:
+    """Observe gate never requires Outdoor."""
+    app = _flame_trip_app()
+    times = iter([0.0, 10.0])
+    app._monotonic = MagicMock(side_effect=lambda: next(times))
+    app.get_state = MagicMock(side_effect=_demand_get_state(outdoor="unavailable"))
+
+    _fire_flame(app, old="off", new="on")
+    _fire_flame(app, old="on", new="off")
+
+    assert app._flame_trip_latched
+    assert _set_value_writes(app) == [0.0]
+
+
+def test_flame_none_to_on_does_not_arm() -> None:
+    app = _flame_trip_app()
+    app._monotonic = MagicMock(return_value=5.0)
+
+    _fire_flame(app, old=None, new="on")
+
+    assert app._flame_on_since is None
+    assert not app._flame_trip_latched
+
+
+@pytest.mark.parametrize("old", ["unavailable", "unknown"])
+def test_flame_unreadable_to_on_does_not_arm(old: str) -> None:
+    app = _flame_trip_app()
+    app._monotonic = MagicMock(return_value=5.0)
+
+    _fire_flame(app, old=old, new="on")
+
+    assert app._flame_on_since is None
+    assert not app._flame_trip_latched
+    assert _set_value_writes(app) == []
+
+
+@pytest.mark.parametrize("new", ["unavailable", "unknown", None])
+def test_flame_on_to_unreadable_wipes_since_no_latch(new: object) -> None:
+    app = _flame_trip_app()
+    times = iter([0.0, 10.0])
+    app._monotonic = MagicMock(side_effect=lambda: next(times))
+
+    _fire_flame(app, old="off", new="on")
+    assert app._flame_on_since == 0.0
+
+    _fire_flame(app, old="on", new=new)
+
+    assert app._flame_on_since is None
+    assert not app._flame_trip_latched
+    app.run_in.assert_not_called()
+    assert _set_value_writes(app) == []
+
+
+def test_flame_duration_equal_min_does_not_latch() -> None:
+    app = _flame_trip_app()
+    times = iter([0.0, app._config.flame_on_min_s])
+    app._monotonic = MagicMock(side_effect=lambda: next(times))
+
+    _fire_flame(app, old="off", new="on")
+    _fire_flame(app, old="on", new="off")
+
+    assert app._flame_on_since is None
+    assert not app._flame_trip_latched
+    app.run_in.assert_not_called()
+    assert _set_value_writes(app) == []
+
+
+def test_ch_active_off_to_on_while_flame_already_on_does_not_arm() -> None:
+    """CH rising while flame already on must not invent a since or latch."""
+    app = _flame_trip_app()
+    app.get_state = MagicMock(
+        side_effect=_demand_get_state(flame_on="on", ch_active="on")
+    )
+    app._flame_on_since = None
+
+    app.ch_active_event(_CH_ACTIVE, "state", "off", "on", {})
+
+    assert app._flame_on_since is None
+    assert not app._flame_trip_latched
+    assert _set_value_writes(app) == []
+
+
+def test_latched_demand_writes_zero_no_ff() -> None:
+    app = _flame_trip_app()
+    app._flame_trip_latched = True
+    app.control_tick({})
+    assert _set_value_writes(app) == [0.0]
+    assert not any("u_ff=" in m for m in _info_msgs(app))
+
+
+def test_flame_hold_expiry_gated_runs_trv_then_curve() -> None:
+    """ADV8: hold expiry clears, applies TRV, then Outdoor prelude + demand."""
+    app = _flame_trip_app(plant_setpoint=45.0)
+    app._flame_trip_latched = True
+    app._flame_trip_hold_handle = "hold-handle"
+    app._flame_trip_hold_token = 7
+    order: list[str] = []
+    real_trv = app._apply_trv_law
+    real_prelude = app._gate_prelude
+
+    def trv_tracking():
+        order.append("trv")
+        return real_trv()
+
+    def prelude_tracking():
+        order.append("prelude")
+        return real_prelude()
+
+    app._apply_trv_law = trv_tracking  # type: ignore[method-assign]
+    app._gate_prelude = prelude_tracking  # type: ignore[method-assign]
+
+    app._flame_trip_hold_expired({"token": 7})
+
+    assert not app._flame_trip_latched
+    app.cancel_timer.assert_called_once_with("hold-handle")
+    assert order[:2] == ["trv", "prelude"]
+    assert _set_value_writes(app) == [_expected_command()]
+
+
+def test_flame_hold_expiry_closed_gate_clears_only() -> None:
+    app = _flame_trip_app(plant_management="off")
+    app._flame_trip_latched = True
+    app._flame_trip_hold_handle = "hold-handle"
+    app._flame_trip_hold_token = 3
+
+    app._flame_trip_hold_expired({"token": 3})
+
+    assert not app._flame_trip_latched
+    assert _set_value_writes(app) == []
+
+
+def test_idle_clears_flame_trip_state() -> None:
+    app = _flame_trip_app(zone_temp=22.0, setpoint=22.0, hvac_action="idle")
+    app.get_state = MagicMock(
+        side_effect=_demand_get_state(hvac_action="idle", plant_setpoint=45.0)
+    )
+    app._flame_trip_latched = True
+    app._flame_on_since = 1.0
+    app._flame_trip_hold_handle = "hold-handle"
+
+    app.control_tick({})
+
+    assert not app._flame_trip_latched
+    assert app._flame_on_since is None
+    app.cancel_timer.assert_called_once_with("hold-handle")
+    assert _set_value_writes(app) == [0.0]
+
+
+def test_plant_off_clears_flame_trip_state() -> None:
+    app = _flame_trip_app(plant_management="off")
+    app.get_state = MagicMock(side_effect=_demand_get_state(plant_management="off"))
+    app._flame_trip_latched = True
+    app._flame_on_since = 1.0
+    app._flame_trip_hold_handle = "hold-handle"
+
+    app.control_tick({})
+
+    assert not app._flame_trip_latched
+    assert app._flame_on_since is None
+    app.cancel_timer.assert_called_with("hold-handle")
+    assert _set_value_writes(app) == []
+
+
+def test_already_latched_flame_observe_wipes_since_no_reassert() -> None:
+    """Latched observer never re-asserts or restarts hold."""
+    app = _flame_trip_app()
+    app._flame_trip_latched = True
+    app._flame_trip_hold_handle = "existing"
+    app._flame_on_since = 1.0
+    app._monotonic = MagicMock(return_value=50.0)
+
+    _fire_flame(app, old="off", new="on")
+    assert app._flame_on_since is None
+
+    _fire_flame(app, old="on", new="off")
+    assert app._flame_on_since is None
+    assert app._flame_trip_latched
+    assert app._flame_trip_hold_handle == "existing"
+    app.run_in.assert_not_called()
+    assert _set_value_writes(app) == []
+
+
+def test_orphan_hold_callback_after_clear_no_demand_write() -> None:
+    app = _flame_trip_app(plant_setpoint=45.0)
+    app._flame_trip_latched = False
+    app._flame_trip_hold_handle = None
+    app._flame_trip_hold_token = 2
+
+    app._flame_trip_hold_expired({"token": 1})
+
+    assert _set_value_writes(app) == []
+
+
+def test_orphan_hold_callback_after_retrip_does_not_clear_new_latch() -> None:
+    app = _flame_trip_app(plant_setpoint=45.0)
+    app._flame_trip_latched = True
+    app._flame_trip_hold_handle = "new-handle"
+    app._flame_trip_hold_token = 5
+
+    app._flame_trip_hold_expired({"token": 4})
+
+    assert app._flame_trip_latched
+    assert app._flame_trip_hold_handle == "new-handle"
+    assert _set_value_writes(app) == []
+
+
 def test_latched_demand_equal_float_skips_set_value() -> None:
-    app = _supply_trip_app(plant_setpoint=0.0)
-    app._supply_trip_latched = True
+    app = _flame_trip_app(plant_setpoint=0.0)
+    app.get_state = MagicMock(side_effect=_demand_get_state(plant_setpoint=0.0))
+    app._flame_trip_latched = True
     app.control_tick({})
     assert _set_value_writes(app) == []
-    assert app._supply_trip_latched
+    assert app._flame_trip_latched
 
 
 def test_idle_write_fail_keeps_latch_disarms_hold() -> None:
-    app = _supply_trip_app(
+    app = _flame_trip_app(
         zone_temp=22.0, setpoint=22.0, hvac_action="idle", plant_setpoint="unavailable"
     )
-    app._supply_trip_latched = True
-    app._supply_sample = (0.0, 40.0)
-    app._trip_hold_handle = "hold-handle"
-    app._trip_hold_token = 1
+    app.get_state = MagicMock(
+        side_effect=_demand_get_state(hvac_action="idle", plant_setpoint="unavailable")
+    )
+    app._flame_trip_latched = True
+    app._flame_on_since = 1.0
+    app._flame_trip_hold_handle = "hold-handle"
+    app._flame_trip_hold_token = 1
 
     app.control_tick({})
 
-    assert app._supply_trip_latched
-    assert app._supply_sample is None
-    assert app._trip_hold_handle is None
+    assert app._flame_trip_latched
+    assert app._flame_on_since is None
+    assert app._flame_trip_hold_handle is None
     app.cancel_timer.assert_called_once_with("hold-handle")
 
 
-def test_ungated_supply_event_wipes_sample() -> None:
-    app = _supply_trip_app(plant_management="off")
-    app._supply_sample = (0.0, 40.0)
+def test_ungated_flame_event_wipes_since() -> None:
+    app = _flame_trip_app(plant_management="off")
+    app.get_state = MagicMock(side_effect=_demand_get_state(plant_management="off"))
+    app._flame_on_since = 1.0
 
-    app.supply_event(_BOILER_WATER, "state", 40.0, 50.0, {})
+    _fire_flame(app, old="on", new="off")
 
-    assert app._supply_sample is None
-    assert not app._supply_trip_latched
+    assert app._flame_on_since is None
+    assert not app._flame_trip_latched
 
 
 def _two_zone_trip_args() -> dict:
@@ -1344,8 +1449,10 @@ def _two_zone_get_state(
             return plant_management
         if entity_id == _OUTDOOR:
             return outdoor
-        if entity_id == _BOILER_WATER:
-            return 40.0
+        if entity_id == _FLAME_ON:
+            return "off"
+        if entity_id == _CH_ACTIVE:
+            return "on"
         if entity_id == _ZONE_TEMP:
             return 20.0
         if entity_id == "sensor.zone_two_temp":
@@ -1404,15 +1511,15 @@ def test_plant_off_leaves_zone_heating_prior_unchanged() -> None:
     app = _two_zone_app(plant_management="off")
     prior = {"zone_one": True, "zone_two": False}
     app._zone_heating_prior = dict(prior)
-    app._supply_trip_latched = True
-    app._supply_sample = (0.0, 40.0)
-    app._trip_hold_handle = "hold-handle"
+    app._flame_trip_latched = True
+    app._flame_on_since = 1.0
+    app._flame_trip_hold_handle = "hold-handle"
 
     app.control_tick({})
 
     assert app._zone_heating_prior == prior
-    assert not app._supply_trip_latched
-    assert app._supply_sample is None
+    assert not app._flame_trip_latched
+    assert app._flame_on_since is None
     app.cancel_timer.assert_called_with("hold-handle")
     assert "Plant Management disabled" in _warn_msgs(app)
 
@@ -1422,15 +1529,15 @@ def test_outdoor_miss_leaves_zone_heating_prior_unchanged() -> None:
     app = _two_zone_app(outdoor="unavailable")
     prior = {"zone_one": True, "zone_two": False}
     app._zone_heating_prior = dict(prior)
-    app._supply_trip_latched = True
-    app._supply_sample = (0.0, 40.0)
-    app._trip_hold_handle = "hold-handle"
+    app._flame_trip_latched = True
+    app._flame_on_since = 1.0
+    app._flame_trip_hold_handle = "hold-handle"
 
     app.control_tick({})
 
     assert app._zone_heating_prior == prior
-    assert not app._supply_trip_latched
-    assert app._supply_sample is None
+    assert not app._flame_trip_latched
+    assert app._flame_on_since is None
     app.cancel_timer.assert_called_with("hold-handle")
     assert any(
         f"Outdoor temperature unavailable: {_OUTDOOR}" in m for m in _warn_msgs(app)
@@ -1440,9 +1547,9 @@ def test_outdoor_miss_leaves_zone_heating_prior_unchanged() -> None:
 def test_rising_edge_clears_latch_and_writes_curve() -> None:
     """Latched; prior A=True B=False; B idle→heating → clear + weather-curve SWT."""
     app = _two_zone_app(zone_one_action="heating", zone_two_action="idle")
-    app._supply_trip_latched = True
-    app._supply_sample = (0.0, 40.0)
-    app._trip_hold_handle = "hold-handle"
+    app._flame_trip_latched = True
+    app._flame_on_since = 1.0
+    app._flame_trip_hold_handle = "hold-handle"
     app._zone_heating_prior = {"zone_one": True, "zone_two": False}
     expected = _expected_command()
 
@@ -1453,8 +1560,8 @@ def test_rising_edge_clears_latch_and_writes_curve() -> None:
     )
     app.control_tick({})
 
-    assert not app._supply_trip_latched
-    assert app._supply_sample is None
+    assert not app._flame_trip_latched
+    assert app._flame_on_since is None
     app.cancel_timer.assert_called_once_with("hold-handle")
     assert _set_value_writes(app) == [expected]
     assert app._zone_heating_prior == {"zone_one": True, "zone_two": True}
@@ -1464,16 +1571,16 @@ def test_rising_edge_clears_latch_and_writes_curve() -> None:
 def test_latched_no_new_edge_keeps_latch_and_writes_zero() -> None:
     """Latched; same zones still heating → latch stays; SWT 0."""
     app = _two_zone_app(zone_one_action="heating", zone_two_action="heating")
-    app._supply_trip_latched = True
-    app._supply_sample = (0.0, 40.0)
-    app._trip_hold_handle = "hold-handle"
+    app._flame_trip_latched = True
+    app._flame_on_since = 1.0
+    app._flame_trip_hold_handle = "hold-handle"
     app._zone_heating_prior = {"zone_one": True, "zone_two": True}
 
     app.control_tick({})
 
-    assert app._supply_trip_latched
-    assert app._supply_sample == (0.0, 40.0)
-    assert app._trip_hold_handle == "hold-handle"
+    assert app._flame_trip_latched
+    assert app._flame_on_since == 1.0
+    assert app._flame_trip_hold_handle == "hold-handle"
     app.cancel_timer.assert_not_called()
     assert _set_value_writes(app) == [0.0]
     assert not any("u_ff=" in m for m in _info_msgs(app))
@@ -1483,12 +1590,12 @@ def test_latched_no_new_edge_keeps_latch_and_writes_zero() -> None:
 def test_latched_one_zone_falls_idle_keeps_latch() -> None:
     """Latched; one zone falls idle, another still heats → latch stays."""
     app = _two_zone_app(zone_one_action="heating", zone_two_action="idle")
-    app._supply_trip_latched = True
+    app._flame_trip_latched = True
     app._zone_heating_prior = {"zone_one": True, "zone_two": True}
 
     app.control_tick({})
 
-    assert app._supply_trip_latched
+    assert app._flame_trip_latched
     assert _set_value_writes(app) == [0.0]
     assert app._zone_heating_prior == {"zone_one": True, "zone_two": False}
 
@@ -1496,14 +1603,14 @@ def test_latched_one_zone_falls_idle_keeps_latch() -> None:
 def test_latched_missing_prior_key_is_not_edge() -> None:
     """Missing prior key ≠ False→True edge; latch stays; prior is filled in."""
     app = _two_zone_app(zone_one_action="heating", zone_two_action="heating")
-    app._supply_trip_latched = True
-    app._trip_hold_handle = "hold-handle"
+    app._flame_trip_latched = True
+    app._flame_trip_hold_handle = "hold-handle"
     app._zone_heating_prior = {"zone_one": True}  # zone_two key absent
 
     app.control_tick({})
 
-    assert app._supply_trip_latched
-    assert app._trip_hold_handle == "hold-handle"
+    assert app._flame_trip_latched
+    assert app._flame_trip_hold_handle == "hold-handle"
     assert _set_value_writes(app) == [0.0]
     assert app._zone_heating_prior == {"zone_one": True, "zone_two": True}
 
@@ -1511,9 +1618,9 @@ def test_latched_missing_prior_key_is_not_edge() -> None:
 def test_rising_edge_clear_via_control_event() -> None:
     """Rising-edge clear also runs on control_event (same prelude path)."""
     app = _two_zone_app(zone_one_action="heating", zone_two_action="idle")
-    app._supply_trip_latched = True
-    app._supply_sample = (0.0, 40.0)
-    app._trip_hold_handle = "hold-handle"
+    app._flame_trip_latched = True
+    app._flame_on_since = 1.0
+    app._flame_trip_hold_handle = "hold-handle"
     app._zone_heating_prior = {"zone_one": True, "zone_two": False}
     expected = _expected_command()
 
@@ -1524,8 +1631,8 @@ def test_rising_edge_clear_via_control_event() -> None:
     )
     _fire_control_event(app, entity="climate.zone_two")
 
-    assert not app._supply_trip_latched
-    assert app._supply_sample is None
+    assert not app._flame_trip_latched
+    assert app._flame_on_since is None
     app.cancel_timer.assert_called_once_with("hold-handle")
     assert _set_value_writes(app) == [expected]
     assert app._zone_heating_prior == {"zone_one": True, "zone_two": True}
@@ -1534,16 +1641,16 @@ def test_rising_edge_clear_via_control_event() -> None:
 def test_latched_no_new_edge_via_control_event() -> None:
     """Latched; same zones still heating on control_event → latch stays; SWT 0."""
     app = _two_zone_app(zone_one_action="heating", zone_two_action="heating")
-    app._supply_trip_latched = True
-    app._supply_sample = (0.0, 40.0)
-    app._trip_hold_handle = "hold-handle"
+    app._flame_trip_latched = True
+    app._flame_on_since = 1.0
+    app._flame_trip_hold_handle = "hold-handle"
     app._zone_heating_prior = {"zone_one": True, "zone_two": True}
 
     _fire_control_event(app, entity="climate.zone_two")
 
-    assert app._supply_trip_latched
-    assert app._supply_sample == (0.0, 40.0)
-    assert app._trip_hold_handle == "hold-handle"
+    assert app._flame_trip_latched
+    assert app._flame_on_since == 1.0
+    assert app._flame_trip_hold_handle == "hold-handle"
     app.cancel_timer.assert_not_called()
     assert _set_value_writes(app) == [0.0]
     assert app._zone_heating_prior == {"zone_one": True, "zone_two": True}
@@ -1563,7 +1670,7 @@ def test_rising_edge_not_latched_updates_prior_and_writes_curve() -> None:
     )
     app.control_tick({})
 
-    assert not app._supply_trip_latched
+    assert not app._flame_trip_latched
     assert _set_value_writes(app) == [expected]
     assert app._zone_heating_prior == {"zone_one": True, "zone_two": True}
     assert any("u_ff=" in m for m in _info_msgs(app))
@@ -1572,14 +1679,14 @@ def test_rising_edge_not_latched_updates_prior_and_writes_curve() -> None:
 def test_latched_empty_prior_seeds_without_clear() -> None:
     """Prior empty while latched and zones heating → seed prior; latch stays."""
     app = _two_zone_app(zone_one_action="heating", zone_two_action="heating")
-    app._supply_trip_latched = True
+    app._flame_trip_latched = True
     app._zone_heating_prior = {}
-    app._trip_hold_handle = "hold-handle"
+    app._flame_trip_hold_handle = "hold-handle"
 
     app.control_tick({})
 
-    assert app._supply_trip_latched
-    assert app._trip_hold_handle == "hold-handle"
+    assert app._flame_trip_latched
+    assert app._flame_trip_hold_handle == "hold-handle"
     assert _set_value_writes(app) == [0.0]
     assert app._zone_heating_prior == {"zone_one": True, "zone_two": True}
     assert not any("u_ff=" in m for m in _info_msgs(app))
@@ -1588,16 +1695,16 @@ def test_latched_empty_prior_seeds_without_clear() -> None:
 def test_latched_all_false_prior_rising_edge_clears() -> None:
     """Non-empty all-False prior (not empty seed) + heating → clear + curve SWT."""
     app = _two_zone_app(zone_one_action="heating", zone_two_action="heating")
-    app._supply_trip_latched = True
-    app._supply_sample = (0.0, 40.0)
-    app._trip_hold_handle = "hold-handle"
+    app._flame_trip_latched = True
+    app._flame_on_since = 1.0
+    app._flame_trip_hold_handle = "hold-handle"
     app._zone_heating_prior = {"zone_one": False, "zone_two": False}
     expected = _expected_command()
 
     app.control_tick({})
 
-    assert not app._supply_trip_latched
-    assert app._supply_sample is None
+    assert not app._flame_trip_latched
+    assert app._flame_on_since is None
     app.cancel_timer.assert_called_once_with("hold-handle")
     assert _set_value_writes(app) == [expected]
     assert app._zone_heating_prior == {"zone_one": True, "zone_two": True}
@@ -1619,12 +1726,12 @@ def test_idle_no_demand_updates_prior_all_false() -> None:
 def test_skip_then_return_rising_edge_clears_latch() -> None:
     """Decision A: skipped zone forced False in prior; later heating → clear."""
     app = _two_zone_app(zone_one_action="heating", zone_two_temp="unavailable")
-    app._supply_trip_latched = True
-    app._supply_sample = (0.0, 40.0)
-    app._trip_hold_handle = "hold-handle"
+    app._flame_trip_latched = True
+    app._flame_on_since = 1.0
+    app._flame_trip_hold_handle = "hold-handle"
     # Seed via prelude while zone_two skipped → prior zone_two False (Decision A).
     app.control_tick({})
-    assert app._supply_trip_latched
+    assert app._flame_trip_latched
     assert app._zone_heating_prior == {"zone_one": True, "zone_two": False}
     app.call_service.reset_mock()
     app.cancel_timer.reset_mock()
@@ -1639,17 +1746,17 @@ def test_skip_then_return_rising_edge_clears_latch() -> None:
     )
     app.control_tick({})
 
-    assert not app._supply_trip_latched
-    assert app._supply_sample is None
+    assert not app._flame_trip_latched
+    assert app._flame_on_since is None
     app.cancel_timer.assert_called_once_with("hold-handle")
     assert _set_value_writes(app) == [expected]
     assert app._zone_heating_prior == {"zone_one": True, "zone_two": True}
 
 
 def test_rising_edge_clear_does_not_use_critical_zone() -> None:
-    """Rising-edge clear is _clear_trip_state; CZ stays diagnostics after clear."""
+    """Rising-edge clear uses _clear_flame_trip_state; CZ stays diagnostics."""
     app = _two_zone_app(zone_one_action="heating", zone_two_action="idle")
-    app._supply_trip_latched = True
+    app._flame_trip_latched = True
     app._zone_heating_prior = {"zone_one": True, "zone_two": False}
 
     # Rising zone_two (small error); CZ would be zone_one if used for clear.
@@ -1658,8 +1765,10 @@ def test_rising_edge_clear_does_not_use_critical_zone() -> None:
             return "on"
         if entity_id == _OUTDOOR:
             return _OUTDOOR_TEMP
-        if entity_id == _BOILER_WATER:
-            return 40.0
+        if entity_id == _FLAME_ON:
+            return "off"
+        if entity_id == _CH_ACTIVE:
+            return "on"
         if entity_id == _ZONE_TEMP:
             return 15.0  # error 7 → Critical Zone
         if entity_id == "sensor.zone_two_temp":
@@ -1681,13 +1790,13 @@ def test_rising_edge_clear_does_not_use_critical_zone() -> None:
         return None
 
     app.get_state = MagicMock(side_effect=get_state)
-    clear = MagicMock(wraps=app._clear_trip_state)
-    app._clear_trip_state = clear  # type: ignore[method-assign]
+    clear = MagicMock(wraps=app._clear_flame_trip_state)
+    app._clear_flame_trip_state = clear  # type: ignore[method-assign]
 
     app.control_tick({})
 
     clear.assert_called_once()
-    assert not app._supply_trip_latched
+    assert not app._flame_trip_latched
     assert _set_value_writes(app) == [_expected_command()]
     joined = " ".join(_info_msgs(app))
     assert "critical_zone=zone_one" in joined
@@ -1704,8 +1813,10 @@ def test_latched_trip_path_does_not_use_critical_zone() -> None:
             return "on"
         if entity_id == _OUTDOOR:
             return _OUTDOOR_TEMP
-        if entity_id == _BOILER_WATER:
-            return 40.0
+        if entity_id == _FLAME_ON:
+            return "off"
+        if entity_id == _CH_ACTIVE:
+            return "on"
         if entity_id == _ZONE_TEMP:
             return 15.0
         if entity_id == "sensor.zone_two_temp":
@@ -1727,18 +1838,30 @@ def test_latched_trip_path_does_not_use_critical_zone() -> None:
         return None
 
     app.get_state = MagicMock(side_effect=get_state)
-    app._supply_trip_latched = True
+    app._flame_trip_latched = True
     app._zone_heating_prior = {"zone_one": True, "zone_two": True}
 
     with patch("ha_smart_hvac.hvac_app.select_max_error_demand_zone") as select_cz:
         app.control_tick({})
         select_cz.assert_not_called()
 
-    assert app._supply_trip_latched
+    assert app._flame_trip_latched
     assert _set_value_writes(app) == [0.0]
     joined = " ".join(_info_msgs(app))
     assert "critical_zone=" not in joined
     assert "u_ff=" not in joined
+
+
+def test_trv_runs_while_flame_latched() -> None:
+    """TRV soft-close still applies on tick while flame-latched; SWT stays 0."""
+    app = _trv_app(zone_temp=20.0, setpoint=22.0, accuracy=0.5, closure=10.0)
+    app._flame_trip_latched = True
+    app.control_tick({})
+    writes = _set_value_by_entity(app)
+    assert (_TRV_CLOSURE, app._config.valve_closure_floor) in writes
+    assert (_PLANT_SETPOINT, 0.0) in writes
+    assert not any("u_ff=" in m for m in _info_msgs(app))
+    assert not any("critical_zone=" in m for m in _info_msgs(app))
 
 
 def test_trv_at_or_below_setpoint_writes_floor() -> None:
