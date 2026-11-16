@@ -1,3 +1,11 @@
+---
+title: 'Commission house apps.yaml for flame short-on'
+type: 'feature'
+ticket: '2'
+created: '2026-11-16'
+status: done
+---
+
 <frozen-after-approval reason="human-owned intent — do not modify unless human renegotiates">
 
 ## Intent

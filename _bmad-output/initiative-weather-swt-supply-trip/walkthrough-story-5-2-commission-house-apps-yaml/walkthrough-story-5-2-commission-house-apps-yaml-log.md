@@ -191,3 +191,59 @@ Session: unavailable · Timestamp: 2026-11-16T23:14:00+02:00
 - Result: Accept as written. Caveats: Verification needs local house yaml+backup; Code Review mixes plan+house blocks; Tasks/Implementation Notes not listed as entry points
 - Evidence: second-opinion agent 5275785b-4bc2-43bf-a924-315a1e777598
 - Open: Plan slice still in progress
+
+## 25 — Plan slice — commit dirty tree
+Session: unavailable · Timestamp: 2026-11-16T23:16:00+02:00
+
+- Action: User said yes to commit; committed walkthrough narrative/log
+- Result: committed; Plan slice still in progress
+- Evidence: d93ac47 docs(walkthrough): advance 5.2 plan verification slice
+- Open: Plan slice Test or done
+
+## 26 — Plan slice — Test
+Session: unavailable · Timestamp: 2026-11-16T23:17:00+02:00
+
+- Action: Ran plan Verification commands + Code Map/Review section presence + patch checkoffs + ignore/status
+- Result: ALL_PASS — VERIFY_CMD_OK; both house ignored; sections present; all Review Patch boxes checked
+- Evidence: plan Verification; .gitignore:164/165; Code Review [x]×8
+- Open: Plan slice still in progress; dirty log still open
+
+## 27 — Plan slice done; Periphery presented
+Session: unavailable · Timestamp: 2026-11-16T23:18:00+02:00
+
+- Action: User marked Plan slice done; presented Periphery
+- Result: Plan checked; Periphery in progress; dirty walkthrough log M (uncommitted log entries)
+- Evidence: narrative; plan Verification + Code Review; walkthrough log ahead of last commit
+- Open: Periphery accept; commit log yes/no
+
+## 28 — Periphery — Test
+Session: unavailable · Timestamp: 2026-11-16T23:20:00+02:00
+
+- Action: Tested gitignore, example untouched, tickets entry 2, Notes flame IDs match house, demo transcript present
+- Result: ALL_PASS
+- Evidence: .gitignore:164/165; EXAMPLE_CLEAN; tickets id=2; HOUSE_MATCHES_NOTES; DEMO_OK
+- Open: Periphery still in progress; dirty walkthrough
+
+## 29 — Periphery done; Wrap-up presented
+Session: unavailable · Timestamp: 2026-11-16T23:22:00+02:00
+
+- Action: User marked Periphery done; presented Wrap-up
+- Result: Periphery checked; Wrap-up in progress; dirty walkthrough narrative+log uncommitted
+- Evidence: narrative Wrap-up block; git status walkthrough M
+- Open: user confirm follow-through; commit/push until asked
+
+## 30 — Wrap-up — follow-through
+Session: unavailable · Timestamp: 2026-11-16T23:31:00+02:00
+
+- Action: User confirmed 1-4 (commit walkthrough, push PR #152, mark 5.2 done, merge deferred)
+- Result: in progress — parent committing/pushing/marking
+- Evidence: PR #152; tickets mark 5.2 done
+- Open: parent to finish push
+
+## 31 — Wrap-up — follow-through complete
+Session: unavailable · Timestamp: 2026-11-16T23:32:00+02:00
+
+- Action: User confirmed 1-4; marked 5.2 done; committing walkthrough+plan; pushing to PR #152; merge deferred
+- Result: plan status done; narrative Wrap-up closed; push pending
+- Evidence: tickets.py mark 5.2 done; PR #152
+- Open: none after push

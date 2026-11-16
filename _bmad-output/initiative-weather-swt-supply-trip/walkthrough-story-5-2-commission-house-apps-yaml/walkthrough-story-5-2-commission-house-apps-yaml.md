@@ -1,15 +1,15 @@
 # Walkthrough: Story 5.2 — Commission house apps.yaml for flame short-on
 Target: house [apps/apps.yaml](../../../apps/apps.yaml) (gitignored) · backup [apps/apps.yaml.pre-5.2](../../../apps/apps.yaml.pre-5.2) · epic [tickets.toml](../tickets/epic-replace-supply-trip-with-flame/tickets/tickets.toml) entry id 2 · branch `feat/5-2-commission-house-apps-yaml-flame` (tracks origin)
 
-**Current block:** Slice: Plan / verification artifact (in progress)
+**Current block:** Wrap-up (done — commit+push to PR #152; story marked done; merge deferred)
 
 ## Blocks
 - [x] **Intent** — done (Formal review 6 patches; Second opinion accept; Test OK)
 - [x] **Broad strokes** — done (Test + Demo)
 - [x] **Slice: House flame keys + drop supply trip** — done (Formal review 2 patches; Test ALL_PASS)
-- [ ] **Slice: Plan / verification artifact** — in progress
-- [ ] **Periphery**
-- [ ] **Wrap-up**
+- [x] **Slice: Plan / verification artifact** — done (Second opinion accept; Test Verification OK)
+- [x] **Periphery** — done (Test ALL_PASS)
+- [x] **Wrap-up** — done (commit+push to PR #152; story marked done; merge deferred)
 
 ---
 
@@ -56,11 +56,22 @@ House yaml stays gitignored; the tracked story surface is the plan: post-edit Co
 - [story-commission-house-apps-yaml-for-flame-short-on-plan.md](../tickets/epic-replace-supply-trip-with-flame/tickets/story-commission-house-apps-yaml-for-flame-short-on-plan.md) (Verification) — runnable offline asserts + ignore
 - [story-commission-house-apps-yaml-for-flame-short-on-plan.md](../tickets/epic-replace-supply-trip-with-flame/tickets/story-commission-house-apps-yaml-for-flame-short-on-plan.md) (Plan Change Log / Code Review) — history + review patches checked
 
-Review notes: Second opinion — accept as written.
+Review notes: Second opinion — accept as written; Test — plan Verification + ignore + ID stability OK.
 
 ---
 
 ### Periphery
+- [apps.yaml.example](../../../apps.yaml.example) — shape reference only; not edited this story
+- [initiative-weather-swt-supply-trip.md](../initiative-weather-swt-supply-trip.md) Notes — confirmed house flame entity IDs (2026-11-15)
+- [.gitignore](../../../.gitignore) (`apps/apps.yaml` / `apps/apps.yaml.*`) — keeps house commission + backup untracked
+- [tickets.toml](../tickets/epic-replace-supply-trip-with-flame/tickets/tickets.toml) (entry id 2) — epic leaf for this HITL commission
+- [demo-broad-strokes-transcript.md](./demo-broad-strokes-transcript.md) — walkthrough demo artifact
+
+Review notes: Test — gitignore + tickets + Notes + demo OK.
+
 ---
 
 ### Wrap-up
+House commission is on disk (gitignored); tracked follow-through is committing remaining walkthrough dirt, pushing to `feat/5-2-commission-house-apps-yaml-flame` / PR #152, then mark story done — no Exclusive Session. Merge deferred unless the owner asks.
+
+Review notes: User confirmed commit + push + mark done (1–3); merge deferred (4).
