@@ -116,9 +116,12 @@ def _number(
 
 
 def _entity_id(raw: Any, *, label: str) -> str:
-    if not isinstance(raw, str) or not raw:
+    if not isinstance(raw, str):
         raise ConfigError(f"{label} must be a non-empty entity id")
-    return raw
+    stripped = raw.strip()
+    if not stripped:
+        raise ConfigError(f"{label} must be a non-empty entity id")
+    return stripped
 
 
 def _parse_thermostat(raw: Any, *, zone_name: str) -> ThermostatConfig:
@@ -145,12 +148,11 @@ def _parse_zone(raw: Any) -> ZoneConfig:
     if not isinstance(raw, dict):
         raise ConfigError("Each zone must be a mapping")
     name = _require(raw, "name")
-    temperature = _require(raw, "temperature")
+    temperature_raw = _require(raw, "temperature")
     thermostats = _require(raw, "thermostats")
     if not isinstance(name, str) or not name:
         raise ConfigError("Zone name must be a non-empty string")
-    if not isinstance(temperature, str) or not temperature:
-        raise ConfigError(f"Zone {name!r}: temperature must be a non-empty entity id")
+    temperature = _entity_id(temperature_raw, label=f"Zone {name!r}: temperature")
     if not isinstance(thermostats, list) or not thermostats:
         raise ConfigError(f"Zone {name!r}: thermostats must be a non-empty list")
     parsed = tuple(_parse_thermostat(item, zone_name=name) for item in thermostats)
@@ -212,18 +214,16 @@ def _ignored_keys(args: dict[Any, Any]) -> tuple[str, ...]:
 
 def parse_config(args: dict[str, Any]) -> HvacConfig:
     """Parse AppDaemon app arguments into a validated HvacConfig."""
-    outdoor_temperature = _require(args, "outdoor_temperature")
-    boiler_water = _require(args, "boiler_water")
-    plant_management = _require(args, "plant_management")
-    plant_setpoint = _require(args, "plant_setpoint")
-    if not isinstance(outdoor_temperature, str) or not outdoor_temperature:
-        raise ConfigError("outdoor_temperature must be a non-empty entity id")
-    if not isinstance(boiler_water, str) or not boiler_water:
-        raise ConfigError("boiler_water must be a non-empty entity id")
-    if not isinstance(plant_management, str) or not plant_management:
-        raise ConfigError("plant_management must be a non-empty entity id")
-    if not isinstance(plant_setpoint, str) or not plant_setpoint:
-        raise ConfigError("plant_setpoint must be a non-empty entity id")
+    outdoor_temperature = _entity_id(
+        _require(args, "outdoor_temperature"), label="outdoor_temperature"
+    )
+    boiler_water = _entity_id(_require(args, "boiler_water"), label="boiler_water")
+    plant_management = _entity_id(
+        _require(args, "plant_management"), label="plant_management"
+    )
+    plant_setpoint = _entity_id(
+        _require(args, "plant_setpoint"), label="plant_setpoint"
+    )
 
     r_max = _number(args, "r_max", _DEFAULT_R_MAX)
     if r_max <= 0:

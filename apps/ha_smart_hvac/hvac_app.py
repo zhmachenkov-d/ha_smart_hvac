@@ -57,7 +57,7 @@ class HvacApp(hass.Hass):
         self.log("HVAC weather-curve SWT app initialized")
 
     def _register_control_listeners(self) -> None:
-        """Re-evaluate gate on plant / outdoor / zone air / thermostat attrs."""
+        """Re-evaluate gate on plant / outdoor / zone air / thermo attrs / accuracy."""
         config = self._config
         self.listen_state(self.control_event, config.plant_management)
         self.listen_state(self.control_event, config.outdoor_temperature)
@@ -70,6 +70,8 @@ class HvacApp(hass.Hass):
                 self.listen_state(
                     self.control_event, thermo.climate, attribute="temperature"
                 )
+                if thermo.accuracy is not None:
+                    self.listen_state(self.control_event, thermo.accuracy)
 
     def _gate_prelude(self) -> tuple[list[ZoneSnapshot], float] | None:
         """Plant / Outdoor / Heating Demand prelude. (zones, outdoor) or None."""

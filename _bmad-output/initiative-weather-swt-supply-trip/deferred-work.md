@@ -19,21 +19,12 @@
 ## Deferred from: code review of story-delete-dead-pid-rls-modules-plan (2026-11-14)
 - Stale epic-1 deferred-work bullet still frames AGENTS/CONTEXT/ADR PID supersede as outstanding — pre-existing; not caused by module delete; settle/prune in entry 4
 
-- source_plan: `_bmad-output/initiative-weather-swt-supply-trip/tickets/epic-trv-idle-max-close/tickets/story-tracer-trv-idle-max-close-soft-close-plan.md`
-  summary: Accuracy-only soft-close re-apply (listen to accuracy entity; AC that accuracy state change alone re-runs TRV law without waiting for tick)
-  evidence: Split from oversized 4.1 plan; ticket verify does not require accuracy-driven events — zone/climate/plant/tick still re-apply.
+## Settled: epic-4 TRV soft-close leftovers (story-refactor-sweep)
+- Expanded-goldens idle-overshoot half already covered by 4.1 `test_trv_independent_of_heating_demand` (+ core overshoot); remaining A–D closed in this sweep.
 
-- source_plan: `_bmad-output/initiative-weather-swt-supply-trip/tickets/epic-trv-idle-max-close/tickets/story-tracer-trv-idle-max-close-soft-close-plan.md`
-  summary: TRV prelude-isolation edge ACs (Outdoor-fail / empty-zone prelude / sibling zone T unreadable dedicated tests)
-  evidence: Split from oversized 4.1 plan; before-prelude call graph stays in tracer Always, but expanded isolation ACs deferred to keep plan in token range.
+## Deferred from: code review of story-refactor-sweep-plan (2026-11-16, walkthrough slice Accuracy listen + `_entity_id`)
+- AGENTS.md / CONTEXT.md listener inventories still omit commissioned TRV `accuracy` as a `control_event` listen (can re-enter demand SWT via shared handler); Intent Never forbids agent-context rewrite in 4.3 — settle in epic-6 / docs hygiene
 
-- source_plan: `_bmad-output/initiative-weather-swt-supply-trip/tickets/epic-trv-idle-max-close/tickets/story-tracer-trv-idle-max-close-soft-close-plan.md`
-  summary: Expanded multi-TRV / mixed-list / cold-start / idle-overshoot golden ACs beyond ticket verify
-  evidence: Split from oversized 4.1 plan; core hysteresis + plant-off + plain-string remain in tracer; extra goldens can land in epic entry 3 or a follow-on test story.
-
-- source_plan: `_bmad-output/initiative-weather-swt-supply-trip/tickets/epic-trv-idle-max-close/tickets/story-tracer-trv-idle-max-close-soft-close-plan.md`
-  summary: `_entity_id` accepts whitespace-only strings for TRV (and other) entity fields
-  evidence: Pre-existing `_entity_id` checks `isinstance(str) and not raw` only; settle by requiring `raw.strip()` (or equivalent) across entity-id parse, not TRV-only.
-
-## Deferred from: code review of story-tracer-trv-idle-max-close-soft-close-plan (2026-11-15)
-- Whitespace-only entity ids pass `_entity_id` — pre-existing; already deferred earlier for this plan; settle with `raw.strip()` across entity-id parse (not TRV-only)
+## Deferred from: code review of story-refactor-sweep-plan (2026-11-16, walkthrough slice Prelude-isolation + expanded goldens)
+- No accuracy `control_event` + Outdoor-fail isolation test — deferred: tick shared-path / prior Intent Formal review
+- Empty-zone isolation pins law-ran only via spy — deferred: plan matrix spy+skip+idle; countable isolation on Outdoor-fail
