@@ -62,3 +62,12 @@ Session: unavailable · Timestamp: 2026-11-16T17:57:30+00:00
 - Result: 1+3+20+1+27 goldens shown; offline only.
 - Evidence: _bmad-output/initiative-weather-swt-supply-trip/walkthrough-story-5-1-flame-short-on/demo-broad-strokes-transcript.md
 - Open: Broad strokes acceptance; commit ask still open
+
+## 7 — Broad strokes — commit+push
+
+Session: unavailable · Timestamp: 2026-11-16T17:58:25+00:00
+
+- Action: User requested commit+push of dirty tree (review patches + walkthrough + plan).
+- Result: 84af911 pushed to origin/feat/5-1-flame-short-on. Working tree clean.
+- Evidence: fix(flame): wipe since on CH-off even after state bounce
+- Open: Broad strokes still in progress (not accepted)
