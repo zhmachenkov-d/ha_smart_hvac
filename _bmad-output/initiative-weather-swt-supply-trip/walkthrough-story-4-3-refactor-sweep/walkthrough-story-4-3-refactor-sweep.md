@@ -1,16 +1,17 @@
 # Walkthrough: Story 4.3 — Refactor sweep
 Target: [PR #148](https://github.com/zhmachenkov-d/ha_smart_hvac/pull/148) · branch `chore/4-3-trv-refactor-sweep` · `e1a3c81`
 
-**Current block:** Slice: Prelude-isolation + expanded goldens (in progress)
+**Current block:** Wrap-up (done — commit+push; merge deferred)
 
 ## Blocks
 - [x] **Intent** — done (Formal review clean; Second opinion accept; Test 335 pytest + ruff)
 - [x] **Broad strokes** — done (Test 15; Demo transcript)
 - [x] **Slice: Accuracy listen + `_entity_id` strip** — done (Formal review 1 defer; Test 10)
-- [ ] **Slice: Prelude-isolation + expanded goldens** — in progress
-- [ ] **Slice: Deferred prune** — unvisited
-- [ ] **Periphery** — unvisited
-- [ ] **Wrap-up** — unvisited
+- [x] **Slice: Prelude-isolation + expanded goldens** — done (Formal review 2 defer; Test 5)
+- [x] **Slice: Deferred prune** — done (Test ALL_PASS; Second opinion accept)
+- [x] **Periphery** — done (Test ALL_PASS)
+- [x] **Wrap-up** — done (commit+push; merge deferred)
+
 
 ---
 
@@ -58,3 +59,34 @@ Review notes: Formal review — 0 patch, 1 defer (AGENTS/CONTEXT); Test — 10 f
 2. [hvac_app.py](../../../apps/ha_smart_hvac/hvac_app.py) (`_apply_trv_law` ~L389) — per-TRV own-reads; skip when own inputs unreadable
 3. [test_hvac_app.py](../../../tests/test_hvac_app.py) (`test_trv_outdoor_fail_*`, `test_trv_empty_zone_*`, `test_trv_sibling_*` ~L2000+) — prelude-isolation ACs
 4. [test_hvac_app.py](../../../tests/test_hvac_app.py) (`test_trv_multi_*`, `test_trv_cold_start_*` ~L2089+) — multi/mixed + cold-start goldens
+Review notes: Formal review — 2 defer (accuracy Outdoor-fail event; empty-zone spy); 11 rejected; Test — 5 prelude/golden pytest + ruff; tick/event TRV-before-prelude, supply has no TRV.
+
+---
+
+### Slice: Deferred prune
+Story product prune removed epic-4 TRV soft-close leftover bullets and recorded Settled with the 4.1 idle-overshoot cite; epic-3 AGENTS/CONTEXT/ADR hygiene bullets stay on purpose. Walkthrough Formal reviews then added separate defers (accuracy listener inventory; Outdoor-fail event; empty-zone spy) — not reopening A–D.
+
+1. [deferred-work.md](../deferred-work.md) (Settled epic-4) — A–D leftovers closed; idle-overshoot cites `test_trv_independent_of_heating_demand`
+2. [deferred-work.md](../deferred-work.md) (epic-3 bullets above Settled) — remain on purpose
+3. [tickets.toml](../tickets/epic-trv-idle-max-close/tickets/tickets.toml) (entry 3) — verify names prune + epic-3 remain
+4. [deferred-work.md](../deferred-work.md) (2026-11-16 walkthrough CR deferrals) — AGENTS/CONTEXT accuracy listen; Outdoor-fail event; empty-zone spy
+
+Review notes: Test — ALL_PASS; Second opinion — accept Deferred prune as written (Settled thin on A/B/D list; epic-3 still says settle-in-entry-4 stale pointer).
+
+---
+
+### Periphery
+Planning/process artifacts shipped with the sweep; not runtime law.
+
+1. [story-refactor-sweep-plan.md](../tickets/epic-trv-idle-max-close/tickets/story-refactor-sweep-plan.md) — frozen Intent + A–D execution/AC + Code Review appendices
+2. [tickets.toml](../tickets/epic-trv-idle-max-close/tickets/tickets.toml) (entry 3) — description/verify name A–D + prune
+3. [party-mode .memlog.md](../../party-mode/memories/installed/.memlog.md) — party gap-hunt trail for this plan
+
+Review notes: Test — ALL_PASS (plan Intent/CR; tickets.toml entry 3 A–D+prune; memlog gap-hunt).
+
+---
+
+### Wrap-up
+Review of PR #148 / story 4.3 complete through Periphery. Likely follow-through: commit walkthrough artifacts, push to `chore/4-3-trv-refactor-sweep`, keep PR #148 open (merge when ready).
+
+Review notes: commit+push to PR #148; merge deferred.

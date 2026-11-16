@@ -1,22 +1,3 @@
----
-title: 'Refactor sweep'
-type: 'chore'
-ticket: '3'
-created: '2026-11-16'
-status: built
-baseline_revision: '165eb56e849dc42cbeef665fa81491a0c8d8c4a0'
-route: 'full'
-route_source: 'auto'
-risk: 'medium'
-review: 'thorough'
-review_source: 'auto'
-lenses_ran: ['blind-hunter', 'edge-case-hunter', 'verification-gap', 'intent-alignment']
-review_loop_iteration: 0
-context:
-  - '{project-root}/CONTEXT.md'
-  - '{project-root}/AGENTS.md'
----
-
 <frozen-after-approval reason="human-owned intent — do not modify unless human renegotiates">
 
 ## Intent
@@ -108,7 +89,6 @@ context:
 | verification-gap: none | — | — | No gap findings filed |
 | intent-alignment: R2 idle-overshoot vs prune | false | reject | Frozen Never + Design Notes intentionally drop idle-overshoot-if-thin as covered by 4.1; descriptive audit only |
 
-
 ## Code Review
 ### 2026-11-16
 **Code review complete.** 0 `decision-needed`, 0 `patch`, 0 `defer`, 17 rejected.
@@ -147,3 +127,14 @@ Rejected:
 - R8 (edge-case): false — duplicate stripped ids same class as duplicate plain ids
 - R9 (edge-case): false — prune outside intentionally scoped slice diff
 - R10 (intent-alignment): false — descriptive same as R1
+
+### 2026-11-16 (walkthrough slice: Prelude-isolation + expanded goldens)
+**Code review complete.** 0 `decision-needed`, 0 `patch`, 2 `defer`, 11 rejected. (Decisions resolved → defer.)
+
+- [x] [Review][Defer] No accuracy control_event Outdoor-fail isolation test [tests/test_hvac_app.py; hvac_app.py:248-251] — deferred: tick shared-path / prior Intent Formal review
+- [x] [Review][Defer] Empty-zone isolation pins law-ran only via spy [tests/test_hvac_app.py:2018-2031] — deferred: plan matrix spy+skip+idle; countable isolation on Outdoor-fail
+
+Rejected:
+- R1/R2/R4–R6/R8 (blind-hunter): false — AC scope / shared path / named isolation already met
+- R7/R9/R10 (blind-hunter): low rejected — cosmetic or rarely visible extras
+- R13 (intent-alignment): false — descriptive tick-vs-event surface note

@@ -24,3 +24,7 @@
 
 ## Deferred from: code review of story-refactor-sweep-plan (2026-11-16, walkthrough slice Accuracy listen + `_entity_id`)
 - AGENTS.md / CONTEXT.md listener inventories still omit commissioned TRV `accuracy` as a `control_event` listen (can re-enter demand SWT via shared handler); Intent Never forbids agent-context rewrite in 4.3 — settle in epic-6 / docs hygiene
+
+## Deferred from: code review of story-refactor-sweep-plan (2026-11-16, walkthrough slice Prelude-isolation + expanded goldens)
+- No accuracy `control_event` + Outdoor-fail isolation test — deferred: tick shared-path / prior Intent Formal review
+- Empty-zone isolation pins law-ran only via spy — deferred: plan matrix spy+skip+idle; countable isolation on Outdoor-fail

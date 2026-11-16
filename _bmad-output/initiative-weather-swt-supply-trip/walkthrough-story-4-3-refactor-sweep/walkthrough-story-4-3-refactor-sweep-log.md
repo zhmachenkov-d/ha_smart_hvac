@@ -113,3 +113,102 @@ Session: unavailable · Timestamp: 2026-11-16T10:38:30+02:00
 - Result: Accuracy slice checked; prelude slice current.
 - Evidence: narrative Slice: Prelude-isolation + expanded goldens
 - Open: prelude slice acceptance; commit?
+
+## 15 — Tree — commit
+
+Session: unavailable · Timestamp: 2026-11-16T10:40:00+02:00
+
+- Action: User confirmed commit of dirty walkthrough/plan/deferred.
+- Result: 92177d3 docs(bmad): continue story 4.3 walkthrough through accuracy slice; ahead 2.
+- Evidence: git log -1
+- Open: Prelude-isolation + expanded goldens still in progress; not pushed
+
+## 16 — Slice prelude goldens — Formal review
+
+Session: unavailable · Timestamp: 2026-11-16T10:47:00+02:00
+
+- Action: bmad-code-review on hvac_app + test_hvac_app; focus prelude-isolation + goldens.
+- Result: 2 decision-needed; 0 patch; 11 rejected. Awaiting user choices.
+- Evidence: plan ### 2026-11-16 (walkthrough slice: Prelude…); /tmp/triage-4-3-slice2-Hol4BL.md
+- Open: F1 and F2 decisions
+
+## 17 — Slice prelude goldens — Formal review decisions
+
+Session: unavailable · Timestamp: 2026-11-16T10:57:00+02:00
+
+- Action: User chose 2 2 (defer both) with recommended reasons.
+- Result: F1+F2 deferred to deferred-work.md; plan bullets checked Defer.
+- Evidence: deferred-work.md; plan ### Prelude slice
+- Open: code-review next-step menu
+
+## 18 — Slice prelude goldens — Test
+
+Session: unavailable · Timestamp: 2026-11-16T11:08:00+02:00
+
+- Action: Focused pytest Outdoor/empty/sibling/multi/cold-start; ruff; spot-check tick/event TRV-before-prelude and supply without TRV.
+- Result: 5 passed; ruff clean; order_ok on tick/event; supply has no _apply_trv_law.
+- Evidence: /tmp/wt-4-3-slice2-pytest.txt; /tmp/wt-4-3-slice2-ruff.txt
+- Open: prelude slice acceptance
+
+## 19 — Slice prelude goldens — done → Deferred prune
+
+Session: unavailable · Timestamp: 2026-11-16T11:09:00+02:00
+
+- Action: User marked prelude/goldens done; presented Deferred prune; dirty tree open.
+- Result: Prelude slice checked; Deferred prune current.
+- Evidence: narrative Slice: Deferred prune
+- Open: deferred prune acceptance; commit?
+
+## 20 — Slice Deferred prune — Test
+
+Session: unavailable · Timestamp: 2026-11-16T11:10:00+02:00
+
+- Action: Programmatic checks on deferred-work.md + tickets.toml entry 3 verify (Settled, epic-3 remain, no open A–D leftovers before Settled, walkthrough CR defers after).
+- Result: ALL_PASS (15 checks).
+- Evidence: deferred-work.md; tickets.toml entry 3
+- Open: Deferred prune acceptance
+
+## 21 — Slice Deferred prune — Second opinion
+
+Session: unavailable · Timestamp: 2026-11-16T11:10:30+02:00
+
+- Action: Fresh subagent judged Deferred prune vs e1a3c81 + deferred-work + tickets.toml id=3.
+- Result: Match yes; Accept yes. Notes: Settled thin on A/B/D list; epic-3 settle-in-entry-4 stale; Formal notes can look like reopened B if skimmed.
+- Evidence: subagent 1347fb1f-8d6a-4de0-ad3f-d5e56e2f2d62
+- Open: Deferred prune acceptance
+
+## 22 — Slice Deferred prune — done → Periphery
+
+Session: unavailable · Timestamp: 2026-11-16T11:12:00+02:00
+
+- Action: User marked Deferred prune done; presented Periphery; dirty tree open.
+- Result: Deferred prune checked; Periphery current.
+- Evidence: narrative Periphery section
+- Open: Periphery acceptance; commit?
+
+## 23 — Periphery — Test
+
+Session: unavailable · Timestamp: 2026-11-16T11:13:00+02:00
+
+- Action: Checked plan Intent+Code Review; tickets.toml entry 3 A–D+prune; party memlog gap-hunt/F1–F8.
+- Result: ALL_PASS (8 checks).
+- Evidence: story-refactor-sweep-plan.md; tickets.toml; .memlog.md
+- Open: Periphery acceptance
+
+## 24 — Periphery — done → Wrap-up
+
+Session: unavailable · Timestamp: 2026-11-16T11:13:30+02:00
+
+- Action: User marked Periphery done; presented Wrap-up; guessed commit+push to PR #148, merge deferred.
+- Result: Periphery checked; Wrap-up current.
+- Evidence: narrative Wrap-up
+- Open: user confirm follow-through; dirty tree commit?
+
+## 25 — Wrap-up — commit+push
+
+Session: unavailable · Timestamp: 2026-11-16T11:14:00+02:00
+
+- Action: User chose commit+push; merge deferred.
+- Result: pending commit+push this step.
+- Evidence: user Wrap-up choice
+- Open: merge deferred
