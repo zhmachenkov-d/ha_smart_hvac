@@ -1375,6 +1375,37 @@ def test_latched_demand_writes_zero_no_ff() -> None:
     app = _flame_trip_app()
     app._flame_trip_latched = True
     app.control_tick({})
+    assert app._flame_trip_latched
+    assert _set_value_writes(app) == [0.0]
+    assert not any("u_ff=" in m for m in _info_msgs(app))
+
+
+def test_latched_demand_write_fail_keeps_latch() -> None:
+    """Unreadable plant while latched: no SWT write; latch retained."""
+    app = _flame_trip_app(plant_setpoint="unavailable")
+    app.get_state = MagicMock(
+        side_effect=_demand_get_state(plant_setpoint="unavailable")
+    )
+    app._flame_trip_latched = True
+    app.control_tick({})
+    assert app._flame_trip_latched
+    assert _set_value_writes(app) == []
+    assert not any("u_ff=" in m for m in _info_msgs(app))
+
+
+def test_ch_active_off_while_latched_keeps_latch_and_zero() -> None:
+    """CH-off wipes since but must not clear latch; demand still writes 0."""
+    app = _flame_trip_app()
+    app._flame_trip_latched = True
+    app._flame_on_since = 42.0
+    app.get_state = MagicMock(side_effect=_demand_get_state(ch_active="off"))
+
+    app.ch_active_event(_CH_ACTIVE, "state", "on", "off", {})
+    assert app._flame_trip_latched
+    assert app._flame_on_since is None
+
+    app.control_tick({})
+    assert app._flame_trip_latched
     assert _set_value_writes(app) == [0.0]
     assert not any("u_ff=" in m for m in _info_msgs(app))
 
@@ -1408,6 +1439,24 @@ def test_flame_hold_expiry_gated_runs_trv_then_curve() -> None:
     assert _set_value_writes(app) == [_expected_command()]
 
 
+def test_flame_hold_expiry_applies_trv_valve_then_curve() -> None:
+    """ADV8: commissioned TRV gets a closure write before weather-curve SWT."""
+    app = _trv_app(zone_temp=20.0, setpoint=22.0, accuracy=0.5, closure=10.0)
+    app._flame_trip_latched = True
+    app._flame_trip_hold_handle = "hold-handle"
+    app._flame_trip_hold_token = 7
+
+    app._flame_trip_hold_expired({"token": 7})
+
+    assert not app._flame_trip_latched
+    writes = _set_value_by_entity(app)
+    assert (_TRV_CLOSURE, app._config.valve_closure_floor) in writes
+    assert (_PLANT_SETPOINT, _expected_command()) in writes
+    trv_i = next(i for i, (eid, _) in enumerate(writes) if eid == _TRV_CLOSURE)
+    plant_i = next(i for i, (eid, _) in enumerate(writes) if eid == _PLANT_SETPOINT)
+    assert trv_i < plant_i
+
+
 def test_flame_hold_expiry_closed_gate_clears_only() -> None:
     app = _flame_trip_app(plant_management="off")
     app._flame_trip_latched = True
@@ -1419,6 +1468,10 @@ def test_flame_hold_expiry_closed_gate_clears_only() -> None:
     app._flame_trip_hold_expired({"token": 3})
 
     assert not app._flame_trip_latched
+    assert app._flame_trip_hold_handle is None
+    # clear + plant-off _hands_off each bump the hold token
+    assert app._flame_trip_hold_token == 5
+    app.cancel_timer.assert_called_once_with("hold-handle")
     assert _set_value_writes(app) == []
     trv.assert_called_once()
 
@@ -1558,6 +1611,7 @@ def test_idle_write_fail_keeps_latch_disarms_hold() -> None:
     assert app._flame_trip_latched
     assert app._flame_on_since is None
     assert app._flame_trip_hold_handle is None
+    assert app._flame_trip_hold_token == 2
     app.cancel_timer.assert_called_once_with("hold-handle")
 
 
@@ -2016,6 +2070,17 @@ def test_trv_runs_while_flame_latched() -> None:
     assert (_PLANT_SETPOINT, 0.0) in writes
     assert not any("u_ff=" in m for m in _info_msgs(app))
     assert not any("critical_zone=" in m for m in _info_msgs(app))
+
+
+def test_trv_runs_while_flame_latched_via_control_event() -> None:
+    """TRV soft-close still applies on control_event while flame-latched."""
+    app = _trv_app(zone_temp=20.0, setpoint=22.0, accuracy=0.5, closure=10.0)
+    app._flame_trip_latched = True
+    _fire_control_event(app)
+    writes = _set_value_by_entity(app)
+    assert (_TRV_CLOSURE, app._config.valve_closure_floor) in writes
+    assert (_PLANT_SETPOINT, 0.0) in writes
+    assert not any("u_ff=" in m for m in _info_msgs(app))
 
 
 def test_trv_at_or_below_setpoint_writes_floor() -> None:

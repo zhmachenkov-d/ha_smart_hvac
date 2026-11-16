@@ -1,16 +1,16 @@
 # Walkthrough: Story 5.1 — Tracer: replace supply trip with flame short-on
 Target: [PR #151](https://github.com/zhmachenkov-d/ha_smart_hvac/pull/151) · branch `feat/5-1-flame-short-on` · `e2d9884`+
 
-**Current block:** Slice: `_run_demand` latch gate + ADV8 hold-expiry (in progress)
+**Current block:** Periphery (in progress)
 
 ## Blocks
 - [x] **Intent** — done (Formal review 5 patch; Test 352 + ruff)
 - [x] **Broad strokes** — done (Demo transcript)
 - [x] **Slice: config/models — flame fields, drop supply trip** — done (Test 20 config)
 - [x] **Slice: hvac_app — remove supply path; flame observe/latch/clear** — done (Test 27+; Formal review 5 patch)
-- [ ] **Slice: `_run_demand` latch gate + ADV8 hold-expiry** — in progress
-- [ ] **Slice: example yaml + tests flame matrix** — unvisited
-- [ ] **Periphery** — unvisited
+- [x] **Slice: `_run_demand` latch gate + ADV8 hold-expiry** — done (Test 15; Formal review 6 patch)
+- [x] **Slice: example yaml + tests flame matrix** — done (Test 20+39)
+- [ ] **Periphery** — in progress
 
 ---
 
@@ -72,18 +72,28 @@ While flame-latched, `_run_demand` keeps SWT 0 (no curve, no CZ). Hold expiry cl
 4. [hvac_app.py](../../../apps/ha_smart_hvac/hvac_app.py) (`_hands_off` / `_go_idle` ~L302) — plant-off clear; Decision C idle
 5. [test_hvac_app.py](../../../tests/test_hvac_app.py) (~L1374+) — latched demand, ADV8, rising-edge, TRV-while-latched
 
-Review notes: *(none yet)*
+Review notes: Test — 15 latched/ADV8/rising-edge/TRV-while-latched + ruff clean; Formal review — 6 patch applied (latched retention/write-fail; closed-gate disarm asserts; TRV control_event; ADV8 valve write; CH-off keep latch; Decision C token); 9 rejected; accepted.
 
 ---
 
 ### Slice: example yaml + tests flame matrix
-*Unvisited — not yet reviewed.*
+Example commissions `YOUR_*` flame placeholders and drops supply-trip keys. Config/app tests lock parse defaults, legacy ignore, and the flame short-on matrix (arm/fall/latch/clear/ADV8/TRV-while-latched).
 
-Review notes: *(none — block unvisited)*
+1. [apps.yaml.example](../../../apps.yaml.example) (~L14) — `flame_on` / `ch_active` / min/hold; no `boiler_water` / `r_max` / supply hold
+2. [test_config.py](../../../tests/test_config.py) (`test_parse_apps_yaml_example` ~L70) — flame keys present; trip keys absent
+3. [test_config.py](../../../tests/test_config.py) (~L126+) — defaults, reject missing/empty, truncate, legacy ignore
+4. [test_hvac_app.py](../../../tests/test_hvac_app.py) (~L1080+) — flame matrix + review goldens
+
+Review notes: Test — 20 config + 39 flame-matrix pytest; example has flame keys / no trip keys; ruff apps+tests clean; accepted.
 
 ---
 
 ### Periphery
-*Unvisited — not yet reviewed.*
+Planning/process residue beside the App swap — not live water law.
 
-Review notes: *(none — block unvisited)*
+1. [deferred-work.md](../deferred-work.md) (token-split 5.1) — parked U1/S1/E1/V1 goldens and meta ACs
+2. [story-tracer-…-plan.md](../tickets/epic-replace-supply-trip-with-flame/tickets/story-tracer-replace-supply-trip-with-flame-short-on-plan.md) — Code Review appendices from this walkthrough
+3. [party-mode … .memlog.md](../../party-mode/memories/installed/.memlog.md) — party planning notes for epic 5
+4. [walkthrough-story-5-1-flame-short-on/](.) — this review narrative, log, demo transcript
+
+Review notes: *(none yet)*

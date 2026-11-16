@@ -140,3 +140,15 @@ Rejected: R1 Always arm wording vs code (frozen Always; Never+code correct); R2/
 - [x] [Review][Patch] No single e2e flame latch to hold expiry to curve golden [tests/test_hvac_app.py]
 
 Rejected: R2 cancel-before-rearm (gate closed while latched); R3 non-positive duration (monotonic); R4 no mid-burn re-arm (Never); R5 no latched re-assert (Always); R6 Decision C disarm (Always+tested); R10 silent suppressions (noise); R13 ADV8 vs R2 (Always); R14 config outside slice diff (same PR elsewhere).
+
+### 2026-11-16 (_run_demand / ADV8 slice)
+**Code review complete.** 0 decision-needed, 6 patch, 0 defer, 9 rejected.
+
+- [x] [Review][Patch] Latched _run_demand tests omit latch-retention and write-fail cases [tests/test_hvac_app.py:1374]
+- [x] [Review][Patch] Closed-gate hold expiry omits disarm handle/token asserts [tests/test_hvac_app.py:1411]
+- [x] [Review][Patch] TRV soft-close while flame-latched untested on control_event [tests/test_hvac_app.py:2009]
+- [x] [Review][Patch] ADV8 hold-expiry TRV not proven by valve write [apps/ha_smart_hvac/hvac_app.py:160]
+- [x] [Review][Patch] CH-off while latched leave-latch behavior untested [tests/test_hvac_app.py]
+- [x] [Review][Patch] Decision C idle write-fail omits hold-token advance assert [tests/test_hvac_app.py:1544]
+
+Rejected: R2 ADV8 then idle Decision C (clear-first by Always); R5 restore-demand after idle-fail (low); R8 ADV8 clear-before-idle (design); R9 u_ff log (cosmetic); R11 docs epic 6; R12 duration<=0 (monotonic); R13 CH-off ADV8 curve (demand never needs CH); R15 title-slice framing (not defect).

@@ -134,3 +134,57 @@ Session: unavailable · Timestamp: 2026-11-16T18:31:59+00:00
 - Result: Observe slice done. Staging review patches + walkthrough for push.
 - Evidence: narrative current block ADV8; dirty tree includes hvac_app latch-after-run_in + tests
 - Open: ADV8 slice in progress after push
+
+## 15 — Slice _run_demand/ADV8 — Test
+
+Session: unavailable · Timestamp: 2026-11-16T18:32:34+00:00
+
+- Action: pytest latched_demand/hold_expiry/rising_edge/trv_runs_while_flame/idle Decision C/plant_off clear/e2e expiry; ruff.
+- Result: 15 passed, 117 deselected; ruff clean.
+- Evidence: test_hvac_app focused filter
+- Open: Slice acceptance; dirty narrative/log
+
+## 16 — Slice _run_demand/ADV8 — Formal review
+
+Session: unavailable · Timestamp: 2026-11-16T18:40:00+00:00
+
+- Action: Code review focused ADV8/latched demand/clears; BH/ECH/VG/IA; triage routed 6 patch.
+- Result: 6 patch, 0 defer/decision, 9 rejected. Awaiting patch handling.
+- Evidence: triage /tmp/cr-5-1-adv8-triage-*.md; plan Code Review ADV8 slice
+- Open: user patch option 1/2/3
+
+## 17 — Slice _run_demand/ADV8 — Formal review patches applied
+
+Session: unavailable · Timestamp: 2026-11-16T20:26:29+00:00
+
+- Action: Applied 6 patch findings (tests only); pytest 11 focused + ruff clean.
+- Result: Latched retention/write-fail; closed-gate cancel/token; TRV control_event; ADV8 TRV valve+order; CH-off keep latch; Decision C token.
+- Evidence: test_hvac_app.py new/updated goldens; plan ADV8 boxes checked
+- Open: code-review next-steps; ADV8 slice still in progress; dirty tree
+
+## 18 — ADV8 done → example/tests slice
+
+Session: unavailable · Timestamp: 2026-11-16T20:27:08+00:00
+
+- Action: User accepted _run_demand/ADV8; presented example yaml + tests flame matrix.
+- Result: Current block example/tests. Dirty tree still has ADV8 review patches uncommitted.
+- Evidence: apps.yaml.example; test_config/test_hvac_app
+- Open: Slice acceptance; commit ask
+
+## 19 — Slice example/tests — Test
+
+Session: unavailable · Timestamp: 2026-11-16T20:27:37+00:00
+
+- Action: pytest config flame/example/legacy (20); hvac flame matrix (39); ruff apps/ha_smart_hvac tests; rg trip keys absent from example.
+- Result: All pass; example flame keys present, no boiler_water/r_max/hold; ruff clean on Python packages.
+- Evidence: test_config + test_hvac_app filters; apps.yaml.example L14-18
+- Open: Slice acceptance; dirty tree
+
+## 20 — example/tests done → Periphery
+
+Session: unavailable · Timestamp: 2026-11-16T20:28:32+00:00
+
+- Action: User accepted example/tests; presented Periphery.
+- Result: Current block Periphery. Dirty tree still uncommitted.
+- Evidence: deferred-work; plan; party memlog; walkthrough folder
+- Open: Periphery acceptance; commit ask; then Wrap-up
