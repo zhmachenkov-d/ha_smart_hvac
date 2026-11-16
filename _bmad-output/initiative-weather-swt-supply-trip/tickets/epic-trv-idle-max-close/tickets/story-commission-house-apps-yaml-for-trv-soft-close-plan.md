@@ -60,11 +60,11 @@ context:
 </frozen-after-approval>
 
 ## Code Map
-- `apps/apps.yaml` (gitignored) — sole edit target; currently plain-string Sonoff climates; no `valve_closure_floor`.
-- `apps/apps.yaml.pre-4.2` — create as pre-edit backup (gitignored via `apps/apps.yaml.*`).
+- `apps/apps.yaml` (gitignored) — sole edit target; post-edit: `valve_closure_floor: 80`; livingroom×2 / bedroom / childroom commissioned; bathroom / kitchen / wc plain strings.
+- `apps/apps.yaml.pre-4.2` — pre-edit backup (gitignored via `apps/apps.yaml.*`).
 - `apps.yaml.example` — shape reference only (`valve_closure_floor` + `{climate, valve_closure, accuracy}`); do not edit.
 - `apps/ha_smart_hvac/config.py` — `parse_config` offline verify; do not change.
-- Initiative Notes 2026-11-15 — confirmed closure/accuracy entity IDs (already closed).
+- Initiative Notes 2026-11-15 — confirmed closure/accuracy entity IDs (already closed); see `_bmad-output/initiative-weather-swt-supply-trip/initiative-weather-swt-supply-trip.md` Notes (“House entities closed”).
 - Continuity from story 4.1 plan: mapping needs both TRV fields; plain string = climate-only; house ids deferred to this story.
 
 ## Tasks & Acceptance
@@ -85,6 +85,9 @@ context:
 - House yaml remains gitignored; tracked artifact for this story is this plan file.
 
 ## Plan Change Log
+- 2026-11-15: House commission completed (backup + floor + four Sonoff mappings); Execution tasks checked; Implementation Notes filled.
+- 2026-11-15: Quick-review patches — Verification command documents `yaml.safe_load` → drop AD keys → `parse_config` sequence; PYTHONPATH=apps kept.
+- 2026-11-15: Walkthrough Formal review patches — runnable Verification script; Code Map post-edit; Initiative Notes path; Manual backup path `apps/apps.yaml.pre-4.2`.
 ## Review Triage Log
 | lens | finding | verdict | route | evidence |
 | --- | --- | --- | --- | --- |
@@ -97,9 +100,38 @@ House file only; law already shipped in 4.1. Naming aligns climate suffixes with
 
 ## Verification
 **Commands:**
-- `PYTHONPATH=apps uv run python -c '...'` — `yaml.safe_load(apps/apps.yaml)["hvac"]`, drop `module`/`class`, `parse_config`; assert floor 80 + four commissioned TRV ids + three plain generics -- expected: exit 0
+- `PYTHONPATH=apps uv run python -c "import yaml; from pathlib import Path; from ha_smart_hvac.config import parse_config; raw=yaml.safe_load(Path('apps/apps.yaml').read_text())['hvac']; raw={k:v for k,v in raw.items() if k not in ('module','class')}; cfg=parse_config(raw); assert cfg.valve_closure_floor==80; want={'climate.livingroom_sonoff_trvzb_thermostat':('number.livingroom_sonoff_trvzb_valve_closure_degree','number.livingroom_sonoff_trvzb_temperature_control_accuracy'),'climate.livingroom_sonoff_trvzb_thermostat_2':('number.livingroom_sonoff_trvzb_valve_closure_degree_2','number.livingroom_sonoff_trvzb_temperature_control_accuracy_2'),'climate.bedroom_sonoff_trvzb_thermostat':('number.bedroom_sonoff_trvzb_valve_closure_degree','number.bedroom_sonoff_trvzb_temperature_control_accuracy'),'climate.childroom_sonoff_trvzb_thermostat':('number.childroom_sonoff_trvzb_valve_closure_degree','number.childroom_sonoff_trvzb_temperature_control_accuracy')}; got={}; [got.update({t.climate:(t.valve_closure,t.accuracy)}) for z in cfg.zones for t in z.thermostats if t.valve_closure]; assert got==want; plain={t.climate for z in cfg.zones for t in z.thermostats if not t.valve_closure}; assert plain=={'climate.bathroom_generic_thermostat','climate.kitchen_generic_thermostat','climate.wc_generic_thermostat'}"` — expected: exit 0
 - `git check-ignore -v apps/apps.yaml apps/apps.yaml.pre-4.2` -- expected: both ignored
 - `git status --short` -- expected: no staged/untracked house yaml (ignored)
 
 **Manual checks (if no CLI):**
-- Diff house yaml vs `apps.yaml.pre-4.2`: only floor + Sonoff mapping structure added.
+- Diff house yaml vs `apps/apps.yaml.pre-4.2`: only floor + Sonoff mapping structure added.
+
+## Code Review
+
+### 2026-11-15
+**Code review complete.** 0 `decision-needed`, 5 `patch`, 0 `defer`, 4 rejected.
+
+- [x] [Review][Patch] Verification command is a non-runnable python -c stub [story-commission-house-apps-yaml-for-trv-soft-close-plan.md:100]
+- [x] [Review][Patch] Code Map still describes pre-edit house state after built [story-commission-house-apps-yaml-for-trv-soft-close-plan.md:63]
+- [x] [Review][Patch] Plan Change Log is empty [story-commission-house-apps-yaml-for-trv-soft-close-plan.md:87]
+- [x] [Review][Patch] Initiative Notes citation lacks navigable path [story-commission-house-apps-yaml-for-trv-soft-close-plan.md:67]
+- [x] [Review][Patch] Manual verification backup path missing apps/ prefix [story-commission-house-apps-yaml-for-trv-soft-close-plan.md:105]
+
+Rejected:
+- R4 bathroom/kitchen AC not in hunk — false: full apps/apps.yaml still has bathroom/kitchen/wc as plain climate strings; hunk omission is adjacency only.
+- R5 no HA entity existence check — false: Approach/Never forbid Exclusive Session; offline AC by design.
+- R6 offline built does not close live problem — false: yaml commission is the story scope; live soft-close binds on next AD load.
+- R9 review_loop_iteration 0 — low, rarely visible process metadata; not worth a fix pass.
+
+### 2026-11-16 (house slice)
+**Code review complete.** 0 `decision-needed`, 2 `patch`, 0 `defer`, 4 rejected.
+
+- [x] [Review][Patch] Purpose header still SWT-only after TRV commission [apps/apps.yaml:2]
+- [x] [Review][Patch] valve_closure_floor lacks idle max-close comment [apps/apps.yaml:15]
+
+Rejected:
+- R3 Sonoff mapping shape comments — low; multi-site comment noise beyond one-line fix.
+- R4 climate-only notes on generics — low; plan/AC already document intentional plain strings.
+- R5 bathroom omitted from hunk — false: full apps/apps.yaml keeps bathroom/kitchen/wc as plain climate strings.
+- R6 SWT/TRV section grouping — low; duplicate of floor-comment patch.
