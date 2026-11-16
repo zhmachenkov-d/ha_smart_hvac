@@ -1,3 +1,22 @@
+---
+title: 'Refactor sweep'
+type: 'chore'
+ticket: '3'
+created: '2026-11-16'
+status: done
+baseline_revision: '165eb56e849dc42cbeef665fa81491a0c8d8c4a0'
+route: 'full'
+route_source: 'auto'
+risk: 'medium'
+review: 'thorough'
+review_source: 'auto'
+lenses_ran: ['blind-hunter', 'edge-case-hunter', 'verification-gap', 'intent-alignment']
+review_loop_iteration: 0
+context:
+  - '{project-root}/CONTEXT.md'
+  - '{project-root}/AGENTS.md'
+---
+
 <frozen-after-approval reason="human-owned intent — do not modify unless human renegotiates">
 
 ## Intent

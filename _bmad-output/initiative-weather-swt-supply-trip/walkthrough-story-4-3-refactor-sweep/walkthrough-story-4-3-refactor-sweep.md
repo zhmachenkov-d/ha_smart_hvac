@@ -1,7 +1,7 @@
 # Walkthrough: Story 4.3 — Refactor sweep
 Target: [PR #148](https://github.com/zhmachenkov-d/ha_smart_hvac/pull/148) · branch `chore/4-3-trv-refactor-sweep` · `e1a3c81`
 
-**Current block:** Wrap-up (done — commit+push; merge deferred)
+**Current block:** Wrap-up (done — merged PR #148; story marked done)
 
 ## Blocks
 - [x] **Intent** — done (Formal review clean; Second opinion accept; Test 335 pytest + ruff)
@@ -10,7 +10,7 @@ Target: [PR #148](https://github.com/zhmachenkov-d/ha_smart_hvac/pull/148) · br
 - [x] **Slice: Prelude-isolation + expanded goldens** — done (Formal review 2 defer; Test 5)
 - [x] **Slice: Deferred prune** — done (Test ALL_PASS; Second opinion accept)
 - [x] **Periphery** — done (Test ALL_PASS)
-- [x] **Wrap-up** — done (commit+push; merge deferred)
+- [x] **Wrap-up** — done (merged PR #148; story marked done)
 
 
 ---
