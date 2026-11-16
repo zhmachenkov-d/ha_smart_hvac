@@ -1,0 +1,38 @@
+# Epic 5 breakdown — leaf build order. `id` is stable; table order is build order.
+# Approved 2026-11-16. Tracer = remove supply trip + flame short-on through config + listeners + latch/clear + example yaml.
+
+[[entry]]
+id = 1
+type = "story"
+title = "Tracer: replace supply trip with flame short-on"
+description = "Removes supply rise-rate trip (supply_event, r_obs/r_max, boiler_water trip path, supply-trip hold) from App, config models, apps.yaml.example, and tests; adds flame short-on: yaml flame_on / ch_active / flame_on_min_s (default 300) / flame_trip_hold_s (default 900); under Plant on ∧ Heating Demand ∧ ch_active ∧ latch clear, flame_on True duration (True→False) < flame_on_min_s attempts SWT 0 and latches only after successful write; while latched _run_demand keeps 0 (weather curve not applied); clear on hold expiry / zone rising-edge / plant-off / successful idle write-0 (Decision C; write-fail keeps latch); hold-expiry clear calls _apply_trv_law then Outdoor prelude + demand (ADV8); TRV soft-close keeps running while flame-latched; Critical Zone does not drive the trip; latch is RAM-only; apps.yaml.example commissions flame placeholders and drops trip keys."
+verify = "Supply trip symbols and boiler_water/r_max/supply-hold keys are gone from App/config/example/tests; under observe gate a short flame_on True duration latches plant Set Water Temperature to 0; while latched demand keeps 0 and TRV soft-close still runs; hold expiry / zone rising-edge / plant-off / successful idle write-0 clear latch (idle write-fail keeps it); hold-expiry path applies TRV law then weather-curve demand when gates allow; apps.yaml.example has flame_on / ch_active / flame_on_min_s / flame_trip_hold_s and no trip keys; uv run pytest and uv run ruff check apps/ha_smart_hvac tests clean."
+covers = ["R1", "R2", "R3"]
+after = ["4.3"]
+hitl = false
+risk = "high"
+notes = ["Tracer bullet: remove supply trip + flame observe/latch/clear + gate CAP-8 FF writer + ADV8 hold-expiry TRV + example yaml in one path.", "R1 here: observe gate + short-on latch + example commission; house flame entities are entry 2.", "R2 here: all four clear paths including ADV8; R3 here: weather-curve demand only when flame latch clear.", "after 4.3: TRV soft-close primary anti-cycle live before supply trip is removed."]
+
+[[entry]]
+id = 2
+type = "story"
+title = "Commission house apps.yaml for flame short-on"
+description = "Operator updates house apps/apps.yaml: remove boiler_water / r_max / supply-trip hold; add confirmed flame_on and ch_active (binary_sensor.opentherm_bridge_flame_on / binary_sensor.opentherm_bridge_ch_active) and optional flame_on_min_s / flame_trip_hold_s when not relying on defaults; house entity IDs unchanged unless the owner confirms. No live Exclusive Session required in this story."
+verify = "House apps/apps.yaml parses without supply-trip keys and with flame_on / ch_active for the confirmed entities; entity IDs match the pre-change backup unless the owner confirmed a change."
+covers = ["R1"]
+after = [1]
+hitl = true
+risk = "medium"
+notes = ["HITL: ask before changing house entity IDs (AGENTS.md).", "Confirmed flame ids on initiative Notes 2026-11-15.", "R1 part: house entity commission only; law + example already entry 1."]
+
+[[entry]]
+id = 3
+type = "story"
+title = "Refactor sweep"
+description = "Cleans deferred review findings and orphans left by supply-trip removal and flame short-on; no new product laws; docs stay in epic 6."
+verify = "uv run pytest and uv run ruff check apps/ha_smart_hvac tests clean; no unused supply-trip leftovers called out in this epic's deferred notes."
+covers = []
+after = [1, 2]
+hitl = false
+risk = "low"
+notes = ["Scope set at start from plans and review findings this epic deferred.", "Declined separate closing e2e suite — tests live in entry 1."]
