@@ -26,17 +26,18 @@ _DEFAULT_FF_COMFORT_REF = 20.0
 # One day; also keeps run_every's timedelta from overflowing.
 _MAX_CONTROL_INTERVAL = 86400
 
-_DEFAULT_R_MAX = 2.0
-_DEFAULT_HOLD = 900
+_DEFAULT_FLAME_ON_MIN_S = 300.0
+_DEFAULT_FLAME_TRIP_HOLD_S = 900
 _DEFAULT_VALVE_CLOSURE_FLOOR = 80.0
 
 # Top-level keys parse_config reads.
 _KNOWN_KEYS = frozenset(
     {
         "outdoor_temperature",
-        "boiler_water",
-        "r_max",
-        "hold",
+        "flame_on",
+        "ch_active",
+        "flame_on_min_s",
+        "flame_trip_hold_s",
         "plant_management",
         "plant_setpoint",
         "setpoint_min",
@@ -217,7 +218,8 @@ def parse_config(args: dict[str, Any]) -> HvacConfig:
     outdoor_temperature = _entity_id(
         _require(args, "outdoor_temperature"), label="outdoor_temperature"
     )
-    boiler_water = _entity_id(_require(args, "boiler_water"), label="boiler_water")
+    flame_on = _entity_id(_require(args, "flame_on"), label="flame_on")
+    ch_active = _entity_id(_require(args, "ch_active"), label="ch_active")
     plant_management = _entity_id(
         _require(args, "plant_management"), label="plant_management"
     )
@@ -225,16 +227,16 @@ def parse_config(args: dict[str, Any]) -> HvacConfig:
         _require(args, "plant_setpoint"), label="plant_setpoint"
     )
 
-    r_max = _number(args, "r_max", _DEFAULT_R_MAX)
-    if r_max <= 0:
-        raise ConfigError("r_max must be > 0")
+    flame_on_min_s = _number(args, "flame_on_min_s", _DEFAULT_FLAME_ON_MIN_S)
+    if flame_on_min_s <= 0:
+        raise ConfigError("flame_on_min_s must be > 0")
 
-    hold_raw = _number(args, "hold", _DEFAULT_HOLD)
+    hold_raw = _number(args, "flame_trip_hold_s", _DEFAULT_FLAME_TRIP_HOLD_S)
     if hold_raw <= 0:
-        raise ConfigError("hold must be > 0")
-    hold = int(hold_raw)
-    if hold < 1:
-        raise ConfigError("hold must be >= 1")
+        raise ConfigError("flame_trip_hold_s must be > 0")
+    flame_trip_hold_s = int(hold_raw)
+    if flame_trip_hold_s < 1:
+        raise ConfigError("flame_trip_hold_s must be >= 1")
 
     setpoint_min = _number(args, "setpoint_min")
     setpoint_max = _number(args, "setpoint_max")
@@ -268,14 +270,15 @@ def parse_config(args: dict[str, Any]) -> HvacConfig:
 
     return HvacConfig(
         outdoor_temperature=outdoor_temperature,
-        boiler_water=boiler_water,
+        flame_on=flame_on,
+        ch_active=ch_active,
         plant_management=plant_management,
         plant_setpoint=plant_setpoint,
         setpoint_min=setpoint_min,
         setpoint_max=setpoint_max,
         control_interval=control_interval,
-        r_max=r_max,
-        hold=hold,
+        flame_on_min_s=flame_on_min_s,
+        flame_trip_hold_s=flame_trip_hold_s,
         weather_feedforward=weather_feedforward,
         zones=tuple(_parse_zone(z) for z in zones_raw),
         valve_closure_floor=valve_closure_floor,

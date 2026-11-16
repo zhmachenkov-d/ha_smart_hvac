@@ -37,15 +37,16 @@ class HvacApp(hass.Hass):
             )
 
         self._monotonic: Callable[[], float] = time.monotonic
-        self._supply_trip_latched = False
-        self._supply_sample: tuple[float, float] | None = None
-        self._trip_hold_handle: object | None = None
-        self._trip_hold_token = 0
+        self._flame_trip_latched = False
+        self._flame_on_since: float | None = None
+        self._flame_trip_hold_handle: object | None = None
+        self._flame_trip_hold_token = 0
         self._zone_heating_prior: dict[str, bool] = {}
         self._trv_overshoot_latched: set[str] = set()
 
         self._register_control_listeners()
-        self.listen_state(self.supply_event, self._config.boiler_water)
+        self.listen_state(self.flame_event, self._config.flame_on)
+        self.listen_state(self.ch_active_event, self._config.ch_active)
         self.run_every(
             self.control_tick,
             "now",
@@ -100,8 +101,8 @@ class HvacApp(hass.Hass):
             self._go_idle("No heating demand; setpoint 0", level="INFO")
             return None
 
-        if had_edge and self._supply_trip_latched:
-            self._clear_trip_state()
+        if had_edge and self._flame_trip_latched:
+            self._clear_flame_trip_state()
 
         return zones, outdoor
 
@@ -129,41 +130,46 @@ class HvacApp(hass.Hass):
         self._zone_heating_prior = current
         return had_edge
 
-    def _plant_and_heating_demand(self) -> bool:
-        """Plant on ∧ Heating Demand — no Outdoor read (supply path gate)."""
+    def _flame_observe_gate(self) -> bool:
+        """Plant on ∧ Heating Demand ∧ ch_active on ∧ ¬latch — no Outdoor."""
         config = self._config
+        if self._flame_trip_latched:
+            return False
         if not plant_management_enabled(self.get_state(config.plant_management)):
+            return False
+        if self.get_state(config.ch_active) != "on":
             return False
         zones = self._read_zones(config)
         if not zones:
             return False
         return has_heating_demand(zones)
 
-    def _clear_trip_state(self) -> None:
-        """Clear latch, supply samples, and hold timer (idempotent)."""
-        self._supply_trip_latched = False
-        self._disarm_trip_hold()
+    def _clear_flame_trip_state(self) -> None:
+        """Clear latch, flame-on timer, and hold (idempotent)."""
+        self._flame_trip_latched = False
+        self._disarm_flame_trip_hold()
 
-    def _disarm_trip_hold(self) -> None:
-        """Cancel hold timer and wipe samples; invalidate pending hold callbacks."""
-        self._supply_sample = None
-        self._trip_hold_token += 1
-        if self._trip_hold_handle is not None:
-            self.cancel_timer(self._trip_hold_handle)
-            self._trip_hold_handle = None
+    def _disarm_flame_trip_hold(self) -> None:
+        """Cancel hold timer and wipe since; invalidate pending hold callbacks."""
+        self._flame_on_since = None
+        self._flame_trip_hold_token += 1
+        if self._flame_trip_hold_handle is not None:
+            self.cancel_timer(self._flame_trip_hold_handle)
+            self._flame_trip_hold_handle = None
 
-    def _trip_hold_expired(self, kwargs: dict) -> None:
-        """Hold elapsed: clear trip RAM, then re-run Outdoor prelude + demand."""
-        if kwargs.get("token") != self._trip_hold_token:
+    def _flame_trip_hold_expired(self, kwargs: dict) -> None:
+        """Hold elapsed: clear, TRV law, then Outdoor prelude + demand (ADV8)."""
+        if kwargs.get("token") != self._flame_trip_hold_token:
             return
-        self._clear_trip_state()
+        self._clear_flame_trip_state()
+        self._apply_trv_law()
         outcome = self._gate_prelude()
         if outcome is None:
             return
         zones, outdoor = outcome
         self._run_demand(zones, outdoor)
 
-    def supply_event(
+    def flame_event(
         self,
         entity: str,
         attribute: str,
@@ -171,61 +177,63 @@ class HvacApp(hass.Hass):
         new: object,
         kwargs: dict,
     ) -> None:
-        """Supply rise-rate trip — Plant∧Demand only; never Outdoor prelude."""
-        if not self._plant_and_heating_demand():
-            self._supply_sample = None
+        """Flame short-on observe/latch — Plant∧Demand∧ch_active∧¬latch only."""
+        gate_open = self._flame_observe_gate()
+
+        if old == "off" and new == "on":
+            if gate_open:
+                self._flame_on_since = self._monotonic()
+            else:
+                self._flame_on_since = None
             return
 
-        config = self._config
-        supply = self._read_float(config.boiler_water)
-        if supply is None:
-            self.log(
-                f"Supply temperature unreadable: {config.boiler_water}",
-                level="WARNING",
-            )
+        if old == "on" and new == "off":
+            since = self._flame_on_since
+            self._flame_on_since = None
+            if not gate_open or since is None:
+                return
+            duration = self._monotonic() - since
+            if duration >= self._config.flame_on_min_s:
+                return
+            if self._write_setpoint(0.0):
+                token = self._flame_trip_hold_token + 1
+                self._flame_trip_hold_token = token
+                handle = self.run_in(
+                    self._flame_trip_hold_expired,
+                    self._config.flame_trip_hold_s,
+                    token=token,
+                )
+                self._flame_trip_hold_handle = handle
+                self._flame_trip_latched = True
+                self.log(
+                    f"Flame short-on trip: duration={duration:.2f}s < "
+                    f"flame_on_min_s={self._config.flame_on_min_s:.2f}s; "
+                    "latching SWT 0",
+                    level="WARNING",
+                )
+            else:
+                self.log(
+                    f"Flame short-on trip: duration={duration:.2f}s < "
+                    f"flame_on_min_s={self._config.flame_on_min_s:.2f}s; "
+                    "SWT write failed, not latching",
+                    level="WARNING",
+                )
             return
 
-        now = self._monotonic()
-        prev = self._supply_sample
-        if prev is not None:
-            t_prev, temp_prev = prev
-            dt_s = now - t_prev
-            if dt_s <= 0:
-                self.log(
-                    "Supply rise-rate: non-positive sample interval; keeping latest",
-                    level="WARNING",
-                )
-                self._supply_sample = (now, supply)
-                return
-            r_obs = (supply - temp_prev) / (dt_s / 60.0)
-            if r_obs > config.r_max:
-                if self._supply_trip_latched:
-                    self._write_setpoint(0.0)
-                    self._supply_sample = (now, supply)
-                    return
-                if self._write_setpoint(0.0):
-                    self._supply_trip_latched = True
-                    token = self._trip_hold_token + 1
-                    self._trip_hold_token = token
-                    self._trip_hold_handle = self.run_in(
-                        self._trip_hold_expired, config.hold, token=token
-                    )
-                    self.log(
-                        f"Supply rise-rate trip: r_obs={r_obs:.2f} °C/min > "
-                        f"r_max={config.r_max:.2f} °C/min; latching SWT 0",
-                        level="WARNING",
-                    )
-                    self._supply_sample = (now, supply)
-                    return
-                self.log(
-                    f"Supply rise-rate trip: r_obs={r_obs:.2f} °C/min > "
-                    f"r_max={config.r_max:.2f} °C/min; SWT write failed, "
-                    "not latching",
-                    level="WARNING",
-                )
-                return
+        # Unreadable / non-binary edges: wipe since; never latch or write SWT.
+        self._flame_on_since = None
 
-        self._supply_sample = (now, supply)
+    def ch_active_event(
+        self,
+        entity: str,
+        attribute: str,
+        old: object,
+        new: object,
+        kwargs: dict,
+    ) -> None:
+        """Wipe since when CH leaves on or observe gate is closed; never latch."""
+        if new != "on" or not self._flame_observe_gate():
+            self._flame_on_since = None
 
     def control_tick(self, kwargs: dict) -> None:
         self._apply_trv_law()
@@ -255,7 +263,7 @@ class HvacApp(hass.Hass):
     def _run_demand(self, zones: list[ZoneSnapshot], outdoor: float) -> None:
         """Shared demand writer for tick and every eligible control_event."""
         config = self._config
-        if self._supply_trip_latched:
+        if self._flame_trip_latched:
             plant_current = self._read_float(config.plant_setpoint)
             if not self._write_setpoint(0.0, plant_reading=plant_current):
                 return
@@ -291,13 +299,13 @@ class HvacApp(hass.Hass):
         self.log(", ".join(parts))
 
     def _hands_off(self, message: str) -> None:
-        self._clear_trip_state()
+        self._clear_flame_trip_state()
         self.log(message, level="WARNING")
 
     def _go_idle(self, message: str, *, level: str = "WARNING") -> None:
-        self._disarm_trip_hold()
+        self._disarm_flame_trip_hold()
         if self._write_setpoint(0.0):
-            self._supply_trip_latched = False
+            self._flame_trip_latched = False
         self.log(message, level=level)
 
     def _read_zones(self, config: HvacConfig) -> list[ZoneSnapshot]:
