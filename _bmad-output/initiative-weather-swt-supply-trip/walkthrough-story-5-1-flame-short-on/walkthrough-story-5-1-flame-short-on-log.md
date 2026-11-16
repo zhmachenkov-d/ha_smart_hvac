@@ -188,3 +188,20 @@ Session: unavailable · Timestamp: 2026-11-16T20:28:32+00:00
 - Result: Current block Periphery. Dirty tree still uncommitted.
 - Evidence: deferred-work; plan; party memlog; walkthrough folder
 - Open: Periphery acceptance; commit ask; then Wrap-up
+
+## 21 — Periphery done → Wrap-up
+
+Session: unavailable · Timestamp: 2026-11-16T20:29:31+00:00
+
+- Action: User accepted Periphery; all review blocks complete; presented Wrap-up.
+- Result: Wrap-up in progress. Follow-through guess: merge PR #151 + mark 5.1 done; 5.2 owns house yaml.
+- Evidence: narrative Wrap-up section
+- Open: user confirm Wrap-up actions (merge / mark done / neither)
+
+## 22 — Wrap-up — mark done + merge
+Session: unavailable · Timestamp: 2026-11-16T20:30:33Z
+
+- Action: User confirmed 1+2 (merge PR #151 + mark 5.1 done). Plan status built→done; narrative Wrap-up closed; commit+push; merge --delete-branch.
+- Result: pending commit+push+merge this step.
+- Evidence: story-tracer-…-plan.md frontmatter; gh pr merge 151
+- Open: none after merge

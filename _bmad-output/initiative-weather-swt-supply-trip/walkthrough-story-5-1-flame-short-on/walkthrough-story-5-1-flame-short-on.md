@@ -1,7 +1,7 @@
 # Walkthrough: Story 5.1 — Tracer: replace supply trip with flame short-on
 Target: [PR #151](https://github.com/zhmachenkov-d/ha_smart_hvac/pull/151) · branch `feat/5-1-flame-short-on` · `e2d9884`+
 
-**Current block:** Periphery (in progress)
+**Current block:** Wrap-up (done — merged PR #151; story marked done)
 
 ## Blocks
 - [x] **Intent** — done (Formal review 5 patch; Test 352 + ruff)
@@ -10,7 +10,8 @@ Target: [PR #151](https://github.com/zhmachenkov-d/ha_smart_hvac/pull/151) · br
 - [x] **Slice: hvac_app — remove supply path; flame observe/latch/clear** — done (Test 27+; Formal review 5 patch)
 - [x] **Slice: `_run_demand` latch gate + ADV8 hold-expiry** — done (Test 15; Formal review 6 patch)
 - [x] **Slice: example yaml + tests flame matrix** — done (Test 20+39)
-- [ ] **Periphery** — in progress
+- [x] **Periphery** — done
+- [x] **Wrap-up** — done (merged PR #151; story marked done)
 
 ---
 
@@ -96,4 +97,11 @@ Planning/process residue beside the App swap — not live water law.
 3. [party-mode … .memlog.md](../../party-mode/memories/installed/.memlog.md) — party planning notes for epic 5
 4. [walkthrough-story-5-1-flame-short-on/](.) — this review narrative, log, demo transcript
 
-Review notes: *(none yet)*
+Review notes: accepted.
+
+---
+
+### Wrap-up
+Merged [PR #151](https://github.com/zhmachenkov-d/ha_smart_hvac/pull/151); story 5.1 plan `status: done`. House flame commission is entry 5.2.
+
+Review notes: User confirmed merge + mark done (1+2).

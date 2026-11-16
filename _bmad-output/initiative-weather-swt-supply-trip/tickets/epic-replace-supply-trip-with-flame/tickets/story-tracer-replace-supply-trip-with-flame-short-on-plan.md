@@ -3,7 +3,7 @@ title: 'Tracer: replace supply trip with flame short-on'
 type: 'feature'
 ticket: '1'
 created: '2026-11-16'
-status: built
+status: done
 baseline_revision: 'b9352a3cc9cd3fd3b887560a729da12a970cdffb'
 route: 'full'
 route_source: 'auto'
