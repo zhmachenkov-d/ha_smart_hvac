@@ -159,3 +159,35 @@ Session: unavailable · Timestamp: 2026-11-16T23:09:30+02:00
 - Result: Returned to House slice; 2/2 header patches applied; slice still in progress
 - Evidence: apps/apps.yaml header; plan house Code Review [x]
 - Open: user accept House slice or other walkthrough move; dirty tree (plan + walkthrough + house comments gitignored)
+
+## 21 — House slice — commit dirty tree
+Session: unavailable · Timestamp: 2026-11-16T23:10:00+02:00
+
+- Action: User said yes to commit; committed plan + walkthrough efb9f77
+- Result: Branch ahead 2; house yaml still gitignored; House slice still in progress
+- Evidence: docs(walkthrough): record 5.2 house-slice formal review
+- Open: House slice Test or done
+
+## 22 — House slice — Test
+Session: unavailable · Timestamp: 2026-11-16T23:11:00+02:00
+
+- Action: Tested house yaml after header patches: header names/retirement; parse_config; ID stability; ignore
+- Result: ALL_PASS (parent confirmed)
+- Evidence: VERIFY header + flame keys + ID_STABLE; .gitignore house files
+- Open: House slice still in progress
+
+## 23 — House slice done; Plan slice presented
+Session: unavailable · Timestamp: 2026-11-16T23:12:00+02:00
+
+- Action: User marked House slice done; presented Plan/verification artifact slice
+- Result: House checked; Plan slice in progress; note dirty tree if any
+- Evidence: narrative; plan Verification + Code Review
+- Open: Plan slice accept; commit yes/no if dirty
+
+## 24 — Plan slice — Second opinion (verdict)
+Session: unavailable · Timestamp: 2026-11-16T23:14:00+02:00
+
+- Action: Fresh subagent second opinion on Plan/verification slice prose
+- Result: Accept as written. Caveats: Verification needs local house yaml+backup; Code Review mixes plan+house blocks; Tasks/Implementation Notes not listed as entry points
+- Evidence: second-opinion agent 5275785b-4bc2-43bf-a924-315a1e777598
+- Open: Plan slice still in progress

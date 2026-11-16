@@ -1,13 +1,13 @@
 # Walkthrough: Story 5.2 — Commission house apps.yaml for flame short-on
 Target: house [apps/apps.yaml](../../../apps/apps.yaml) (gitignored) · backup [apps/apps.yaml.pre-5.2](../../../apps/apps.yaml.pre-5.2) · epic [tickets.toml](../tickets/epic-replace-supply-trip-with-flame/tickets/tickets.toml) entry id 2 · branch `feat/5-2-commission-house-apps-yaml-flame` (tracks origin)
 
-**Current block:** Slice: House flame keys + drop supply trip (in progress)
+**Current block:** Slice: Plan / verification artifact (in progress)
 
 ## Blocks
 - [x] **Intent** — done (Formal review 6 patches; Second opinion accept; Test OK)
 - [x] **Broad strokes** — done (Test + Demo)
-- [ ] **Slice: House flame keys + drop supply trip** — in progress
-- [ ] **Slice: Plan / verification artifact**
+- [x] **Slice: House flame keys + drop supply trip** — done (Formal review 2 patches; Test ALL_PASS)
+- [ ] **Slice: Plan / verification artifact** — in progress
 - [ ] **Periphery**
 - [ ] **Wrap-up**
 
@@ -45,16 +45,22 @@ Plant block swaps legacy supply-trip `boiler_water` for confirmed flame short-on
 - [apps/apps.yaml.pre-5.2](../../../apps/apps.yaml.pre-5.2) (`boiler_water`) — baseline proving trip key removed and other IDs unchanged
 - [apps/apps.yaml](../../../apps/apps.yaml) (outdoor / plant / FF / zones) — retained entity values unchanged vs backup
 
-Review notes: Formal review — 2 patch (header); 2/2 applied.
+Review notes: Formal review — 2 patch (header); 2/2 applied. Test — ALL_PASS after comment patches.
 
 ---
 
 ### Slice: Plan / verification artifact
+House yaml stays gitignored; the tracked story surface is the plan: post-edit Code Map, runnable Verification (key-level trip absence + ID-stability + parse_config), Plan Change Log, and Code Review checkoffs from this walkthrough.
+
+- [story-commission-house-apps-yaml-for-flame-short-on-plan.md](../tickets/epic-replace-supply-trip-with-flame/tickets/story-commission-house-apps-yaml-for-flame-short-on-plan.md) (Code Map) — post-edit inventory
+- [story-commission-house-apps-yaml-for-flame-short-on-plan.md](../tickets/epic-replace-supply-trip-with-flame/tickets/story-commission-house-apps-yaml-for-flame-short-on-plan.md) (Verification) — runnable offline asserts + ignore
+- [story-commission-house-apps-yaml-for-flame-short-on-plan.md](../tickets/epic-replace-supply-trip-with-flame/tickets/story-commission-house-apps-yaml-for-flame-short-on-plan.md) (Plan Change Log / Code Review) — history + review patches checked
+
+Review notes: Second opinion — accept as written.
 
 ---
 
 ### Periphery
-
 ---
 
 ### Wrap-up
