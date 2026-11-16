@@ -182,3 +182,11 @@ Session: unavailable · Timestamp: 2026-11-16T08:50:00+02:00
 - Result: Periphery checked; Wrap-up in progress awaiting user direction
 - Evidence: git dirty plan M + walkthrough ??; branch feat/4-2-commission-trv-apps-yaml
 - Open: user confirm follow-through; do not commit until asked
+
+## 24 — Wrap-up — commit+push
+Session: unavailable · Timestamp: 2026-11-16T08:52:00+02:00
+
+- Action: User chose commit+push to PR #147; committed plan + walkthrough; pushed feat/4-2-commission-trv-apps-yaml
+- Result: `1034c46` docs(bmad): close story 4.2 walkthrough and plan review; Wrap-up done; merge deferred; house yaml not in git
+- Evidence: https://github.com/zhmachenkov-d/ha_smart_hvac/pull/147 ; commit 1034c46
+- Open: merge PR / mark story done if user wants

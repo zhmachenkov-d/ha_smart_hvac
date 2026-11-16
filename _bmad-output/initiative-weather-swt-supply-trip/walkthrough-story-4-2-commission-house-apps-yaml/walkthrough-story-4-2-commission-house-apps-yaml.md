@@ -1,7 +1,7 @@
 # Walkthrough: Story 4.2 — Commission house apps.yaml for TRV soft-close
 Target: house [apps/apps.yaml](../../../apps/apps.yaml) (gitignored) · backup [apps/apps.yaml.pre-4.2](../../../apps/apps.yaml.pre-4.2) · epic entry 2
 
-**Current block:** Wrap-up (in progress)
+**Current block:** Wrap-up (done — commit+push to PR #147; merge deferred)
 
 ## Blocks
 - [x] **Intent** — done (Formal review 5 patches; Second opinion accept; Test parse_config+ignore+ID stability)
@@ -9,7 +9,7 @@ Target: house [apps/apps.yaml](../../../apps/apps.yaml) (gitignored) · backup [
 - [x] **Slice: House Sonoff mappings + floor** — done (Formal review 2 patches; Test ALL_PASS)
 - [x] **Slice: Plan / verification artifact** — done (Second opinion accept; Test Verification OK)
 - [x] **Periphery** — done (Test ALL_PASS)
-- [ ] **Wrap-up** — in progress
+- [x] **Wrap-up** — done (commit+push `1034c46` to PR #147; merge deferred)
 
 ---
 
@@ -74,4 +74,4 @@ Review notes: Test — gitignore + tickets + Notes + demo OK.
 ### Wrap-up
 House commission is on disk (gitignored); tracked follow-through is committing the plan + walkthrough on `feat/4-2-commission-trv-apps-yaml`, then PR / mark story done — no Exclusive Session.
 
-Review notes: awaiting user on commit/push/PR vs walkthrough-only close.
+Review notes: committed plan+walkthrough; pushed; house yaml remains local/gitignored.

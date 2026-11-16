@@ -3,7 +3,7 @@ title: 'Commission house apps.yaml for TRV soft-close'
 type: 'feature'
 ticket: '2'
 created: '2026-11-15'
-status: built
+status: done
 baseline_revision: '3539f091467cbb4e976994d32493f1d3f2ab93d1'
 route: 'oneshot'
 route_source: 'auto'
