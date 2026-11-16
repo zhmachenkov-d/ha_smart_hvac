@@ -1,13 +1,13 @@
 # Walkthrough: Story 4.3 — Refactor sweep
 Target: [PR #148](https://github.com/zhmachenkov-d/ha_smart_hvac/pull/148) · branch `chore/4-3-trv-refactor-sweep` · `e1a3c81`
 
-**Current block:** Slice: Accuracy listen + `_entity_id` strip (in progress)
+**Current block:** Slice: Prelude-isolation + expanded goldens (in progress)
 
 ## Blocks
 - [x] **Intent** — done (Formal review clean; Second opinion accept; Test 335 pytest + ruff)
 - [x] **Broad strokes** — done (Test 15; Demo transcript)
-- [ ] **Slice: Accuracy listen + `_entity_id` strip** — in progress
-- [ ] **Slice: Prelude-isolation + expanded goldens** — unvisited
+- [x] **Slice: Accuracy listen + `_entity_id` strip** — done (Formal review 1 defer; Test 10)
+- [ ] **Slice: Prelude-isolation + expanded goldens** — in progress
 - [ ] **Slice: Deferred prune** — unvisited
 - [ ] **Periphery** — unvisited
 - [ ] **Wrap-up** — unvisited
@@ -46,3 +46,15 @@ Commissioned TRV `accuracy` joins the existing `control_event` listeners (no TRV
 3. [config.py](../../../apps/ha_smart_hvac/config.py) (outdoor/boiler/plant ~L217–224) — same helper on house-level entity fields
 4. [test_hvac_app.py](../../../tests/test_hvac_app.py) (`test_initialize_trv_mapping_listens_on_climate_attrs`, `test_trv_accuracy_state_change_reapplies_law`) — accuracy listen yes / closure listen no; accuracy event re-applies floor
 5. [test_config.py](../../../tests/test_config.py) (whitespace/padded ~L598+) — reject whitespace-only; store padded as stripped
+
+Review notes: Formal review — 0 patch, 1 defer (AGENTS/CONTEXT); Test — 10 focused pytest + ruff clean; spot-check listen + strip OK.
+
+---
+
+### Slice: Prelude-isolation + expanded goldens
+`control_tick` / `control_event` always run `_apply_trv_law` before `_gate_prelude`, so Outdoor-fail or empty-zone idle still leave TRV law having run; each TRV uses its own zone/setpoint/accuracy reads (sibling unread does not block a readable TRV). New goldens lock multi-TRV independent latches, mixed plain-string skip, and cold-start overshoot latch on initialize.
+
+1. [hvac_app.py](../../../apps/ha_smart_hvac/hvac_app.py) (`control_tick` / `control_event` ~L231–249) — `_apply_trv_law` then `_gate_prelude`
+2. [hvac_app.py](../../../apps/ha_smart_hvac/hvac_app.py) (`_apply_trv_law` ~L389) — per-TRV own-reads; skip when own inputs unreadable
+3. [test_hvac_app.py](../../../tests/test_hvac_app.py) (`test_trv_outdoor_fail_*`, `test_trv_empty_zone_*`, `test_trv_sibling_*` ~L2000+) — prelude-isolation ACs
+4. [test_hvac_app.py](../../../tests/test_hvac_app.py) (`test_trv_multi_*`, `test_trv_cold_start_*` ~L2089+) — multi/mixed + cold-start goldens

@@ -21,3 +21,6 @@
 
 ## Settled: epic-4 TRV soft-close leftovers (story-refactor-sweep)
 - Expanded-goldens idle-overshoot half already covered by 4.1 `test_trv_independent_of_heating_demand` (+ core overshoot); remaining A–D closed in this sweep.
+
+## Deferred from: code review of story-refactor-sweep-plan (2026-11-16, walkthrough slice Accuracy listen + `_entity_id`)
+- AGENTS.md / CONTEXT.md listener inventories still omit commissioned TRV `accuracy` as a `control_event` listen (can re-enter demand SWT via shared handler); Intent Never forbids agent-context rewrite in 4.3 — settle in epic-6 / docs hygiene

@@ -131,3 +131,19 @@ Rejected:
 - R15 (intent-alignment): false — same as R3 (descriptive)
 - R16 (intent-alignment): false — same as R4 (descriptive)
 - R17 (intent-alignment): false — idle-overshoot cite-only by frozen Never
+
+### 2026-11-16 (walkthrough slice: Accuracy listen + `_entity_id`)
+**Code review complete.** 0 `decision-needed`, 0 `patch`, 1 `defer`, 9 rejected.
+
+- [x] [Review][Defer] AGENTS/CONTEXT listener inventory omits accuracy control_event listen [AGENTS.md; CONTEXT.md] — deferred: Intent Never forbids AGENTS/CONTEXT rewrite in this story; epic-6 / docs hygiene owns agent-context refresh
+
+Rejected:
+- R1 (blind-hunter): false — listen assert + control_event re-apply cover AC; no Hass listen delivery in unit tests
+- R2 (blind-hunter): false — undershoot floor re-apply meets AC (no mandatory flip)
+- R4 (blind-hunter): low rejected — control_event docstring rarely visible
+- R5 (blind-hunter): low rejected — register docstring wording cosmetic
+- R6 (blind-hunter): low rejected — padded→listen covered by parse+initialize separately
+- R7 (blind-hunter): low rejected — non-str error message cosmetic
+- R8 (edge-case): false — duplicate stripped ids same class as duplicate plain ids
+- R9 (edge-case): false — prune outside intentionally scoped slice diff
+- R10 (intent-alignment): false — descriptive same as R1

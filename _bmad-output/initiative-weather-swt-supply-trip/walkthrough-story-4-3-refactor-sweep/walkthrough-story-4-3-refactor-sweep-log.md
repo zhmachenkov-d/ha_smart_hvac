@@ -1,9 +1,7 @@
 # Review log: Story 4.3 — Refactor sweep
-
 Target: PR #148 · chore/4-3-trv-refactor-sweep · e1a3c81
 
 ## 1 — Orientation — start
-
 Session: unavailable · Timestamp: 2026-11-16T09:54:00+02:00
 
 - Action: Started walkthrough for story 4.3; user requested show descriptions for moves.
@@ -12,7 +10,6 @@ Session: unavailable · Timestamp: 2026-11-16T09:54:00+02:00
 - Open: Confirm target (diff/PR/files) and intent source with user.
 
 ## 2 — Orientation — confirmed
-
 Session: unavailable · Timestamp: 2026-11-16T09:56:00+02:00
 
 - Action: User confirmed walk PR #148 with frozen plan Intent.
@@ -21,7 +18,6 @@ Session: unavailable · Timestamp: 2026-11-16T09:56:00+02:00
 - Open: none
 
 ## 3 — Intent — present
-
 Session: unavailable · Timestamp: 2026-11-16T09:56:30+02:00
 
 - Action: Presented Intent block (verbatim Problem+Approach from plan).
@@ -30,7 +26,6 @@ Session: unavailable · Timestamp: 2026-11-16T09:56:30+02:00
 - Open: Intent acceptance
 
 ## 4 — Intent — Formal review
-
 Session: unavailable · Timestamp: 2026-11-16T10:00:00+02:00
 
 - Action: bmad-code-review on PR #148 / plan baseline 165eb56; lenses BH+EC+VG+IA.
@@ -39,7 +34,6 @@ Session: unavailable · Timestamp: 2026-11-16T10:00:00+02:00
 - Open: Intent still in progress; user choosing code-review next step
 
 ## 5 — Intent — Second opinion
-
 Session: unavailable · Timestamp: 2026-11-16T10:08:00+02:00
 
 - Action: Fresh subagent judged Intent vs e1a3c81 / main…HEAD (no formal review skills).
@@ -48,7 +42,6 @@ Session: unavailable · Timestamp: 2026-11-16T10:08:00+02:00
 - Open: Intent acceptance still with user
 
 ## 6 — Intent — Test
-
 Session: unavailable · Timestamp: 2026-11-16T10:10:00+02:00
 
 - Action: Focused TRV/config pytest (-k entity_id|trv|…); full `uv run pytest`; `uv run ruff check apps/ha_smart_hvac tests`; spot-check accuracy listen + deferred prune.
@@ -57,7 +50,6 @@ Session: unavailable · Timestamp: 2026-11-16T10:10:00+02:00
 - Open: Intent acceptance still with user
 
 ## 7 — Intent — done → Broad strokes
-
 Session: unavailable · Timestamp: 2026-11-16T10:11:00+02:00
 
 - Action: User marked Intent done; presented Broad strokes; noted dirty tree (plan Code Review + walkthrough untracked).
@@ -66,7 +58,6 @@ Session: unavailable · Timestamp: 2026-11-16T10:11:00+02:00
 - Open: Broad strokes acceptance; commit? asked in session
 
 ## 8 — Broad strokes — Test
-
 Session: unavailable · Timestamp: 2026-11-16T10:12:00+02:00
 
 - Action: Focused pytest on initialize/accuracy/prelude/multi/cold-start + whitespace/padded entity_id; spot-check code + deferred-work claims.
@@ -75,7 +66,6 @@ Session: unavailable · Timestamp: 2026-11-16T10:12:00+02:00
 - Open: Broad strokes acceptance; dirty-tree commit still open
 
 ## 9 — Broad strokes — Demo
-
 Session: unavailable · Timestamp: 2026-11-16T10:13:00+02:00
 
 - Action: Offline demo of five Broad-strokes entry points; saved markdown transcript.
@@ -84,10 +74,42 @@ Session: unavailable · Timestamp: 2026-11-16T10:13:00+02:00
 - Open: Broad strokes acceptance; dirty-tree commit still open
 
 ## 10 — Broad strokes — done → Slice accuracy/_entity_id
-
 Session: unavailable · Timestamp: 2026-11-16T10:14:00+02:00
 
 - Action: User marked Broad strokes done; presented Accuracy listen + _entity_id strip slice; dirty tree still open.
 - Result: Broad strokes checked; slice current.
 - Evidence: narrative Slice section
 - Open: slice acceptance; commit?
+
+## 11 — Tree — commit
+Session: unavailable · Timestamp: 2026-11-16T10:26:00+02:00
+
+- Action: User said yes to commit dirty tree (plan Code Review + walkthrough folder).
+- Result: Commit 7e2e216 docs(bmad): record story 4.3 walkthrough and formal review; branch ahead 1 of origin.
+- Evidence: git log -1; 4 files +252
+- Open: Slice Accuracy listen + _entity_id still in progress; not pushed
+
+## 12 — Slice accuracy/_entity_id — Formal review
+Session: unavailable · Timestamp: 2026-11-16T10:28:00+02:00
+
+- Action: bmad-code-review scoped to hvac_app/config + tests; focus accuracy listen + _entity_id.
+- Result: 1 defer AGENTS/CONTEXT listener inventory; 9 rejected; 0 patch.
+- Evidence: plan Code Review ### 2026-11-16 (walkthrough slice…); deferred-work.md new bullet; /tmp/triage-4-3-slice1-6BFpH3.md
+- Open: slice acceptance; code-review next-step menu
+
+## 13 — Slice accuracy/_entity_id — Test
+
+Session: unavailable · Timestamp: 2026-11-16T10:38:00+02:00
+
+- Action: Focused pytest initialize listen + accuracy re-apply + whitespace/padded _entity_id; ruff on touched files; spot-check product lines.
+- Result: 10 passed; ruff clean; spot OK.
+- Evidence: /tmp/wt-4-3-slice1-pytest.txt; /tmp/wt-4-3-slice1-ruff.txt
+- Open: slice acceptance
+## 14 — Slice accuracy/_entity_id — done → Prelude goldens
+
+Session: unavailable · Timestamp: 2026-11-16T10:38:30+02:00
+
+- Action: User marked Accuracy/_entity_id slice done; presented Prelude-isolation + expanded goldens; dirty tree (plan/deferred/walkthrough).
+- Result: Accuracy slice checked; prelude slice current.
+- Evidence: narrative Slice: Prelude-isolation + expanded goldens
+- Open: prelude slice acceptance; commit?
