@@ -582,3 +582,73 @@ def test_parse_rejects_partial_or_invalid_trv_fields(thermostat: object) -> None
     args["zones"][0]["thermostats"] = [thermostat]
     with pytest.raises(ConfigError):
         parse_config(args)
+
+
+@pytest.mark.parametrize(
+    "field_path",
+    [
+        ("outdoor_temperature",),
+        ("boiler_water",),
+        ("plant_management",),
+        ("plant_setpoint",),
+        ("zones", 0, "temperature"),
+        ("zones", 0, "thermostats", 0),
+    ],
+)
+def test_parse_rejects_whitespace_only_entity_id(field_path: tuple) -> None:
+    args = _minimal_args()
+    target = args
+    for key in field_path[:-1]:
+        target = target[key]
+    target[field_path[-1]] = "   "
+    with pytest.raises(ConfigError, match="non-empty entity id"):
+        parse_config(args)
+
+
+def test_parse_rejects_whitespace_only_trv_entity_fields() -> None:
+    args = _minimal_args()
+    for field in ("climate", "valve_closure", "accuracy"):
+        args = _minimal_args()
+        thermo = {
+            "climate": "climate.trv",
+            "valve_closure": "number.trv_closure",
+            "accuracy": "number.trv_accuracy",
+        }
+        thermo[field] = "\t  "
+        args["zones"][0]["thermostats"] = [thermo]
+        with pytest.raises(ConfigError, match="non-empty entity id"):
+            parse_config(args)
+
+
+def test_parse_strips_padded_entity_ids() -> None:
+    args = _minimal_args()
+    args["outdoor_temperature"] = "  sensor.outdoor  "
+    args["boiler_water"] = "\tsensor.boiler_water\n"
+    args["plant_management"] = " switch.pm "
+    args["plant_setpoint"] = "  number.setpoint  "
+    args["zones"] = [
+        {
+            "name": "living_room",
+            "temperature": "  sensor.temp  ",
+            "thermostats": [
+                {
+                    "climate": "  climate.trv  ",
+                    "valve_closure": " number.trv_closure ",
+                    "accuracy": "\tnumber.trv_accuracy\t",
+                },
+                "  climate.generic  ",
+            ],
+        }
+    ]
+    config = parse_config(args)
+    assert config.outdoor_temperature == "sensor.outdoor"
+    assert config.boiler_water == "sensor.boiler_water"
+    assert config.plant_management == "switch.pm"
+    assert config.plant_setpoint == "number.setpoint"
+    zone = config.zones[0]
+    assert zone.temperature == "sensor.temp"
+    trv, generic = zone.thermostats
+    assert trv.climate == "climate.trv"
+    assert trv.valve_closure == "number.trv_closure"
+    assert trv.accuracy == "number.trv_accuracy"
+    assert generic.climate == "climate.generic"
