@@ -108,3 +108,26 @@ context:
 | verification-gap: none | — | — | No gap findings filed |
 | intent-alignment: R2 idle-overshoot vs prune | false | reject | Frozen Never + Design Notes intentionally drop idle-overshoot-if-thin as covered by 4.1; descriptive audit only |
 
+
+## Code Review
+### 2026-11-16
+**Code review complete.** 0 `decision-needed`, 0 `patch`, 0 `defer`, 17 rejected.
+
+Rejected:
+- R1 (blind-hunter): false — accuracy AC met by control_event re-apply + floor write; flip not required
+- R2 (blind-hunter): false — single-TRV initialize exercises accuracy listen branch
+- R3 (blind-hunter): false — empty-zone isolation is law-ran + own-T skip, not soft-close write
+- R4 (blind-hunter): false — tick and control_event share TRV→prelude path
+- R5 (blind-hunter): false — sibling AC is TRV own-reads, not SWT demand
+- R6 (blind-hunter): low rejected — plan checkbox/Implementation Notes hygiene rarely visible
+- R7 (blind-hunter): low rejected — risk metadata drift cosmetic
+- R8 (blind-hunter): low rejected — duplicate closure-listen assert cosmetic
+- R9 (blind-hunter): low rejected — deferred Settled breadcrumbs docs-only
+- R10 (blind-hunter): low rejected — party memlog process artifact
+- R11 (blind-hunter): false — cold-start write-fail latch out of A–D
+- R12 (blind-hunter): false — multi/mixed AC is writes/latches; initialize listens covered elsewhere
+- R13 (blind-hunter): false — plan `valve_closure_degree` naming nit
+- R14 (blind-hunter): false — walkthrough stubs are this-session artifacts, not in HEAD
+- R15 (intent-alignment): false — same as R3 (descriptive)
+- R16 (intent-alignment): false — same as R4 (descriptive)
+- R17 (intent-alignment): false — idle-overshoot cite-only by frozen Never
