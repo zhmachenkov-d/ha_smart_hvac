@@ -1058,12 +1058,16 @@ def _demand_get_state(
 
 
 def _flame_trip_app(**kwargs) -> HvacApp:
+    ch_active = kwargs.pop("ch_active", "on")
+    flame_on = kwargs.pop("flame_on", "off")
     app = _tick_app(**kwargs)
     gate_kwargs = {
         "plant_management": kwargs.get("plant_management", "on"),
         "hvac_action": kwargs.get("hvac_action", "heating"),
         "plant_setpoint": kwargs.get("plant_setpoint", 45.0),
         "outdoor": kwargs.get("outdoor", _OUTDOOR_TEMP),
+        "ch_active": ch_active,
+        "flame_on": flame_on,
     }
     app.get_state = MagicMock(side_effect=_demand_get_state(**gate_kwargs))
     return app
@@ -1170,6 +1174,54 @@ def test_ch_active_listener_wipes_since_without_latch() -> None:
     assert app._flame_on_since is None
     assert not app._flame_trip_latched
     assert _set_value_writes(app) == []
+
+
+def test_ch_active_open_gate_preserves_armed_since() -> None:
+    app = _flame_trip_app()
+    times = iter([100.0])
+    app._monotonic = MagicMock(side_effect=lambda: next(times))
+    _fire_flame(app, old="off", new="on")
+    assert app._flame_on_since == 100.0
+
+    app.ch_active_event(_CH_ACTIVE, "state", "on", "on", {})
+
+    assert app._flame_on_since == 100.0
+    assert not app._flame_trip_latched
+    assert _set_value_writes(app) == []
+
+
+def test_ch_active_off_event_wipes_even_when_current_state_on() -> None:
+    """Queued CH-off must wipe even if get_state already bounced back to on."""
+    app = _flame_trip_app()
+    app._flame_on_since = 42.0
+    app.get_state = MagicMock(side_effect=_demand_get_state(ch_active="on"))
+
+    app.ch_active_event(_CH_ACTIVE, "state", "on", "off", {})
+
+    assert app._flame_on_since is None
+    assert not app._flame_trip_latched
+    assert _set_value_writes(app) == []
+
+
+def test_open_gate_fall_without_since_does_not_latch() -> None:
+    app = _flame_trip_app()
+    app._flame_on_since = None
+
+    _fire_flame(app, old="on", new="off")
+
+    assert app._flame_on_since is None
+    assert not app._flame_trip_latched
+    app.run_in.assert_not_called()
+    assert _set_value_writes(app) == []
+
+
+def test_closed_gate_arm_does_not_set_since() -> None:
+    app = _flame_trip_app(plant_management="off")
+
+    _fire_flame(app, old="off", new="on")
+
+    assert app._flame_on_since is None
+    assert not app._flame_trip_latched
 
 
 def test_flame_short_on_under_demand_outdoor_unavailable() -> None:
@@ -1296,11 +1348,14 @@ def test_flame_hold_expiry_closed_gate_clears_only() -> None:
     app._flame_trip_latched = True
     app._flame_trip_hold_handle = "hold-handle"
     app._flame_trip_hold_token = 3
+    trv = MagicMock(wraps=app._apply_trv_law)
+    app._apply_trv_law = trv  # type: ignore[method-assign]
 
     app._flame_trip_hold_expired({"token": 3})
 
     assert not app._flame_trip_latched
     assert _set_value_writes(app) == []
+    trv.assert_called_once()
 
 
 def test_idle_clears_flame_trip_state() -> None:

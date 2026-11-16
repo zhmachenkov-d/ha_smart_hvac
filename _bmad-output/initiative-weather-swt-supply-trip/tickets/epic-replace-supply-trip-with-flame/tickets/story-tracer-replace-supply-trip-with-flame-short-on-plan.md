@@ -116,3 +116,16 @@ Dual-gate observe stays Outdoor-free. Latched SWT only via `_run_demand`. ADV8 a
 **Commands:**
 - `uv run pytest` -- expected: pass
 - `uv run ruff check apps/ha_smart_hvac tests` -- expected: clean
+
+## Code Review
+
+### 2026-11-16
+**Code review complete.** 0 decision-needed, 5 patch, 0 defer, 15 rejected.
+
+- [x] [Review][Patch] ch_active_event re-reads gate and can miss a CH-off wipe (race + missing open-gate preserve test) [apps/ha_smart_hvac/hvac_app.py:225]
+- [x] [Review][Patch] Open-gate flame fall with since None is untested [apps/ha_smart_hvac/hvac_app.py:190]
+- [x] [Review][Patch] Closed-gate off→on arm wipe branch unpinned [apps/ha_smart_hvac/hvac_app.py:183]
+- [x] [Review][Patch] Closed-gate hold expiry does not assert ADV8 TRV still runs [tests/test_hvac_app.py:1294]
+- [x] [Review][Patch] _flame_trip_app silently drops ch_active/flame_on kwargs [tests/test_hvac_app.py:1060]
+
+Rejected: R1 Always arm wording vs code (frozen Always; Never+code correct); R2/R18 stale triage predicates (process noise); R3 status/checkbox drift (cosmetic); R4 AC vs legacy-ignore fixtures (intentional); R5 E1 example comments (deferred); R6 V1 900.9 golden (deferred); R9 non-positive duration (monotonic unreachable); R11 init warn only boiler_water (parse already covers); R12 True→False vs on/off (E1/Intent); R13 AGENTS/ADR supply trip (Never/epic 6); R15 Outdoor idle wipes since (Always requires disarm); R19 R-C vs R-D (aligned); R20 docs/house out of scope (intentional).

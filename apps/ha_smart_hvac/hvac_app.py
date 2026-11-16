@@ -230,8 +230,8 @@ class HvacApp(hass.Hass):
         new: object,
         kwargs: dict,
     ) -> None:
-        """CH active changes wipe since when observe gate is closed; never latch."""
-        if not self._flame_observe_gate():
+        """Wipe since when CH leaves on or observe gate is closed; never latch."""
+        if new != "on" or not self._flame_observe_gate():
             self._flame_on_since = None
 
     def control_tick(self, kwargs: dict) -> None:
