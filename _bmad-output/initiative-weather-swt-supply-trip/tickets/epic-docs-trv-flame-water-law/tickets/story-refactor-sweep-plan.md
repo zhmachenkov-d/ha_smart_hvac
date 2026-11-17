@@ -1,6 +1,6 @@
 ---
 title: 'Refactor sweep'
-status: review
+status: done
 story: '6.3'
 epic: epic-docs-trv-flame-water-law
 ---
