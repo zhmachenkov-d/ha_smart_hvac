@@ -2195,6 +2195,62 @@ def test_trv_equal_float_skips_set_value() -> None:
     app = _trv_app(zone_temp=20.0, setpoint=22.0, closure=80.0)
     app.control_tick({})
     assert all(eid != _TRV_CLOSURE for eid, _ in _set_value_by_entity(app))
+    assert not any(m.startswith("TRV ") for m in _info_msgs(app))
+
+
+def test_trv_overshoot_logs_closure_change_with_reason() -> None:
+    app = _trv_app(zone_temp=23.0, setpoint=22.0, accuracy=0.5, closure=80.0)
+    app.control_tick({})
+    assert any(
+        m.startswith(f"TRV {_TRV_CLOSURE}: closure 80.0 → 100.0") and "overshoot:" in m
+        for m in _info_msgs(app)
+    )
+
+
+def test_trv_floor_logs_closure_change_with_reason() -> None:
+    app = _trv_app(zone_temp=20.0, setpoint=22.0, accuracy=0.5, closure=10.0)
+    app.control_tick({})
+    assert any(
+        m.startswith(f"TRV {_TRV_CLOSURE}: closure 10.0 → 80.0") and "floor:" in m
+        for m in _info_msgs(app)
+    )
+
+
+def test_trv_clear_logs_closure_change_with_reason() -> None:
+    app = _trv_app(zone_temp=21.5, setpoint=22.0, accuracy=0.5, closure=100.0)
+    app._trv_overshoot_latched.add(_TRV_CLOSURE)
+    app.control_tick({})
+    assert any(
+        m.startswith(f"TRV {_TRV_CLOSURE}: closure 100.0 → 80.0")
+        and "overshoot clear:" in m
+        for m in _info_msgs(app)
+    )
+
+
+def test_trv_plant_off_logs_closure_change_with_reason() -> None:
+    app = _trv_app(
+        plant_management="off",
+        zone_temp=20.0,
+        setpoint=22.0,
+        closure=80.0,
+    )
+    app.control_tick({})
+    assert any(
+        m.startswith(f"TRV {_TRV_CLOSURE}: closure 80.0 → 100.0")
+        and "plant management off" in m
+        for m in _info_msgs(app)
+    )
+
+
+def test_trv_overshoot_hold_logs_closure_change_with_reason() -> None:
+    app = _trv_app(zone_temp=22.3, setpoint=22.0, accuracy=0.5, closure=80.0)
+    app._trv_overshoot_latched.add(_TRV_CLOSURE)
+    app.control_tick({})
+    assert any(
+        m.startswith(f"TRV {_TRV_CLOSURE}: closure 80.0 → 100.0")
+        and "overshoot hold:" in m
+        for m in _info_msgs(app)
+    )
 
 
 def test_trv_control_event_applies_law() -> None:

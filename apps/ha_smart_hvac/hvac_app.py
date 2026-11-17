@@ -376,7 +376,7 @@ class HvacApp(hass.Hass):
             return None
         return str(value)
 
-    def _write_number(self, entity_id: str, value: float) -> bool:
+    def _write_number(self, entity_id: str, value: float, *, reason: str) -> bool:
         """Equal-float number write; True when command is confirmed or already set."""
         current = self._read_float(entity_id)
         if current is None:
@@ -392,6 +392,7 @@ class HvacApp(hass.Hass):
             entity_id=entity_id,
             value=value,
         )
+        self.log(f"TRV {entity_id}: closure {current} → {value} ({reason})")
         return True
 
     def _apply_trv_law(self) -> None:
@@ -405,7 +406,11 @@ class HvacApp(hass.Hass):
                 if closure_id is None or accuracy_id is None:
                     continue
                 if not plant_on:
-                    self._write_number(closure_id, 100.0)
+                    self._write_number(
+                        closure_id,
+                        100.0,
+                        reason="plant management off",
+                    )
                     continue
 
                 t_zone = self._read_float(zone.temperature)
@@ -416,20 +421,48 @@ class HvacApp(hass.Hass):
                 latched = closure_id in self._trv_overshoot_latched
                 if latched:
                     if t_zone <= setpoint:
-                        if self._write_number(closure_id, config.valve_closure_floor):
+                        if self._write_number(
+                            closure_id,
+                            config.valve_closure_floor,
+                            reason=(
+                                f"overshoot clear: T_zone={t_zone:.2f} ≤ "
+                                f"setpoint={setpoint:.2f}"
+                            ),
+                        ):
                             self._trv_overshoot_latched.discard(closure_id)
                     else:
-                        self._write_number(closure_id, 100.0)
+                        self._write_number(
+                            closure_id,
+                            100.0,
+                            reason=(
+                                f"overshoot hold: T_zone={t_zone:.2f} > "
+                                f"setpoint={setpoint:.2f}"
+                            ),
+                        )
                     continue
 
                 accuracy = self._read_float(accuracy_id)
                 if accuracy is None:
                     continue
                 if t_zone > setpoint + accuracy:
-                    if self._write_number(closure_id, 100.0):
+                    if self._write_number(
+                        closure_id,
+                        100.0,
+                        reason=(
+                            f"overshoot: T_zone={t_zone:.2f} > "
+                            f"setpoint+accuracy={setpoint + accuracy:.2f}"
+                        ),
+                    ):
                         self._trv_overshoot_latched.add(closure_id)
                 else:
-                    self._write_number(closure_id, config.valve_closure_floor)
+                    self._write_number(
+                        closure_id,
+                        config.valve_closure_floor,
+                        reason=(
+                            f"floor: T_zone={t_zone:.2f} ≤ "
+                            f"setpoint+accuracy={setpoint + accuracy:.2f}"
+                        ),
+                    )
 
     def _write_setpoint(
         self, value: float, *, plant_reading: object = _READ_PLANT
