@@ -3,7 +3,7 @@ title: 'knowledge/: live curve+TRV+flame; demote supply-trip'
 type: 'feature'
 ticket: '2'
 created: '2026-11-17'
-status: built
+status: done
 baseline_revision: 'c85eeee243caff6cf21d66c20a7653a1332b40f9'
 route: 'full'
 route_source: 'auto'
