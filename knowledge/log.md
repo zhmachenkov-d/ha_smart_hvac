@@ -2,6 +2,12 @@
 
 Append-only history of OKF ingest and lint passes.
 
+## 2026-11-17 — Align live SWT knowledge with ADR 0008 (TRV + flame; demote supply-trip)
+
+- **Updated:** `concepts/set-water-temperature`, `outdoor-temperature`, `critical-zone`, `multi-zone-coordinator`, `rls-adaptive-pid`, `adrc`, `ladrc`, `madrc`; `references/huang-2018-ladrc-hvac`, `wang-2026-madrc-sst`; `concepts/index.md`, root `index.md`; `AGENTS.md` knowledge line (clear until-6.2 warning).
+- **Created:** `concepts/trv-soft-close`, `concepts/flame-short-on-trip`.
+- **Fact:** live SWT is Weather Feedforward `round-to-0.1(clamp(u_ff))` with TRV soft-close and flame short-on under ADR 0008 (dual-gate); supply rise-rate trip demoted to ADR 0007 historical; Outdoor on demand path / not flame observe; CZ diagnostics-only for SWT/TRV/flame.
+
 ## 2026-11-14 — Align live SWT knowledge with ADR 0007
 
 - **Updated:** `concepts/set-water-temperature`, `outdoor-temperature`, `critical-zone`, `rls-adaptive-pid`, `adrc`, `ladrc`, `madrc`, `multi-zone-coordinator`; `references/huang-2018-ladrc-hvac`, `wang-2026-madrc-sst`; `concepts/index.md`, root `index.md`.

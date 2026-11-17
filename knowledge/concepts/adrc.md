@@ -3,7 +3,7 @@ type: Concept
 title: ADRC
 description: Active Disturbance Rejection Control — estimate and cancel total disturbance each sample, then apply a simple outer controller.
 tags: [control, adrc, plant]
-timestamp: 2026-11-14T14:58:00Z
+timestamp: 2026-11-17T12:00:00Z
 ---
 
 # ADRC
@@ -14,7 +14,7 @@ Original ADRC uses nonlinear ESO and nonlinear feedback; parameter tuning is awk
 
 ## In this project
 
-ADRC / LADRC on the water path is **removed** — **superseded by ADR 0007**. Live [Set Water Temperature](/concepts/set-water-temperature.md) is Weather Feedforward `round-to-0.1(clamp(u_ff))` with supply rise-rate trip under Plant Management / Heating Demand; the [Multi-Zone Coordinator](/concepts/multi-zone-coordinator.md) selects [Critical Zone](/concepts/critical-zone.md) for diagnostics and logging only. This page stays as literature depth, not the live App stack.
+ADRC / LADRC on the water path is **removed** — **superseded by ADR 0008**. Live [Set Water Temperature](/concepts/set-water-temperature.md) is Weather Feedforward `round-to-0.1(clamp(u_ff))` with [TRV soft-close](/concepts/trv-soft-close.md) and [flame short-on trip](/concepts/flame-short-on-trip.md) under Plant Management / Heating Demand; the [Multi-Zone Coordinator](/concepts/multi-zone-coordinator.md) selects [Critical Zone](/concepts/critical-zone.md) for diagnostics and logging only. This page stays as literature depth, not the live App stack.
 
 Literature:
 
@@ -32,4 +32,4 @@ Literature:
 
 - [/references/huang-2018-ladrc-hvac.md](/references/huang-2018-ladrc-hvac.md) §1, §3.1
 - [/references/wang-2026-madrc-sst.md](/references/wang-2026-madrc-sst.md) §3
-- [ADR 0007](../../docs/adr/0007-weather-curve-supply-trip-swt.md) — live SWT is weather-curve + trip, not ADRC
+- [ADR 0008](../../docs/adr/0008-weather-curve-trv-flame-swt.md) — live SWT is weather-curve + TRV + flame, not ADRC

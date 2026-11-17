@@ -1,16 +1,18 @@
 ---
 type: Concept
 title: RLS adaptive PID
-description: Historical optional online retune of PID Kp/Ki via RLS — not on the live water path; superseded by ADR 0007 weather-curve SWT.
+description: Historical optional online retune of PID Kp/Ki via RLS — not on the live water path; superseded by ADR 0008 weather-curve SWT + TRV + flame.
 tags: [pid, plant, adaptive, historical]
-timestamp: 2026-11-14T14:53:00Z
+timestamp: 2026-11-17T12:00:00Z
 ---
 
 # RLS adaptive PID
 
 ## Project note
 
-RLS adaptive PID is **not on the live water path** — **superseded by ADR 0007**. Live [Set Water Temperature](/concepts/set-water-temperature.md) is Weather Feedforward `round-to-0.1(clamp(u_ff))` with supply rise-rate trip under Plant Management and Heating Demand. ADR 0005 (fixed-PID SWT) and ADR 0006 (optional RLS) are historical prior art only. The mechanics below describe what the App *used* to support; do not commission `pid.adaptive` or `rls_state.json` on the current path.
+RLS adaptive PID is **not on the live water path** — **superseded by ADR 0008**. Current [Set Water Temperature](/concepts/set-water-temperature.md) is Weather Feedforward `round-to-0.1(clamp(u_ff))` with [TRV soft-close](/concepts/trv-soft-close.md) and [flame short-on trip](/concepts/flame-short-on-trip.md) under Plant Management and Heating Demand.
+
+ADR 0005 (fixed-PID SWT), ADR 0006 (optional RLS), and ADR 0007 (supply rise-rate trip era) are historical prior art only. The mechanics below describe what the App *used* to support; do not commission `pid.adaptive` or `rls_state.json` on the current path.
 
 ---
 
@@ -26,6 +28,7 @@ Learned state lived in `rls_state.json` under the AppDaemon app directory, separ
 # Citations
 
 - [`CONTEXT.md`](../../CONTEXT.md) — Weather Feedforward (live); PID terms historical
-- [ADR 0007](../../docs/adr/0007-weather-curve-supply-trip-swt.md) — live SWT law
+- [ADR 0008](../../docs/adr/0008-weather-curve-trv-flame-swt.md) — live SWT law
+- [ADR 0007](../../docs/adr/0007-weather-curve-supply-trip-swt.md) — historical weather-curve + supply trip (superseded)
 - [ADR 0006](../../docs/adr/0006-optional-rls-adaptive-pid.md) — historical optional RLS adaptive Kp/Ki
 - [ADR 0005](../../docs/adr/0005-fixed-pid-swt.md) — historical fixed-PID SWT law

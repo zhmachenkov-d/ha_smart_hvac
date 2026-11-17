@@ -3,7 +3,7 @@ type: Concept
 title: LADRC
 description: Linear Active Disturbance Rejection Control — linear ESO plus linear state feedback; practical ADRC form with fewer tuning knobs.
 tags: [control, adrc, ladrc]
-timestamp: 2026-11-14T14:58:00Z
+timestamp: 2026-11-17T12:00:00Z
 ---
 
 # LADRC
@@ -27,7 +27,7 @@ u_0 = k_p(T_r - z_1),\quad u = (u_0 - z_2)/b_0
 
 ## Project note
 
-LADRC-on-Critical-Zone water control is **removed** — **superseded by ADR 0007**. Live [Set Water Temperature](/concepts/set-water-temperature.md) is Weather Feedforward `round-to-0.1(clamp(u_ff))` with supply rise-rate trip under Plant Management / Heating Demand; the [Multi-Zone Coordinator](/concepts/multi-zone-coordinator.md) selects [Critical Zone](/concepts/critical-zone.md) for diagnostics and logging only. Huang’s plant (coil water **flow**) and gains remain literature only, not the App path.
+LADRC-on-Critical-Zone water control is **removed** — **superseded by ADR 0008**. Live [Set Water Temperature](/concepts/set-water-temperature.md) is Weather Feedforward `round-to-0.1(clamp(u_ff))` with [TRV soft-close](/concepts/trv-soft-close.md) and [flame short-on trip](/concepts/flame-short-on-trip.md) under Plant Management / Heating Demand; the [Multi-Zone Coordinator](/concepts/multi-zone-coordinator.md) selects [Critical Zone](/concepts/critical-zone.md) for diagnostics and logging only. Huang’s plant (coil water **flow**) and gains remain literature only, not the App path.
 
 ## Related
 
@@ -37,4 +37,4 @@ LADRC-on-Critical-Zone water control is **removed** — **superseded by ADR 0007
 # Citations
 
 - [/references/huang-2018-ladrc-hvac.md](/references/huang-2018-ladrc-hvac.md) §3.1, Tables 6–7
-- [ADR 0007](../../docs/adr/0007-weather-curve-supply-trip-swt.md) — live SWT is weather-curve + trip, not LADRC
+- [ADR 0008](../../docs/adr/0008-weather-curve-trv-flame-swt.md) — live SWT is weather-curve + TRV + flame, not LADRC
