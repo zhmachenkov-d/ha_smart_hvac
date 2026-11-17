@@ -12,7 +12,7 @@ flowchart TD
   zero[Write SWT = 0; clear water-path state]
   ff[u_ff = weather_feedforward outdoor + FF params]
   clamp[Write SWT = clamp u_ff]
-  ac[CAP-7 auto-correct FF params from max-error zone rise rate]
+  ac[R7 auto-correct FF params from max-error zone rise rate]
   periodic --> pm
   events --> pm
   pm -->|no| hands
@@ -20,7 +20,7 @@ flowchart TD
   demand -->|no| zero
   demand -->|yes| ff --> clamp
   periodic -->|yes demand| ac -.->|updates params| ff
-  events -.->|no CAP-7 sample advance| ac
+  events -.->|no R7 sample advance| ac
 ```
 
 ## Explicitly removed from SWT path

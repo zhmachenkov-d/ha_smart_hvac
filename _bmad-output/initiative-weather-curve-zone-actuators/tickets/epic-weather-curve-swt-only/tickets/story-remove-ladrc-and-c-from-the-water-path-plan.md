@@ -12,7 +12,7 @@ review_source: 'pinned'
 lenses_ran: ['quick']
 review_loop_iteration: 0
 context:
-  - '{project-root}/_bmad-output/initiative-weather-curve-zone-actuators/spec-weather-curve-swt-only/spec-weather-curve-swt-only.md'
+  - '{project-root}/_bmad-output/initiative-weather-curve-zone-actuators/initiative-weather-curve-zone-actuators.md'
   - '{project-root}/_bmad-output/initiative-weather-curve-zone-actuators/tickets/epic-weather-curve-swt-only/tickets/story-tracer-weather-curve-swt-law-plan.md'
 ---
 
@@ -20,9 +20,9 @@ context:
 
 ## Intent
 
-**Problem:** After story 1.1, water-path LADRC/ωc and CZ-as-SWT symbols still sit dormant — CAP-4 requires removal, not dormancy.
+**Problem:** After story 1.1, water-path LADRC/ωc and CZ-as-SWT symbols still sit dormant — R4 requires removal, not dormancy.
 
-**Approach:** Delete LADRC + ωc tuner/persistence + blow-up helpers, strip ladrc/tune yaml/config, purge `select_critical_zone`/`ControlDecision`; rewrite tests so CAP-5 and keepers stay green. ADR/CONTEXT → entry 1.3.
+**Approach:** Delete LADRC + ωc tuner/persistence + blow-up helpers, strip ladrc/tune yaml/config, purge `select_critical_zone`/`ControlDecision`; rewrite tests so R5 and keepers stay green. ADR/CONTEXT → entry 1.3.
 
 ## Boundaries & Constraints
 
@@ -30,13 +30,13 @@ context:
 - FF law unchanged: PM on + demand → `clamp(u_ff)`; plant-on idle → `0`; plant-off → no write; `setpoint_min` 40; reuse `has_heating_demand` + `weather_feedforward`.
 - Delete `ladrc.py`/`ladrc_tuner.py` (ωc load/persist/`publish_sensor`/tune-state gone), all `hvac_app` residue/guard/blow-up/ωc helpers, `_ladrc`/`_tuner`/`_blow_up_*`.
 - Strip `ladrc`/`tune_state_path` from models, `parse_config`, `apps.yaml.example`.
-- Delete `select_critical_zone` + `ControlDecision` (CAP-7 may later ID max-error zone for rise-rate only).
+- Delete `select_critical_zone` + `ControlDecision` (R7 may later ID max-error zone for rise-rate only).
 - `test_ladrc.py` / `test_ladrc_tuner.py` gone or absence-only; slim `_tick_*` and rewrite **all** keepers on them; suite green.
 - No house entity-ID commits; operator strips leftover `ladrc:` from gitignored `apps/apps.yaml` before Exclusive Session (no warn-on-unknown).
 
 **Never:**
 - Touch ADR/CONTEXT/AGENTS/house-calibration/`knowledge/`.
-- Reintroduce air→SWT tracking, lower `setpoint_min`, CAP-6/CAP-7, or leave dormant LADRC/tuner/CZ-driver/ωc-persist API.
+- Reintroduce air→SWT tracking, lower `setpoint_min`, R6/R7, or leave dormant LADRC/tuner/CZ-driver/ωc-persist API.
 
 ## I/O & Edge-Case Matrix
 
@@ -59,14 +59,14 @@ context:
 - `coordinator.py` — Drop `select_critical_zone`; keep `has_heating_demand`.
 - `__init__.py`, `apps.yaml.example` — Drop LADRC docstring / ladrc block.
 - `tests/test_ladrc.py`, `test_ladrc_tuner.py` — delete or absence-only.
-- `tests/test_hvac_app.py` (or slim `test_config.py`) — Migrate parse-without-ladrc + example smoke from tuner tests; slim `_tick_args`/`_tick_app`; rewrite **all** keepers (CAP-5 a–e, fail-write, outdoor/zones matrix, `write_setpoint_*`); delete leave-list residue/guard/latch/ωc tests.
+- `tests/test_hvac_app.py` (or slim `test_config.py`) — Migrate parse-without-ladrc + example smoke from tuner tests; slim `_tick_args`/`_tick_app`; rewrite **all** keepers (R5 a–e, fail-write, outdoor/zones matrix, `write_setpoint_*`); delete leave-list residue/guard/latch/ωc tests.
 - `tests/test_coordinator.py` — Drop picker tests; keep `has_heating_demand_*`.
 - Out of scope: ADR/CONTEXT, house entity IDs, `knowledge/`.
 
 ## Tasks & Acceptance
 
 **Execution:**
-- [x] `apps/ha_smart_hvac/ladrc.py` + `ladrc_tuner.py` -- Delete (ωc persist/load/publish gone) -- CAP-4
+- [x] `apps/ha_smart_hvac/ladrc.py` + `ladrc_tuner.py` -- Delete (ωc persist/load/publish gone) -- R4
 - [x] `apps/ha_smart_hvac/models.py` + `config.py` -- Strip Ladrc*/ControlDecision + ladrc/tune parse -- contract
 - [x] `apps/ha_smart_hvac/coordinator.py` -- Delete `select_critical_zone` -- CZ API
 - [x] `apps/ha_smart_hvac/hvac_app.py` + `__init__.py` -- Remove helpers/construct/clear -- runtime
@@ -86,7 +86,7 @@ context:
 
 ## Implementation Notes
 
-2026-10-18: CAP-4 removal complete. Deleted `ladrc.py`/`ladrc_tuner.py` and `test_ladrc.py`/`test_ladrc_tuner.py`. Stripped `Ladrc*`/`ControlDecision`/`tune_state_path` from models+config; deleted all blow-up/ωc helpers and `_ladrc`/`_tuner`/`_blow_up_*` from `hvac_app`; deleted `select_critical_zone`. `_tick_app` is `_config` only; idle/off no longer clear gone objects. Migrated parse/example smoke (+ module absence) into `tests/test_config.py`. Left `ZoneSnapshot.reference_setpoint` for possible CAP-7. Operator must strip leftover `ladrc:` from gitignored `apps/apps.yaml` before Exclusive Session. Verified: `uv run pytest` 78 passed; ruff check/format clean; plan `rg` has no matches in package/example.
+2026-10-18: R4 removal complete. Deleted `ladrc.py`/`ladrc_tuner.py` and `test_ladrc.py`/`test_ladrc_tuner.py`. Stripped `Ladrc*`/`ControlDecision`/`tune_state_path` from models+config; deleted all blow-up/ωc helpers and `_ladrc`/`_tuner`/`_blow_up_*` from `hvac_app`; deleted `select_critical_zone`. `_tick_app` is `_config` only; idle/off no longer clear gone objects. Migrated parse/example smoke (+ module absence) into `tests/test_config.py`. Left `ZoneSnapshot.reference_setpoint` for possible R7. Operator must strip leftover `ladrc:` from gitignored `apps/apps.yaml` before Exclusive Session. Verified: `uv run pytest` 78 passed; ruff check/format clean; plan `rg` has no matches in package/example.
 
 ## Plan Change Log
 

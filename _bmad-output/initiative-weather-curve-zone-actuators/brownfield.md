@@ -16,7 +16,7 @@
 
 Heating Demand is an any-zone boolean. **Critical Zone is not an SWT driver.**
 
-Weather Feedforward parameters: house-commissioned (CAP-6) and **auto-corrected from the rise rate of the zone with largest Zone Error** among zones with Heating Demand (CAP-7). That max-error identification feeds FF params only — never an air tracking term on SWT.
+Weather Feedforward parameters: house-commissioned (R6) and **auto-corrected from the rise rate of the zone with largest Zone Error** among zones with Heating Demand (R7). That max-error identification feeds FF params only — never an air tracking term on SWT.
 
 ## Clamp note
 
@@ -30,11 +30,11 @@ Weather Feedforward parameters: house-commissioned (CAP-6) and **auto-corrected 
 - ADR 0002 / ADR 0003 as governing water-control decisions — **superseded by a new ADR** stating weather-curve-only SWT + FF commissioning/auto-correct.
 - CONTEXT.md / AGENTS.md language that states Critical Zone air drives LADRC for Set Water Temperature — update with the new ADR.
 
-## Reactivity (CAP-8)
+## Reactivity (R8)
 
-- **Periodic:** `run_every` → `control_tick` still runs the full CAP-1…CAP-3 path and is the only schedule that advances CAP-7 rise-rate window / I1 sampling.
+- **Periodic:** `run_every` → `control_tick` still runs the full R1…R3 path and is the only schedule that advances R7 rise-rate window / I1 sampling.
 - **Event:** Same gate law also re-runs via `listen_state` → `control_event` when Plant Management, any configured thermostat `hvac_action` or setpoint, any configured zone air temperature, or Outdoor Temperature changes, without waiting solely for the next periodic tick.
-- **CAP-7:** Event re-evaluations must not advance rise-rate window / I1 samples or persist FF JSON; on demand they write `clamp(u_ff)` only. Fail/idle clears still run on events (same as tick). No debounce — equal-float skip throttles writes only.
+- **R7:** Event re-evaluations must not advance rise-rate window / I1 samples or persist FF JSON; on demand they write `clamp(u_ff)` only. Fail/idle clears still run on events (same as tick). No debounce — equal-float skip throttles writes only.
 
 ## Out of this brownfield wave
 

@@ -30,28 +30,28 @@ context:
 - Heating Demand predicate is thermostat `hvac_action == "heating"` (idle / off / cooling / unavailable / None do not demand).
 - Shared API: `ZoneSnapshot.has_heating_eligible` (property wrapping `_eligible_thermostats`); both `has_heating_demand` and `select_max_error_demand_zone` must use it — not `zone_error > 0` and not `isfinite(zone_error)`.
 - Plant Management off / outdoor missing / no valid zones behavior unchanged.
-- CAP-7 demand pool uses the same Heating Demand predicate; then pick max `zone_error` among that pool (error may be ≤ 0). Zone Error formula and rise-rate math otherwise unchanged — including existing `near_setpoint_eps_k` hold when `|error| < eps`.
+- R7 demand pool uses the same Heating Demand predicate; then pick max `zone_error` among that pool (error may be ≤ 0). Zone Error formula and rise-rate math otherwise unchanged — including existing `near_setpoint_eps_k` hold when `|error| < eps`.
 - Domain language stays Heating Demand / Zone Error / Critical Zone per CONTEXT.
 
 **Never:**
 - Restore air→SWT tracking or Critical Zone as SWT driver.
-- Change weather-curve `clamp(u_ff)` formula or CAP-8 listener set.
+- Change weather-curve `clamp(u_ff)` formula or R8 listener set.
 - Use setpoint−temp sign as the SWT Heating Demand gate.
 - Keep a separate `zone_error > 0` filter inside `select_max_error_demand_zone`.
 - Define Heating Demand as `zone_error > -inf` / `isfinite(zone_error)` alone.
 
 **Decisions:**
-- CAP-7 demand pool aligns with Heating Demand (`hvac_action == "heating"`), then max Zone Error among that pool.
+- R7 demand pool aligns with Heating Demand (`hvac_action == "heating"`), then max Zone Error among that pool.
 - Public eligibility API is `ZoneSnapshot.has_heating_eligible`.
 
 ## I/O & Edge-Case Matrix
 
 | Scenario | Input / State | Expected Output / Behavior | Error Handling |
 |----------|--------------|---------------------------|----------------|
-| Heating, error ≤ 0 | Any zone has thermostat `hvac_action=heating`, zone_error ≤ 0 | `has_heating_demand` True → demand path (`clamp(u_ff)` when plant on); CAP-7 may select that zone | No error expected |
-| Heating, deep overshoot | `hvac_action=heating`, zone_error ≤ −`near_setpoint_eps_k` | Demand True; CAP-7 may select; near_setpoint hold only if `|error| < eps`; otherwise rise-rate adaptation allowed (unchanged) | No error expected |
-| Idle, large delta | All thermostats non-heating; air far below setpoint | `has_heating_demand` False → plant-on idle writes `0`; CAP-7 returns None | No error expected |
-| Mixed zones | One heating (any error), peers idle | Demand True; CAP-7 picks max error among heating zones only | No error expected |
+| Heating, error ≤ 0 | Any zone has thermostat `hvac_action=heating`, zone_error ≤ 0 | `has_heating_demand` True → demand path (`clamp(u_ff)` when plant on); R7 may select that zone | No error expected |
+| Heating, deep overshoot | `hvac_action=heating`, zone_error ≤ −`near_setpoint_eps_k` | Demand True; R7 may select; near_setpoint hold only if `|error| < eps`; otherwise rise-rate adaptation allowed (unchanged) | No error expected |
+| Idle, large delta | All thermostats non-heating; air far below setpoint | `has_heating_demand` False → plant-on idle writes `0`; R7 returns None | No error expected |
+| Mixed zones | One heating (any error), peers idle | Demand True; R7 picks max error among heating zones only | No error expected |
 | Empty / no eligible | No zones or no heating actions | Demand False | No error expected |
 | Unavailable action | `hvac_action=None` only | Not demand | No error expected |
 
@@ -63,7 +63,7 @@ context:
 - `apps/ha_smart_hvac/coordinator.py` — `has_heating_demand` and `select_max_error_demand_zone` both filter via `z.has_heating_eligible`; drop `zone_error > 0` demand wording in docstrings.
 - `apps/ha_smart_hvac/hvac_app.py` — only consumer of `has_heating_demand` (idle vs demand); no API change expected.
 - `apps/ha_smart_hvac/ff_auto_correct.py` — only consumer of `select_max_error_demand_zone`; near_setpoint hold stays as-is.
-- `tests/test_coordinator.py` — rewrite demand tests; heating+non-positive error → demand True; CAP-7 no-demand: `test_select_max_error_empty_or_no_demand` and `test_select_max_error_ignores_non_demand_pool` must use non-heating actions (not merely non-positive error).
+- `tests/test_coordinator.py` — rewrite demand tests; heating+non-positive error → demand True; R7 no-demand: `test_select_max_error_empty_or_no_demand` and `test_select_max_error_ignores_non_demand_pool` must use non-heating actions (not merely non-positive error).
 - `tests/test_hvac_app.py` — pass `hvac_action="idle"` on `test_cap5_plant_on_idle_writes_zero`, `test_cap7_no_demand_clears_ephemeral_json_untouched`, `test_cap8_idle_writes_zero_json_untouched` (helpers default to heating).
 - `CONTEXT.md` — Heating Demand definition (L47–48) and Zone Error sentence that “Eligible Zone Errors feed Heating Demand” (L44); dialogue L76 if it implies error-driven demand.
 - `knowledge/concepts/zone-error.md` — “needs heat (zone error > 0)” line; Critical Zone “largest positive” → largest among Heating Demand zones (error may be ≤ 0).
@@ -80,9 +80,9 @@ context:
 
 **Acceptance Criteria:**
 - Given plant on and a zone with `hvac_action=heating` and zone_error ≤ 0, when the gate runs, then Heating Demand is true and SWT follows the demand path.
-- Given plant on and heating with `|zone_error| ≥ near_setpoint_eps_k` (including overshoot), when CAP-7 runs, then near_setpoint does not hold solely because error is non-positive.
+- Given plant on and heating with `|zone_error| ≥ near_setpoint_eps_k` (including overshoot), when R7 runs, then near_setpoint does not hold solely because error is non-positive.
 - Given plant on and all thermostats non-heating (even with large setpoint−temp), when the gate runs, then idle writes `0`.
-- Given CAP-7 selection among heating zones (any error sign), when multiple demand, then Critical Zone is max Zone Error (T-hold / lex unchanged); no demand only when no heating actions.
+- Given R7 selection among heating zones (any error sign), when multiple demand, then Critical Zone is max Zone Error (T-hold / lex unchanged); no demand only when no heating actions.
 - Given docs, when read Heating Demand in CONTEXT, then it refers to `hvac_action`, not positive Zone Error.
 
 ## Implementation Notes

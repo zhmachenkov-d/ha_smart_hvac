@@ -13,20 +13,20 @@ review_loop_iteration: 0
 context:
   - '{project-root}/_bmad-output/initiative-gate-omega-c-on-saturation/deferred-work.md'
   - '{project-root}/_bmad-output/initiative-gate-omega-c-on-saturation/plan-package-c-latch-hygiene.md'
-  - '{project-root}/_bmad-output/initiative-gate-omega-c-on-saturation/spec-gate-omega-c-on-saturation/control-tick-behaviors.md'
+  - '{project-root}/_bmad-output/initiative-gate-omega-c-on-saturation/control-tick-behaviors.md'
 ---
 
 <frozen-after-approval reason="human-owned intent — do not modify unless human renegotiates">
 
 ## Intent
 
-**Problem:** Package C Q5 deferred two Hass-stubbed `control_tick` locks: multi-tick latched decay persist (mirrors cover helpers only) and equal-value write-on-change side effects (`_write_setpoint` unit tests cover equality skip only). CAP-6 still has those seams unguarded through the real tick path.
+**Problem:** Package C Q5 deferred two Hass-stubbed `control_tick` locks: multi-tick latched decay persist (mirrors cover helpers only) and equal-value write-on-change side effects (`_write_setpoint` unit tests cover equality skip only). R6 still has those seams unguarded through the real tick path.
 
 **Approach:** Add two named `_tick_app` tests only — no production behavior change. (1) Multi-tick latched residue through real `control_tick` decreases and persists ωc. (2) Plant float equal to desired SWT skips `number/set_value` while post-write sticky/decay still run.
 
 **Decisions (plan review 2026-10-17):**
 - R1: Under trip/residue, desired SWT is `clamp(weather_feedforward(outdoor), setpoint_min, setpoint_max)` — not `setpoint_max`. With outdoor `0` and Package C weather config that is `49.0`.
-- R2: Unavailable / fail-closed plant is already locked (Package C fail-write + CAP-6(d)); no new Hass test for it.
+- R2: Unavailable / fail-closed plant is already locked (Package C fail-write + R6(d)); no new Hass test for it.
 - R3: Multi-tick AC requires ≥3 strict ωc decreases + JSON/reload match; floor-to-`omega_c_min` stays with mirrors.
 
 ## Boundaries & Constraints
@@ -40,7 +40,7 @@ context:
 
 **Never:**
 - Change production decay, sticky, write-on-change, clamp, or WARN episode logic.
-- Rewrite mirror decay tests into Hass stubs, or expand to all CAP-6 mirrors.
+- Rewrite mirror decay tests into Hass stubs, or expand to all R6 mirrors.
 - ADR / retrospective / deferred-work framing notes (separate deferred bullets).
 - Idle/`_go_idle` fail-closed symmetry (retro AI-4).
 - New Hass lock for unavailable plant (already covered).
@@ -59,7 +59,7 @@ context:
 
 - `tests/test_hvac_app.py` — `_tick_app` (~806–851), Package C control_tick tests (~865–1050). Add two tests beside them.
 - `tests/test_hvac_app.py` — mirrors `test_multi_tick_decay_persists_until_omega_c_min` (~606), `test_decay_stops_when_residue_at_or_below_band` (~631): reuse `next_decayed_omega_c`; do not duplicate floor-to-min loop in Hass stub.
-- `tests/test_hvac_app.py` — `_write_stub` CAP-6(c)/(d) (~1109–1160) and `test_control_tick_fail_write_warns_once_no_sticky`: leave as unit/fail-closed locks.
+- `tests/test_hvac_app.py` — `_write_stub` R6(c)/(d) (~1109–1160) and `test_control_tick_fail_write_warns_once_no_sticky`: leave as unit/fail-closed locks.
 - `apps/hvac/hvac_app.py` — read-only: skip-adapt / clear_steady (~217–221); fail-write return (~297–298); sticky (~299–305); decay commit (~319–329); `_write_setpoint` equality (~440–441); trip command = clamp(u_ff) (~66). **Do not edit** unless a test reveals a real bug (then stop and renegotiate).
 - `apps/hvac/feedforward.py` — `weather_feedforward` for computing equal-value plant float.
 - `apps/hvac/ladrc_tuner.py` — `next_decayed_omega_c`, `commit_omega_c`, persist — reuse in assertions; no API change.

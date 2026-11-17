@@ -18,19 +18,19 @@ headless: false
 
 | Ref | Title | Status | Covers | Plan baseline | Diff range |
 |-----|-------|--------|--------|---------------|------------|
-| 2.1 | Tracer: event-driven SWT gate re-evaluation | done | CAP-8 | `aeac9876` | `aeac9876..1231fa16` |
-| 2.2 | Document CAP-8 reactivity in ADR and domain docs | done | CAP-8 | `1231fa16` | `1231fa16..d42bfab` (cut: merge PR #77; excludes heating-demand PR #78 on HEAD) |
+| 2.1 | Tracer: event-driven SWT gate re-evaluation | done | R8 | `aeac9876` | `aeac9876..1231fa16` |
+| 2.2 | Document R8 reactivity in ADR and domain docs | done | R8 | `1231fa16` | `1231fa16..d42bfab` (cut: merge PR #77; excludes heating-demand PR #78 on HEAD) |
 
 Baselines ordered by git ancestry (oldest first). Build order matches.
 
-**Done when (declared):** CAP-8 triggers apply CAP-1…3 without waiting solely on periodic tick; event path does not advance CAP-7; periodic still runs CAP-7; tests + ADR/docs state the contract (Hass stubs, not live timer race).
+**Done when (declared):** R8 triggers apply R1…3 without waiting solely on periodic tick; event path does not advance R7; periodic still runs R7; tests + ADR/docs state the contract (Hass stubs, not live timer race).
 
 ### Evidence inventory
 
 | Artifact | Available? | Path / note |
 |----------|------------|-------------|
 | Epic file | yes | `epic-immediate-swt-reactivity.md` (Done when → criteria **declared**) |
-| Initiative Requirements | yes | parent initiative + spec CAP-8 |
+| Initiative Requirements | yes | parent initiative + spec R8 |
 | Spec / companions | yes | `spec-weather-curve-swt-only/` (+ brownfield, architecture-diagrams) |
 | Entries (`find`) | yes | refs 2.1, 2.2; no `story_file` (plans carry intent) |
 | Plans | yes | two `*-plan.md` with baselines and `status: done` |
@@ -47,15 +47,15 @@ Production churn (non-merge `files`): `hvac_app.py` net +48 → **269 LOC**; `te
 ### Aggregate — architecture / size / duplication
 
 - **F-A1 — Dual entrypoints share one prelude; demand forks by method.** `_gate_prelude` (`hvac_app.py:60-90`) → `control_tick` calls `process_demand` (`:99`); `control_event` calls `clamp_uff` only (`:126`). No `advance_cap7` flag. Import DAG unchanged (acyclic). **Disposition:** accept as-is. **Process:** keep the hard fork; do not collapse paths with a boolean.
-- **F-A2 — Not a god-class growth epic.** `hvac_app.py` +48 net / 269 LOC; CAP-7 law untouched in `ff_auto_correct.py`. Test file +302 is the main volume. **Disposition:** accept as-is (win).
+- **F-A2 — Not a god-class growth epic.** `hvac_app.py` +48 net / 269 LOC; R7 law untouched in `ff_auto_correct.py`. Test file +302 is the main volume. **Disposition:** accept as-is (win).
 - **F-A3 — No duplicated gate law across tickets.** 2.2 docs-only; no second implementation. **Disposition:** accept as-is.
 
 ### Aggregate — spec-to-implementation
 
-- **F-S1 — Done when 1–4 met.** Listeners (`hvac_app.py:45-58`); event clamp / no `process_demand` (tests `test_cap8_*`); periodic still `process_demand` (`test_cap8_periodic_still_runs_process_demand`); ADR `## CAP-8 reactivity`, AGENTS CAP-8 bullet, brownfield Reactivity, architecture-diagrams labels. **Disposition:** accept as-is.
-- **F-S2 — “Must not advance CAP-7” vs shared clears.** Event path uses the same fail/idle branches that call `clear_ephemeral()` (`hvac_app.py:65-88`). Spec/ADR say must not *advance* samples / persist FF — they do not say ephemeral is immutable on events. Behavior matches CAP-1…3 on both schedules; CAP-8 outdoor-missing / no-zones / idle / plant-off tests assert clears. **Disposition:** accept as-is (behavior). **Process / docs:** clarify in ADR/AGENTS that fail/idle clears still run on events (A1).
-- **F-S3 — CONTEXT dialogue understates trigger set.** Dialogue names outdoor + `hvac_action`; omits Plant Management, zone air, setpoint that code/ADR/AGENTS list (`CONTEXT.md` CAP-8 dialogue vs ADR `:20`). **Disposition:** defer (A1 can widen).
-- **F-S4 — AGENTS omits event demand = `clamp_uff` only.** CAP-8 bullet states no CAP-7 advance; ADR/brownfield/code state clamp-only demand fork. **Disposition:** defer → propose in A1.
+- **F-S1 — Done when 1–4 met.** Listeners (`hvac_app.py:45-58`); event clamp / no `process_demand` (tests `test_cap8_*`); periodic still `process_demand` (`test_cap8_periodic_still_runs_process_demand`); ADR `## R8 reactivity`, AGENTS R8 bullet, brownfield Reactivity, architecture-diagrams labels. **Disposition:** accept as-is.
+- **F-S2 — “Must not advance R7” vs shared clears.** Event path uses the same fail/idle branches that call `clear_ephemeral()` (`hvac_app.py:65-88`). Spec/ADR say must not *advance* samples / persist FF — they do not say ephemeral is immutable on events. Behavior matches R1…3 on both schedules; R8 outdoor-missing / no-zones / idle / plant-off tests assert clears. **Disposition:** accept as-is (behavior). **Process / docs:** clarify in ADR/AGENTS that fail/idle clears still run on events (A1).
+- **F-S3 — CONTEXT dialogue understates trigger set.** Dialogue names outdoor + `hvac_action`; omits Plant Management, zone air, setpoint that code/ADR/AGENTS list (`CONTEXT.md` R8 dialogue vs ADR `:20`). **Disposition:** defer (A1 can widen).
+- **F-S4 — AGENTS omits event demand = `clamp_uff` only.** R8 bullet states no R7 advance; ADR/brownfield/code state clamp-only demand fork. **Disposition:** defer → propose in A1.
 
 ### Diff-scope review — adversarial (ticket-boundary weighted)
 
@@ -66,22 +66,22 @@ Production churn (non-merge `files`): `hvac_app.py` net +48 → **269 LOC**; `te
 - **F-R5 — Module docstring / “this tick” idle string still periodic-flavored.** **Disposition:** defer.
 - **F-R6 — Full zone re-read on every event for demand boolean only.** **Disposition:** accept as-is (correctness over micro-optimization).
 - **F-R7 — Climate `hvac_action` + `temperature` can double-fire.** **Disposition:** accept as-is (document under A1).
-- **F-R8 — Post-epic heating-demand PR #78 outside range.** Demand inputs can change without updating CAP-8 listen set in the same epic. **Disposition:** process lesson → A2. (At HEAD, #78 still uses `hvac_action` — listeners remain aligned; risk is future demand-input drift.)
+- **F-R8 — Post-epic heating-demand PR #78 outside range.** Demand inputs can change without updating R8 listen set in the same epic. **Disposition:** process lesson → A2. (At HEAD, #78 still uses `hvac_action` — listeners remain aligned; risk is future demand-input drift.)
 - **F-R9 — Structural risk of later collapsing dual entrypoints.** **Disposition:** accept as-is; process in F-A1.
 
 ### Diff-scope review — edge cases
 
 - **F-E1 — Sensor chatter → log / clear storms** (plant-off / idle / zone-air). Story explicitly chose no debounce. **Disposition:** accept as-is; document (A1). Revisit only if live log/CPU pain observed.
-- **F-E2 — Sole-zone unavailable flicker → SWT 0↔clamp thrash.** **Disposition:** defer (same as tick path; CAP-8 makes it more frequent).
+- **F-E2 — Sole-zone unavailable flicker → SWT 0↔clamp thrash.** **Disposition:** defer (same as tick path; R8 makes it more frequent).
 - **F-E3 — Idle write-fail still logs success-ish idle message.** Pre-existing pattern on tick. **Disposition:** defer.
 
 ### Diff-scope review — verification gaps
 
-- **F-V1 — Behavioral CAP-8 tests always `_fire_control_event` as plant/`state`.** Args ignored today (`hvac_app.py:119`); registration test covers listener shapes. Early entity filter would break production but not these tests. **Disposition:** defer.
+- **F-V1 — Behavioral R8 tests always `_fire_control_event` as plant/`state`.** Args ignored today (`hvac_app.py:119`); registration test covers listener shapes. Early entity filter would break production but not these tests. **Disposition:** defer.
 - **F-V2 — Event write-fail (plant setpoint unavailable) untested** (tick has `test_demand_fail_write_aborts_without_success_info`). **Disposition:** fix now → **done** (A3): `test_cap8_demand_fail_write_aborts_without_success_info`.
 - **F-V3 — ConfigError initialize does not assert no listeners.** **Disposition:** defer.
 - **F-V4 — Multi-thermostat single zone not in registration fixture.** **Disposition:** defer.
-- **F-V5 — No live Exclusive Session for CAP-8.** Done when explicitly Hass stubs. **Disposition:** accept as-is.
+- **F-V5 — No live Exclusive Session for R8.** Done when explicitly Hass stubs. **Disposition:** accept as-is.
 
 ### F-R2 re-check (equality skip + log)
 
@@ -92,10 +92,10 @@ Production churn (non-merge `files`): `hvac_app.py` net +48 → **269 LOC**; `te
 | Exercise | Result | Source |
 |----------|--------|--------|
 | `uv run pytest tests/test_hvac_app.py tests/test_coordinator.py -q` | **59 passed** | this retro run (HEAD includes post-epic #78) |
-| CAP-8 Hass-stub matrix (demand / outdoor-flip / plant-off / idle / outdoor-missing / no-zones / CAP-7 untouched / seed→event→tick / equality / listeners / periodic) | **locked in suite** | `tests/test_hvac_app.py` CAP-8 block |
-| Live Exclusive Session CAP-8 immediacy | **not exercised** | epic Done when: stubs, not live timer race; walkthrough-pr-75 is code walkthrough |
+| R8 Hass-stub matrix (demand / outdoor-flip / plant-off / idle / outdoor-missing / no-zones / R7 untouched / seed→event→tick / equality / listeners / periodic) | **locked in suite** | `tests/test_hvac_app.py` R8 block |
+| Live Exclusive Session R8 immediacy | **not exercised** | epic Done when: stubs, not live timer race; walkthrough-pr-75 is code walkthrough |
 
-Runtime success signal for this epic is stub-driven by design. Live CAP-8 latency vs tick was not re-run on the house.
+Runtime success signal for this epic is stub-driven by design. Live R8 latency vs tick was not re-run on the house.
 
 ## Previous-retro follow-through
 
@@ -108,18 +108,18 @@ Prior file: `epic-weather-curve-swt-only/epic-weather-curve-swt-only-retrospecti
 | A3 D-cmd lower@min tests | **yes** — prior retro |
 | A4 restore intra-zone eligibility tests | **yes** — prior retro |
 | A5 knowledge notes vs ADR 0004 | **yes** — prior retro |
-| A6 optional CAP-7 live adapt | **skipped** at epic 1 close |
-| Deferred F-R4/6/7, F-E2/3, F-V2/4 | **still deferred** — no evidence they were closed in this epic (out of CAP-8 scope) |
+| A6 optional R7 live adapt | **skipped** at epic 1 close |
+| Deferred F-R4/6/7, F-E2/3, F-V2/4 | **still deferred** — no evidence they were closed in this epic (out of R8 scope) |
 
-**Note:** Epic 1 Open question #3 recorded parent initiative `status: done` prematurely; initiative was reopened for CAP-8, then closed correctly 2026-10-20 after both epics done (A2).
+**Note:** Epic 1 Open question #3 recorded parent initiative `status: done` prematurely; initiative was reopened for R8, then closed correctly 2026-10-20 after both epics done (A2).
 
 ## Action items
 
 | ID | Item | Owner | Kind |
 |----|------|-------|------|
-| A1 | Clarify CAP-8 docs: (1) event path may still `clear_ephemeral` on plant-off / idle / unavailable (same as tick); “must not advance” ≠ immutable ephemeral; (2) no debounce — equality-skip is write throttle; INFO may still fire; double climate attr callbacks expected; (3) AGENTS + CONTEXT trigger/clamp wording to match ADR | Denys | **done** (2026-10-20): ADR 0004 CAP-8 + AGENTS + CONTEXT dialogue + brownfield Reactivity |
-| A2 | Process: do not mark initiative `done` until every epic in its `tickets.toml` is done; when demand inputs change, update CAP-8 listeners + ADR trigger list in the same change | Denys | **done** (2026-10-20): initiative closed correctly; AGENTS CAP-8 + initiative-close bullets |
-| A3 | CAP-8 event write-fail regression mirroring tick `test_demand_fail_write_aborts_without_success_info` | Denys | **done** (2026-10-20): `test_cap8_demand_fail_write_aborts_without_success_info` |
+| A1 | Clarify R8 docs: (1) event path may still `clear_ephemeral` on plant-off / idle / unavailable (same as tick); “must not advance” ≠ immutable ephemeral; (2) no debounce — equality-skip is write throttle; INFO may still fire; double climate attr callbacks expected; (3) AGENTS + CONTEXT trigger/clamp wording to match ADR | Denys | **done** (2026-10-20): ADR 0004 R8 + AGENTS + CONTEXT dialogue + brownfield Reactivity |
+| A2 | Process: do not mark initiative `done` until every epic in its `tickets.toml` is done; when demand inputs change, update R8 listeners + ADR trigger list in the same change | Denys | **done** (2026-10-20): initiative closed correctly; AGENTS R8 + initiative-close bullets |
+| A3 | R8 event write-fail regression mirroring tick `test_demand_fail_write_aborts_without_success_info` | Denys | **done** (2026-10-20): `test_cap8_demand_fail_write_aborts_without_success_info` |
 
 **Queue (human):** empty (A1–A3 done).
 
@@ -128,12 +128,12 @@ Prior file: `epic-weather-curve-swt-only/epic-weather-curve-swt-only-retrospecti
 **accepted** — criteria **declared** (epic Done when). Remediations A1–A3 closed 2026-10-20 (was accepted-with-open-items).
 
 - All tickets finished (`pending_tickets` empty).
-- Done when 1–4 demonstrably met (code + CAP-8 tests + ADR/companions/AGENTS).
-- No blocking defect that falsifies CAP-8. Deferred F-V1/F-V3/F-V4, F-E2/E3, F-R4/R5 remain recorded, not queued.
+- Done when 1–4 demonstrably met (code + R8 tests + ADR/companions/AGENTS).
+- No blocking defect that falsifies R8. Deferred F-V1/F-V3/F-V4, F-E2/E3, F-R4/R5 remain recorded, not queued.
 - Human may override this machine verdict.
 
 ## Open questions
 
 1. ~~Apply A1 docs patch~~ — done 2026-10-20.
 2. ~~Close parent initiative~~ — closed 2026-10-20 (`initiative-weather-curve-zone-actuators` `status: done`).
-3. ~~A2 / A3~~ — done 2026-10-20 (AGENTS process bullets + CAP-8 write-fail test).
+3. ~~A2 / A3~~ — done 2026-10-20 (AGENTS process bullets + R8 write-fail test).

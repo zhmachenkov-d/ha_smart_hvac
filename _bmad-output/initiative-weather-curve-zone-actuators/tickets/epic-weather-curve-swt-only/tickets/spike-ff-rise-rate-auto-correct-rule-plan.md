@@ -13,7 +13,7 @@ lenses_ran: ['quick']
 review_loop_iteration: 2
 context:
   - '{project-root}/_bmad-output/initiative-weather-curve-zone-actuators/tickets/epic-weather-curve-swt-only/tickets/spike-ff-rise-rate-auto-correct-rule.md'
-  - '{project-root}/_bmad-output/initiative-weather-curve-zone-actuators/spec-weather-curve-swt-only/spec-weather-curve-swt-only.md'
+  - '{project-root}/_bmad-output/initiative-weather-curve-zone-actuators/initiative-weather-curve-zone-actuators.md'
   - '{project-root}/docs/adr/0003-online-ladrc-omega-c-auto-tune.md'
   - '{project-root}/_bmad-output/initiative-weather-curve-zone-actuators/forge-weather-curve-zone-actuators/forge-weather-curve-zone-actuators.md'
 ---
@@ -22,16 +22,16 @@ context:
 
 ## Intent
 
-**Problem:** Stories 1.3 (ADR/docs) and 1.5 (CAP-7 implementation) are blocked until the rise-rate signal, adaptation law, guards, persistence shape, and explicit non-goals for Weather Feedforward auto-correct are written down — without inventing an air→SWT tracking term.
+**Problem:** Stories 1.3 (ADR/docs) and 1.5 (R7 implementation) are blocked until the rise-rate signal, adaptation law, guards, persistence shape, and explicit non-goals for Weather Feedforward auto-correct are written down — without inventing an air→SWT tracking term.
 
-**Approach:** Time-boxed design spike: decision note at the spike’s Decision target path (Signal / Law / Guards / Persistence / Non-goals + G1 direction smoke table), draft epic Notes Decision for Denys, stop. No runtime CAP-7 code and no offline script in this ticket.
+**Approach:** Time-boxed design spike: decision note at the spike’s Decision target path (Signal / Law / Guards / Persistence / Non-goals + G1 direction smoke table), draft epic Notes Decision for Denys, stop. No runtime R7 code and no offline script in this ticket.
 
 ## Boundaries & Constraints
 
 **Always:**
 - Rise-rate source = zone with largest Zone Error among zones with Heating Demand; selection feeds FF params only.
 - SWT command stays `clamp(weather_feedforward)` under Plant Management + Heating Demand.
-- CAP-6 commission for `base`/`slope`/`comfort_ref` stays yaml-only / no HA entities (epic Notes 2026-10-18). E2 may add yaml `weather_feedforward.auto_correct` knobs without HA entities and without changing CAP-6 success text.
+- R6 commission for `base`/`slope`/`comfort_ref` stays yaml-only / no HA entities (epic Notes 2026-10-18). E2 may add yaml `weather_feedforward.auto_correct` knobs without HA entities and without changing R6 success text.
 - Decision concrete enough that 1.5 and 1.3 invent nothing; Denys HITL before 1.5.
 
 **Never:**
@@ -70,7 +70,7 @@ context:
 - **Bounds no-op (3A):** If after bounds clamp params are unchanged → not a successful persist commit; **no** JSON write (SWT may still run with unchanged params).
 - **JSON commit timing:** Write/update `ff_auto_correct_state.json` only when params actually changed **and** SWT write succeeded (2C). No write on idle/skip/D-cmd-block/bounds-no-op/SWT-fail ticks.
 - **HITL (D1):** Operator **Denys**. Implement: decision note + **draft** epic Notes line (not `accepted`); **replace** the epic Notes “Unknown: exact rise-rate…” line with a pointer that spike 4 draft Decision supersedes it (still pending accept). After Denys explicitly accepts: finalize `Decision (YYYY-MM-DD, Denys): … accepted`. Chat-only ok without Notes finalize ≠ accept for 1.5.
-- **Commission (E2):** Yaml nest `weather_feedforward.auto_correct` with `outdoor_gate_delta_k`, `r_expected_c_per_h`, `near_setpoint_eps_k`, `e_sat_c_per_h` (defaults 12 / 0.25 / 0.3 / 0.25). Missing nest → defaults. All other scalars = code constants. Extends yaml surface; does not amend CAP-6 success wording or allow HA entities (epic yaml-only Decision stands).
+- **Commission (E2):** Yaml nest `weather_feedforward.auto_correct` with `outdoor_gate_delta_k`, `r_expected_c_per_h`, `near_setpoint_eps_k`, `e_sat_c_per_h` (defaults 12 / 0.25 / 0.3 / 0.25). Missing nest → defaults. All other scalars = code constants. Extends yaml surface; does not amend R6 success wording or allow HA entities (epic yaml-only Decision stands).
 - **Offline (G1):** Direction smoke table (4–6 rows) inside decision note only — no script/runtime prototype.
 
 </frozen-after-approval>
@@ -80,14 +80,14 @@ context:
 - `apps/ha_smart_hvac/feedforward.py:8-10` / `models.py:51-54` / `config.py:44-51` — FF law + yaml parse; do not change in this spike.
 - `apps.yaml.example:13-16` — example FF keys; 1.5 may document `auto_correct` nest.
 - `apps/ha_smart_hvac/coordinator.py:8-15` + `models.py:32-47` — demand gate + `zone_error`; no max-error selector yet (1.5); historical `max(zones, key=zone_error)` among demand.
-- `docs/adr/0003-online-ladrc-omega-c-auto-tune.md` — guard/persist *shape* only; not the CAP-7 law.
+- `docs/adr/0003-online-ladrc-omega-c-auto-tune.md` — guard/persist *shape* only; not the R7 law.
 - Create: `_bmad-output/.../spike-ff-rise-rate-auto-correct-rule-decision.md`
 - Update Notes: `_bmad-output/.../epic-weather-curve-swt-only.md`
 
 ## Tasks & Acceptance
 
 **Execution:**
-- [x] `_bmad-output/.../spike-ff-rise-rate-auto-correct-rule-decision.md` -- Signal / Law / Guards / Persistence / Non-goals encoding frozen Decisions + G1 smoke table -- CAP-7 contract for 1.3/1.5.
+- [x] `_bmad-output/.../spike-ff-rise-rate-auto-correct-rule-decision.md` -- Signal / Law / Guards / Persistence / Non-goals encoding frozen Decisions + G1 smoke table -- R7 contract for 1.3/1.5.
 - [x] `_bmad-output/.../epic-weather-curve-swt-only.md` -- **replace** the “Unknown: exact rise-rate…” Notes line with a **draft** Decision pointer (summary, path, Denys; not `accepted`) -- supersedes Unknown; pending HITL.
 - [x] HITL finalize (Denys) -- after explicit accept, set epic Notes line to `… accepted` -- unblocks 1.5; not agent-self-accept.
 
@@ -147,4 +147,4 @@ Encode frozen Decisions only (incl. 1A/1B/2B/2C/3A/3C/4A, W-skip, CS-base, flush
 **Manual checks:**
 - Decision note at target path with required headings + G1 table.
 - Epic Notes: Unknown rise-rate line replaced by draft Decision pointer; `accepted` only after Denys HITL.
-- No Python CAP-7 / offline script in this spike.
+- No Python R7 / offline script in this spike.

@@ -6,7 +6,7 @@
 
 Session: unavailable · Timestamp: 2026-10-17T13:39:00+03:00
 
-- Action: User confirmed target PR #41; focus = entire PR (Package C code/tests/CAP-4 plus retro/memlog/plan).
+- Action: User confirmed target PR #41; focus = entire PR (Package C code/tests/R4 plus retro/memlog/plan).
 - Result: Target and focus locked; proceeding to draft narrative.
 - Evidence: user answers 1 then B
 - Open: Draft full narrative blocks
@@ -24,9 +24,9 @@ Session: unavailable · Timestamp: 2026-10-17T13:40:30+03:00
 
 Session: unavailable · Timestamp: 2026-10-17T13:41:00+03:00
 
-- Action: Compared frozen Intent to control_tick, tests, CAP-4 companion, deferred-work, memlog.
+- Action: Compared frozen Intent to control_tick, tests, R4 companion, deferred-work, memlog.
 - Result: Intent matches shipped scope; no gaps. Soft: none.
-- Evidence: hvac_app.py L217–307, L352–363; test_hvac_app.py L806–1064; control-tick-behaviors CAP-4; deferred-work.md; .memlog.md
+- Evidence: hvac_app.py L217–307, L352–363; test_hvac_app.py L806–1064; control-tick-behaviors R4; deferred-work.md; .memlog.md
 - Open: await user done/next on Intent
 
 ## 5 — Intent — Formal review gather
@@ -69,9 +69,9 @@ Session: unavailable · Timestamp: 2026-10-17T13:55:00+03:00
 
 Session: unavailable · Timestamp: 2026-10-17T13:56:30+03:00
 
-- Action: Checked five entry points against control_tick and CAP-4 companion.
+- Action: Checked five entry points against control_tick and R4 companion.
 - Result: Entry points match Package C mechanism; periphery/deferred/decay correctly out of Broad strokes. Soft: none.
-- Evidence: hvac_app.py L217–307; test_hvac_app.py L806; control-tick-behaviors CAP-4
+- Evidence: hvac_app.py L217–307; test_hvac_app.py L806; control-tick-behaviors R4
 - Open: await user done/next on Broad strokes
 
 ## 11 — Broad strokes — done
@@ -87,9 +87,9 @@ Session: unavailable · Timestamp: 2026-10-17T13:57:00+03:00
 
 Session: unavailable · Timestamp: 2026-10-17T13:58:00+03:00
 
-- Action: Checked latch_at_start branch, rebound + unlatched stubs, inspect skip-block, companion CAP-4.
+- Action: Checked latch_at_start branch, rebound + unlatched stubs, inspect skip-block, companion R4.
 - Result: Mechanism and locks match AI-1; soft note only on forced latch in rebound test (already deferred/rejected in formal review).
-- Evidence: hvac_app.py L217–228; test_hvac_app.py L865–914, L382–392; control-tick-behaviors CAP-4
+- Evidence: hvac_app.py L217–228; test_hvac_app.py L865–914, L382–392; control-tick-behaviors R4
 - Open: await user done/next on clear_steady
 
 ## 13 — clear_steady on latch — Test
@@ -142,7 +142,7 @@ Session: unavailable · Timestamp: 2026-10-17T14:03:30+03:00
 
 Session: unavailable · Timestamp: 2026-10-17T14:04:30+03:00
 
-- Action: Compared _tick_app recipe to plan Q4; named stubs to AI-1+AI-2; deferred-work Q5 vs CAP-6 mirrors.
+- Action: Compared _tick_app recipe to plan Q4; named stubs to AI-1+AI-2; deferred-work Q5 vs R6 mirrors.
 - Result: Stub scope matches Q4/Q5; deferred legs correctly absent. Soft: duplicate get_state inlines.
 - Evidence: test_hvac_app.py L806+; plan stub recipe; deferred-work.md
 - Open: await user done/next on Hass-stubbed locks

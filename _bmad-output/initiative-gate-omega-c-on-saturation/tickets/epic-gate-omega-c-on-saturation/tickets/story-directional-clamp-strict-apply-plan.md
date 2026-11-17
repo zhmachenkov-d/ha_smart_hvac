@@ -12,9 +12,9 @@ review_source: 'pinned'
 lenses_ran: ['quick']
 review_loop_iteration: 0
 context:
-  - '{project-root}/_bmad-output/initiative-gate-omega-c-on-saturation/spec-gate-omega-c-on-saturation/spec-gate-omega-c-on-saturation.md'
-  - '{project-root}/_bmad-output/initiative-gate-omega-c-on-saturation/spec-gate-omega-c-on-saturation/control-tick-behaviors.md'
-  - '{project-root}/_bmad-output/initiative-gate-omega-c-on-saturation/spec-gate-omega-c-on-saturation/architecture-diagrams.md'
+  - '{project-root}/_bmad-output/initiative-gate-omega-c-on-saturation/initiative-gate-omega-c-on-saturation.md'
+  - '{project-root}/_bmad-output/initiative-gate-omega-c-on-saturation/control-tick-behaviors.md'
+  - '{project-root}/_bmad-output/initiative-gate-omega-c-on-saturation/architecture-diagrams.md'
 ---
 
 <frozen-after-approval reason="human-owned intent — do not modify unless human renegotiates">
@@ -32,7 +32,7 @@ context:
 - Commit still skipped on guard trip; relieving ωc at a clamp may commit.
 - Provisional evaluate of proposed ωc for the apply gate is allowed; a blocked proposal must not enter write-path tracking or persistence.
 - Choose committed vs proposed ωc for **write-path** tracking before that tracking runs (architecture “Directional blocks apply?” node); the diagram omits the provisional apply-signal pass — Approach governs that detail.
-- CAP-6 (a)(b) only in this story; write-on-change, latch decay, and docs stay later entries.
+- R6 (a)(b) only in this story; write-on-change, latch decay, and docs stay later entries.
 
 **Never:**
 - Full freeze of ωc on any clamp.
@@ -70,8 +70,8 @@ context:
 ## Tasks & Acceptance
 
 **Execution:**
-- [x] `apps/hvac/hvac_app.py` -- Add pure `should_commit_omega_c(proposed, current, *, guard_tripped, command, setpoint_min, setpoint_max) -> bool` per control-tick-behaviors matrix; wire strict apply (provisional track+guard with proposed → if helper false, final track+guard with committed and **skip commit**; if helper true, **reuse** provisional u_track/guard for write/advance and commit only via helper on that reused guard). Latch/WARN only from the guard chosen for write. -- Implements CAP-1/CAP-2 without persistence-only gating or resurrected upward commit.
-- [x] `tests/test_hvac_app.py` -- Parametrized matrix for the helper (None / tripped / max+up / max+down / min+down / min+up / interior); Hass-free saturated upward-proposal loop asserting **write-path applied** and committed ωc do not rise; update inspect assertions to require `should_commit_omega_c` after successful write -- Locks CAP-6 (a)(b) and tick wiring.
+- [x] `apps/hvac/hvac_app.py` -- Add pure `should_commit_omega_c(proposed, current, *, guard_tripped, command, setpoint_min, setpoint_max) -> bool` per control-tick-behaviors matrix; wire strict apply (provisional track+guard with proposed → if helper false, final track+guard with committed and **skip commit**; if helper true, **reuse** provisional u_track/guard for write/advance and commit only via helper on that reused guard). Latch/WARN only from the guard chosen for write. -- Implements R1/R2 without persistence-only gating or resurrected upward commit.
+- [x] `tests/test_hvac_app.py` -- Parametrized matrix for the helper (None / tripped / max+up / max+down / min+down / min+up / interior); Hass-free saturated upward-proposal loop asserting **write-path applied** and committed ωc do not rise; update inspect assertions to require `should_commit_omega_c` after successful write -- Locks R6 (a)(b) and tick wiring.
 
 **Acceptance Criteria:**
 - Given command at `setpoint_max` and an upward proposed ωc, when the tick runs, then proposed ωc is neither applied to `compute_tracking` nor committed.
@@ -91,8 +91,8 @@ context:
 
 | finding | verdict | evidence / route |
 |---------|---------|------------------|
-| Provisional `compute_tracking` vs literal AC/CAP-2 wording | false | Frozen Intent Approach allows a provisional pass for the apply gate and names **write-path** tracking; Design Notes lock provisional track+guard. Code matches Intent. Fixing AC/companion wording would edit the plan — rejected. |
-| Hass-free ratchet reimplements selection, does not call `control_tick` | false | Plan Code Map / CAP-6(b) explicitly ask for a Hass-free loop that **mirrors** strict-apply selection; that shape is met. Production wiring is separately inspect-locked. |
+| Provisional `compute_tracking` vs literal AC/R2 wording | false | Frozen Intent Approach allows a provisional pass for the apply gate and names **write-path** tracking; Design Notes lock provisional track+guard. Code matches Intent. Fixing AC/companion wording would edit the plan — rejected. |
+| Hass-free ratchet reimplements selection, does not call `control_tick` | false | Plan Code Map / R6(b) explicitly ask for a Hass-free loop that **mirrors** strict-apply selection; that shape is met. Production wiring is separately inspect-locked. |
 | Inspect lock does not require helper return to gate `commit_omega_c` | low → patch | Claim verified: substring-only asserts allow a dead `should_commit_omega_c` call plus unconditional commit. Strengthen inspect to lock `omega_to_commit` / `if should_commit_omega_c` gating. |
 | Unrelated `.memlog.md` in diff | low → patch | Party-mode memlog dirty tree, not part of Code Map. Reverted to HEAD (surgical hygiene). |
 
@@ -106,7 +106,7 @@ context:
 - Latch / blow-up WARN: apply only from the guard chosen for write — never stick latch or emit WARN from a discarded provisional guard.
 - Zone change: `compute_tracking` may `reset` on critical-zone switch. Provisional and final share the same `critical_zone` for the tick, so reset runs at most once (on the first pass that sees the new zone). Never run provisional and final with different zone ids.
 
-**Relieving commit (locked):** I/O keeps CAP-1 **may** (not must). Matrix/tests: for max+ωc↓ / min+ωc↑ and not tripped, assert `should_commit_omega_c` returns True; do not require a full tick persistence proof beyond that in this story.
+**Relieving commit (locked):** I/O keeps R1 **may** (not must). Matrix/tests: for max+ωc↓ / min+ωc↑ and not tripped, assert `should_commit_omega_c` returns True; do not require a full tick persistence proof beyond that in this story.
 
 **Directional, not full freeze.** At max, only ωc↑ is blocked; ωc↓ may apply and commit. Symmetric at min.
 

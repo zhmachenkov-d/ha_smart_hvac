@@ -1,7 +1,7 @@
 # Walkthrough — PR #34: latch ωc decay + skip adapt
 
 Target: [PR #34](https://github.com/zhmachenkov-d/ha-smart-hvac/pull/34) (`feat/1-2-latch-decay-skip-adapt` → `main`)
-Focus: human review of CAP-4 latch decay + skip-adapt while soft-kill held
+Focus: human review of R4 latch decay + skip-adapt while soft-kill held
 Current block: closed — walkthrough complete; wrap-up: commit/push + merge PR #34 + mark story 1.2 done + delete feature branch
 
 ## Blocks
@@ -11,8 +11,8 @@ Current block: closed — walkthrough complete; wrap-up: commit/push + merge PR 
 - [x] **Decay helpers + sticky latch predicate** — done (Thoughts + Test 18 passed)
 - [x] **Skip-adapt + sticky latch in control_tick** — done (sticky-after-write patch)
 - [x] **Decay commit vs should_commit** — done (mirror write_ok patch)
-- [x] **Tests / CAP-6(e) locks** — done (75 passed; R1–R3 accepted)
-- [x] **Periphery** — done (CAP-4 companion deferred)
+- [x] **Tests / R6(e) locks** — done (75 passed; R1–R3 accepted)
+- [x] **Periphery** — done (R4 companion deferred)
 
 ## Intent
 
@@ -24,11 +24,11 @@ Source: [story-latch-decay-skip-adapt-plan.md](../epic-gate-omega-c-on-saturatio
 
 **Always:**
 - Skip adapt uses latch state at **tick start** (before `maybe_adapt` / zone-change clear).
-- Sticky CAP-4 latch (not `latch_out` alone) only after successful `_write_setpoint`: hold in `(0.8·u_track_max, u_track_max]` so the 0.8 stop band is reachable; fail-write does not mutate latch.
+- Sticky R4 latch (not `latch_out` alone) only after successful `_write_setpoint`: hold in `(0.8·u_track_max, u_track_max]` so the 0.8 stop band is reachable; fail-write does not mutate latch.
 - Decay uses **actual tick `|u_track|`** (write-path), not `|ωc·e/b0|`; threshold `0.8` is a code constant.
 - Decay step/floor reuse existing `max_rate_fraction` / `omega_c_min`; persist via tuner even when `should_commit_omega_c` would skip.
 - Trip-edge tick may still adapt before the guard; decay may run that same tick once latch is active and residue holds (architecture H→I).
-- CAP-6 (e) only; write-on-change and docs stay later entries.
+- R6 (e) only; write-on-change and docs stay later entries.
 
 **Never:**
 - Propose-then-override while latched; hard reset to `config.omega_c`; one-shot safe-ωc jump.
@@ -53,15 +53,15 @@ Source: [story-latch-decay-skip-adapt-plan.md](../epic-gate-omega-c-on-saturatio
 
 ## Broad strokes
 
-What the change is: while the blow-up latch is already active at tick start, skip online adapt; after **successful** plant write, assign a **sticky** CAP-4 latch (not `guard.latch_out` alone) and, when residue holds, step committed ωc down via [`commit_omega_c`](../../../apps/hvac/ladrc_tuner.py) even if guard trip blocks the normal commit path.
+What the change is: while the blow-up latch is already active at tick start, skip online adapt; after **successful** plant write, assign a **sticky** R4 latch (not `guard.latch_out` alone) and, when residue holds, step committed ωc down via [`commit_omega_c`](../../../apps/hvac/ladrc_tuner.py) even if guard trip blocks the normal commit path.
 
 Entry points (open in this order):
 
-1. [`LATCH_DECAY_U_TRACK_FRACTION`](../../../apps/hvac/hvac_app.py#L134), [`latch_decay_residue_holds`](../../../apps/hvac/hvac_app.py#L137), [`next_decayed_omega_c`](../../../apps/hvac/hvac_app.py#L144), [`sticky_blow_up_latch`](../../../apps/hvac/hvac_app.py#L154) — pure CAP-4 predicates and one decay step
+1. [`LATCH_DECAY_U_TRACK_FRACTION`](../../../apps/hvac/hvac_app.py#L134), [`latch_decay_residue_holds`](../../../apps/hvac/hvac_app.py#L137), [`next_decayed_omega_c`](../../../apps/hvac/hvac_app.py#L144), [`sticky_blow_up_latch`](../../../apps/hvac/hvac_app.py#L154) — pure R4 predicates and one decay step
 2. [`control_tick`](../../../apps/hvac/hvac_app.py#L215) — `latch_at_start` gate before [`maybe_adapt`](../../../apps/hvac/ladrc_tuner.py)
 3. [`control_tick`](../../../apps/hvac/hvac_app.py#L316) — sticky latch assignment **after** successful [`_write_setpoint`](../../../apps/hvac/hvac_app.py)
 4. [`control_tick`](../../../apps/hvac/hvac_app.py#L334) — decay [`commit_omega_c`](../../../apps/hvac/ladrc_tuner.py) branch vs [`should_commit_omega_c`](../../../apps/hvac/hvac_app.py) else path
-5. [CAP-6(e) matrices](../../../tests/test_hvac_app.py#L540) (+ [skip-adapt inspect](../../../tests/test_hvac_app.py#L369), [`_mirror_decay_tick`](../../../tests/test_hvac_app.py#L577)) — persist locks and helper matrices
+5. [R6(e) matrices](../../../tests/test_hvac_app.py#L540) (+ [skip-adapt inspect](../../../tests/test_hvac_app.py#L369), [`_mirror_decay_tick`](../../../tests/test_hvac_app.py#L577)) — persist locks and helper matrices
 
 **Review notes (Broad strokes):** Thoughts soft nits patched; later walkthrough patch moved sticky after successful write (anchors refreshed).
 
@@ -89,14 +89,14 @@ After write + [`advance_with_tracking_residue`](../../../apps/hvac/ladrc.py), if
 
 **Review notes (Decay commit vs should_commit):** Soft mirror gap fixed. Post-patch Thoughts: write_ok fail path + success decay XOR should_commit align with Intent; no open findings.
 
-## Tests / CAP-6(e) locks
+## Tests / R6(e) locks
 
 - [test_latch_decay_residue_holds_matrix](../../../tests/test_hvac_app.py#L540) / [test_next_decayed_omega_c_step_and_floor](../../../tests/test_hvac_app.py#L550) / [test_sticky_blow_up_latch_matrix](../../../tests/test_hvac_app.py#L570) — helper matrices
 - [test_control_tick_skips_maybe_adapt_when_latched_at_start](../../../tests/test_hvac_app.py#L369) — inspect skip-adapt wiring
 - [test_control_tick_wires_should_warn_and_sticky_latch](../../../tests/test_hvac_app.py#L336) — inspect sticky latch + decay-before-commit ordering
 - [`_mirror_decay_tick`](../../../tests/test_hvac_app.py#L576) (`write_ok`) + [multi-tick](../../../tests/test_hvac_app.py#L615), [band-stop](../../../tests/test_hvac_app.py#L640), [non-finite](../../../tests/test_hvac_app.py#L659), [trip-edge](../../../tests/test_hvac_app.py#L678), [fail-write](../../../tests/test_hvac_app.py#L740) — real tuner persist / latch unchanged on fail
 
-**Review notes (Tests / CAP-6(e) locks):** Intent matrix covered. Soft residuals R1–R3 accepted as-is. Test — `uv run pytest tests/test_hvac_app.py tests/test_ladrc_tuner.py -q` → 75 passed; ruff clean.
+**Review notes (Tests / R6(e) locks):** Intent matrix covered. Soft residuals R1–R3 accepted as-is. Test — `uv run pytest tests/test_hvac_app.py tests/test_ladrc_tuner.py -q` → 75 passed; ruff clean.
 
 ## Periphery
 
@@ -104,4 +104,4 @@ After write + [`advance_with_tracking_residue`](../../../apps/hvac/ladrc.py), if
 - [walkthrough-pr-34.md](./walkthrough-pr-34.md) / [walkthrough-pr-34-log.md](./walkthrough-pr-34-log.md) — this review
 - [PR #34](https://github.com/zhmachenkov-d/ha-smart-hvac/pull/34) — review target (head still `e332fef` until walkthrough patches push)
 
-**Review notes (Periphery):** Thoughts — PR #34 CI green on `e332fef` but local patches unpushed (must commit/push before merge). CAP-4 companion lag **deferred** to CAP-5 — see [deferred-work.md](../deferred-work.md) (PR #34 section).
+**Review notes (Periphery):** Thoughts — PR #34 CI green on `e332fef` but local patches unpushed (must commit/push before merge). R4 companion lag **deferred** to R5 — see [deferred-work.md](../deferred-work.md) (PR #34 section).

@@ -10,7 +10,7 @@ Current block: closed — walkthrough complete; wrap-up: deferred-work + follow-
 - [x] **Broad strokes** — done
 - [x] **Directional helper** — done (inspect patch)
 - [x] **Strict apply in control_tick** — done
-- [x] **Tests / CAP-6 locks** — done
+- [x] **Tests / R6 locks** — done
 - [x] **Periphery** — done
 
 ## Intent
@@ -26,7 +26,7 @@ Source: [story-directional-clamp-strict-apply-plan.md](../epic-gate-omega-c-on-s
 - Commit still skipped on guard trip; relieving ωc at a clamp may commit.
 - Provisional evaluate of proposed ωc for the apply gate is allowed; a blocked proposal must not enter write-path tracking or persistence.
 - Choose committed vs proposed ωc for **write-path** tracking before that tracking runs (architecture “Directional blocks apply?” node); the diagram omits the provisional apply-signal pass — Approach governs that detail.
-- CAP-6 (a)(b) only in this story; write-on-change, latch decay, and docs stay later entries.
+- R6 (a)(b) only in this story; write-on-change, latch decay, and docs stay later entries.
 
 **Never:**
 - Full freeze of ωc on any clamp.
@@ -47,8 +47,8 @@ Source: [story-directional-clamp-strict-apply-plan.md](../epic-gate-omega-c-on-s
 | Ratchet regression | Repeated saturated upward proposals at max | Applied and committed ωc do not rise across ticks | No error |
 
 **Review notes (Intent):**
-1. Renegotiated during walkthrough: Approach/Always now distinguish apply-signal provisional vs write-path (closes CAP-2 companion wording tension for this story).
-2. Companion `control-tick-behaviors.md` CAP-2 literal still older — deferred to later doc sync (option 3 not chosen).
+1. Renegotiated during walkthrough: Approach/Always now distinguish apply-signal provisional vs write-path (closes R2 companion wording tension for this story).
+2. Companion `control-tick-behaviors.md` R2 literal still older — deferred to later doc sync (option 3 not chosen).
 3. Always bullet now notes arch diagram omits provisional; Approach wins. Min+ωc↓ matrix aligned with Max+ωc↑ write-path wording.
 
 ## Broad strokes
@@ -85,20 +85,20 @@ In [`control_tick`](../../../apps/hvac/hvac_app.py), when there is a proposal: p
 1. Thoughts: wiring matches Design Notes (no-resurrect, latch from write guard, zone reset once).
 2. Test: local `test_hvac_app` 31 passed + ruff; CI on PR tip still green (inspect patch unpushed).
 
-## Tests / CAP-6 locks
+## Tests / R6 locks
 
-- [test_should_commit_omega_c_matrix](../../../tests/test_hvac_app.py) — CAP-6(a) parametrized matrix
-- [test_saturated_upward_proposal_does_not_ratchet_applied_or_committed](../../../tests/test_hvac_app.py) — CAP-6(b) Hass-free ratchet
+- [test_should_commit_omega_c_matrix](../../../tests/test_hvac_app.py) — R6(a) parametrized matrix
+- [test_saturated_upward_proposal_does_not_ratchet_applied_or_committed](../../../tests/test_hvac_app.py) — R6(b) Hass-free ratchet
 - [test_control_tick_skips_commit_omega_c_when_guard_tripped](../../../tests/test_hvac_app.py) — inspect lock on helper wiring / `omega_to_commit`
 
 **Review notes (Tests):**
-1. Thoughts: CAP-6(a)(b) as planned; known gaps (no live tick / no min ratchet) accepted.
-2. Test: CAP-6 trio 9 passed; Verification 50 passed + ruff clean (includes inspect patch).
+1. Thoughts: R6(a)(b) as planned; known gaps (no live tick / no min ratchet) accepted.
+2. Test: R6 trio 9 passed; Verification 50 passed + ruff clean (includes inspect patch).
 
 ## Periphery
 
 - [story-directional-clamp-strict-apply-plan.md](../epic-gate-omega-c-on-saturation/story-directional-clamp-strict-apply-plan.md) — status `built`; planning artifact and AC source
 
 **Review notes (Periphery):**
-1. Companion CAP-2 / arch diagram still stale vs renegotiated Intent — defer doc sync; record in deferred-work on wrap-up if desired.
+1. Companion R2 / arch diagram still stale vs renegotiated Intent — defer doc sync; record in deferred-work on wrap-up if desired.
 2. Dirty tree: plan Intent polish, inspect patch, walkthrough-pr-31/ — follow-up commit + push to PR #31.

@@ -16,13 +16,13 @@ Current block: closed — walkthrough complete; wrap-up: commit/push + clear def
 
 Source: [plan-package-c-deferred-stub-locks.md](../plan-package-c-deferred-stub-locks.md) (frozen-after-approval Intent).
 
-**Problem:** Package C Q5 deferred two Hass-stubbed `control_tick` locks: multi-tick latched decay persist (mirrors cover helpers only) and equal-value write-on-change side effects (`_write_setpoint` unit tests cover equality skip only). CAP-6 still has those seams unguarded through the real tick path.
+**Problem:** Package C Q5 deferred two Hass-stubbed `control_tick` locks: multi-tick latched decay persist (mirrors cover helpers only) and equal-value write-on-change side effects (`_write_setpoint` unit tests cover equality skip only). R6 still has those seams unguarded through the real tick path.
 
 **Approach:** Add two named `_tick_app` tests only — no production behavior change. (1) Multi-tick latched residue through real `control_tick` decreases and persists ωc. (2) Plant float equal to desired SWT skips `number/set_value` while post-write sticky/decay still run.
 
 **Decisions (plan review 2026-10-17):**
 - R1: Under trip/residue, desired SWT is `clamp(weather_feedforward(outdoor), setpoint_min, setpoint_max)` — not `setpoint_max`. With outdoor `0` and Package C weather config that is `49.0`.
-- R2: Unavailable / fail-closed plant is already locked (Package C fail-write + CAP-6(d)); no new Hass test for it.
+- R2: Unavailable / fail-closed plant is already locked (Package C fail-write + R6(d)); no new Hass test for it.
 - R3: Multi-tick AC requires ≥3 strict ωc decreases + JSON/reload match; floor-to-`omega_c_min` stays with mirrors.
 
 **Review notes (Intent):**
@@ -43,7 +43,7 @@ Entry points (open in this order):
 
 **Review notes (Broad strokes):**
 1. Five entry points enough — both tests, `_tick_app`, sticky+decay, equality skip.
-2. Mirrors / CAP-6(c) unit locks correctly out of Broad strokes.
+2. Mirrors / R6(c) unit locks correctly out of Broad strokes.
 
 ## Multi-tick latched decay persist
 
@@ -62,7 +62,7 @@ With latch already True and trip/residue numbers held, each successful `control_
 
 ## Equal-value write-on-change side effects
 
-Under the same trip/residue setup, plant float is preset to `clamp(weather_feedforward(0), min, max)` (`49.0`). `_write_setpoint` returns success without calling `number/set_value`, and post-write sticky + one decay step still run — the seam CAP-6(c) unit tests never saw through `control_tick`.
+Under the same trip/residue setup, plant float is preset to `clamp(weather_feedforward(0), min, max)` (`49.0`). `_write_setpoint` returns success without calling `number/set_value`, and post-write sticky + one decay step still run — the seam R6(c) unit tests never saw through `control_tick`.
 
 - Desired: [R1 clamp via `weather_feedforward`](../../../tests/test_hvac_app.py#L1137) — assert `49.0`
 - Stub: [`plant_setpoint=desired`, `blow_up_latch=False`](../../../tests/test_hvac_app.py#L1147) — sticky must set latch on this tick
@@ -73,7 +73,7 @@ Under the same trip/residue setup, plant float is preset to `clamp(weather_feedf
 **Review notes (Equal-value):**
 1. R1 + sticky-after-equality-success proven; exact one decay step.
 2. Soft: asserts `number/set_value` only (plan).
-3. Tested: Hass lock + CAP-6(c) unit — 4 passed.
+3. Tested: Hass lock + R6(c) unit — 4 passed.
 
 ## Periphery
 

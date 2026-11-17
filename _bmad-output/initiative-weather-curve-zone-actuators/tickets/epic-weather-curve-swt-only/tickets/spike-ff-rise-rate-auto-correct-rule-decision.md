@@ -1,13 +1,13 @@
 ---
 title: 'FF rise-rate auto-correct rule — decision'
 type: 'decision'
-covers: [CAP-7]
+covers: [R7]
 created: '2026-10-19'
 status: 'accepted'
 source_plan: 'spike-ff-rise-rate-auto-correct-rule-plan.md'
 ---
 
-# FF rise-rate auto-correct rule (CAP-7)
+# FF rise-rate auto-correct rule (R7)
 
 Contract for stories **1.3** (ADR/docs) and **1.5** (implementation). Encode only the locked spike decisions; do not invent thresholds, formulas, or persistence shapes beyond this note.
 
@@ -151,7 +151,7 @@ Yaml nest `weather_feedforward.auto_correct` with:
 
 Defaults: `12` / `0.25` / `0.3` / `0.25`. Missing nest → defaults. All other scalars = code constants.
 
-Extends yaml surface only; does **not** amend CAP-6 success wording or allow HA entities (epic yaml-only Decision stands). CAP-6 commission for `base` / `slope` / `comfort_ref` stays yaml-only.
+Extends yaml surface only; does **not** amend R6 success wording or allow HA entities (epic yaml-only Decision stands). R6 commission for `base` / `slope` / `comfort_ref` stays yaml-only.
 
 ### Yaml + JSON overlay
 
@@ -243,7 +243,7 @@ Write/update `ff_auto_correct_state.json` only when params actually changed **an
 - New HA entities for FF / auto-correct.
 - Resurrect ωc / LADRC on water under another name.
 - Adapting `comfort_ref`.
-- Offline scripts or runtime CAP-7 prototypes in this spike (G1 is the direction table above only).
+- Offline scripts or runtime R7 prototypes in this spike (G1 is the direction table above only).
 - Leaving formula, guards, or persistence for 1.5 to invent.
 
 ---
@@ -252,6 +252,6 @@ Write/update `ff_auto_correct_state.json` only when params actually changed **an
 
 - Spike ticket: `spike-ff-rise-rate-auto-correct-rule.md`
 - Plan (frozen intent): `spike-ff-rise-rate-auto-correct-rule-plan.md`
-- Spec CAP-7 / Constraints: `../spec-weather-curve-swt-only/spec-weather-curve-swt-only.md`
-- Guard/persist *shape* prior art only: `docs/adr/0003-online-ladrc-omega-c-auto-tune.md` (not the CAP-7 law)
+- Spec R7 / Constraints: `../initiative-weather-curve-zone-actuators.md`
+- Guard/persist *shape* prior art only: `docs/adr/0003-online-ladrc-omega-c-auto-tune.md` (not the R7 law)
 - Forge locked FF / rejected air→SWT: `../forge-weather-curve-zone-actuators/forge-weather-curve-zone-actuators.md`

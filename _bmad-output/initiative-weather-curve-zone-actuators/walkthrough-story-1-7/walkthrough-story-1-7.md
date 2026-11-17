@@ -1,6 +1,6 @@
 # Walkthrough: Story 1.7 — Live Exclusive Session windup check
 
-Target: plan [story-live-exclusive-session-windup-check-plan.md](../epic-weather-curve-swt-only/story-live-exclusive-session-windup-check-plan.md) (ticket 7 / epic success signal). Spec success signal: [spec-weather-curve-swt-only.md](../spec-weather-curve-swt-only/spec-weather-curve-swt-only.md#success-signal).
+Target: plan [story-live-exclusive-session-windup-check-plan.md](../epic-weather-curve-swt-only/story-live-exclusive-session-windup-check-plan.md) (ticket 7 / epic success signal). Spec success signal: [spec-weather-curve-swt-only.md](../initiative-weather-curve-zone-actuators.md#success-signal).
 
 Disposition: **pass (4A)** — Production restored; plant_setpoint confirmed; command series at FF soft-floor clamp.
 
@@ -20,7 +20,7 @@ Current block: none (optional: paste numeric plant_setpoint + y/Tr for the recor
 
 Source: frozen Intent in the story plan.
 
-**Problem:** CAP-5 locks weather-curve-only SWT in pytest, but the epic success signal still needs a live Exclusive Session against the house: the old near-setpoint flat-air windup shape must not climb Set Water Temperature to `setpoint_max` via tracking.
+**Problem:** R5 locks weather-curve-only SWT in pytest, but the epic success signal still needs a live Exclusive Session against the house: the old near-setpoint flat-air windup shape must not climb Set Water Temperature to `setpoint_max` via tracking.
 
 **Approach:** Under Exclusive Session, reproduce that shape (near-zero Zone Error, flat air, moderate FF clamp with headroom; outdoor documented, ~+10°C ideal), capture operator notes / AppDaemon log evidence that `command` stays at the feedforward clamp, and record the run here — no control-law changes.
 
@@ -46,7 +46,7 @@ Source: frozen Intent in the story plan.
 | `control_interval` | **60** s | House yaml at seed time |
 | Observation window | **5 × 60 = 300** s | Decision **3A** — ≈5 demand ticks |
 | `setpoint_min` / `setpoint_max` | **40** / **55** | Min stays 40; do not change to chase soft water |
-| FF commission (yaml) | `base=25`, `slope=1.2`, `comfort_ref=20` | CAP-7 may overlay `base`/`slope` from JSON |
+| FF commission (yaml) | `base=25`, `slope=1.2`, `comfort_ref=20` | R7 may overlay `base`/`slope` from JSON |
 
 #### Preflight shape (before claiming pass)
 
@@ -61,7 +61,7 @@ If shape unavailable (no flat near-setpoint demand, or clamp already pegged at m
 
 #### Expected clamp (commission reference vs live scoring)
 
-Yaml commission (`base=25`, `slope=1.2`, `comfort_ref=20`) is a **reference only** — CAP-7 (**1A** live) may overlay `base`/`slope` via `_load_ff_overlay` / `ff_auto_correct_state.json`, so the live clamp can differ.
+Yaml commission (`base=25`, `slope=1.2`, `comfort_ref=20`) is a **reference only** — R7 (**1A** live) may overlay `base`/`slope` via `_load_ff_overlay` / `ff_auto_correct_state.json`, so the live clamp can differ.
 
 Before **4A** scoring, record the **loaded overlay or current runtime `base`/`slope`** (and `comfort_ref` from yaml), then recompute:
 
@@ -70,14 +70,14 @@ u_ff_soft = base + slope × (comfort_ref − T_out)
 command   = clamp(u_ff_soft, 40, 55)
 ```
 
-Yaml-only example at outdoor **+10°C** (CAP-5(d) mirror, commission params, no overlay): soft **37** → `command` **40**. Do **not** score the live run against that table unless recorded current params match commission.
+Yaml-only example at outdoor **+10°C** (R5(d) mirror, commission params, no overlay): soft **37** → `command` **40**. Do **not** score the live run against that table unless recorded current params match commission.
 
 #### Pass rule (**4A**)
 
 Score by **FF clamp stability / expected clamp from recorded current FF params**, not by `command ==` logged soft `u_ff` and not by yaml commission alone:
 
 - **Pass:** over ≈5 × house `control_interval`, AppDaemon INFO shows `command=` steady at the FF clamp (`clamp(soft u_ff)`), not climbing toward house `setpoint_max` via tracking. Soft≠command at floor/ceiling is OK.
-- **CAP-7 confound (1A live):** if params adapt mid-window, soft `u_ff` and `command` may step together with `command` still equal to the **new** clamp — feedforward adapt, not tracking windup. Fail only if `command` climbs **above** the FF clamp toward `setpoint_max`.
+- **R7 confound (1A live):** if params adapt mid-window, soft `u_ff` and `command` may step together with `command` still equal to the **new** clamp — feedforward adapt, not tracking windup. Fail only if `command` climbs **above** the FF clamp toward `setpoint_max`.
 - **Fail:** `command` climbs above the FF clamp toward `setpoint_max` (old tracking windup shape).
 - **Incomplete:** write failure or AD dies mid-run — not a pass; restore Production add-on; retry later.
 
@@ -87,7 +87,7 @@ Primary log line (`hvac_app.py`): `outdoor=… °C, u_ff=…, command=…` — s
 
 - `plant_setpoint` matches logged `command` (not ramping to 55).
 - Demand zone(s) remain near-setpoint / flat during the window (or document departure).
-- Note any CAP-7 param nudge if soft/`command` step together.
+- Note any R7 param nudge if soft/`command` step together.
 
 ---
 
@@ -102,10 +102,10 @@ Fill during / after the live run; mirror excerpts into the log.
 - [x] Flat near-setpoint demand shape met (or blocked with reason — not outdoor-only) — demand present for window; operator accepted close-out (numeric y/Tr optional)
 - [x] AppDaemon INFO series over ≥5 ticks: `outdoor` / soft `u_ff` / `command`
 - [x] **4A** scoring note: `command` vs expected clamp (from recorded params) each tick; soft≠command at floor OK — command=40 all five ticks
-- [x] CAP-7: if clamp stepped, `command` followed new clamp (not independent climb) — N/A no mid-window adapt
+- [x] R7: if clamp stepped, `command` followed new clamp (not independent climb) — N/A no mid-window adapt
 - [x] HA: `plant_setpoint` matches `command`; not at `setpoint_max` via windup — operator confirmed
 - [x] Production AppDaemon add-on **restored** after session
-- [x] No SWT / CAP-7 / law / production code changes for this story
+- [x] No SWT / R7 / law / production code changes for this story
 
 ---
 
@@ -117,7 +117,7 @@ Fill during / after the live run; mirror excerpts into the log.
 | Window | house `control_interval`=60 s → 5× = 300 s; live demand ticks 14:07–14:11 UTC |
 | Outdoor / expected clamp | 13.2→13.0 °C; params yaml 25/1.2/20 (no overlay); soft 33.16→33.40 → clamp **40** |
 | `command` series | five ticks all `command=40.00` (soft floor; soft≠command OK) |
-| CAP-7 mid-window | none (overlay absent) |
+| R7 mid-window | none (overlay absent) |
 | Production restore | **yes** (operator 2026-10-19) |
 | `plant_setpoint` | operator confirmed (match to command=40; numeric not pasted) |
 | Code diff | none (walkthrough artifacts only) |

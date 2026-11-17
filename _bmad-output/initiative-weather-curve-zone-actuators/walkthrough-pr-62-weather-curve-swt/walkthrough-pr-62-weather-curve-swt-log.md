@@ -40,9 +40,9 @@ Session: unavailable · Timestamp: 2026-10-18T18:07:47+03:00
 
 Session: 64b7f198-3a88-470b-b888-e1bdb444d1a5 · Timestamp: 2026-10-18T18:08:00+03:00
 
-- Action: User selected Thoughts on Intent block; main session reviewed Intent vs live control_tick / CAP-5 scope.
+- Action: User selected Thoughts on Intent block; main session reviewed Intent vs live control_tick / R5 scope.
 - Result: Intent still accurate for PR #62; no Intent rewrite requested. Open: user has not marked Intent done.
-- Evidence: plan frozen Intent; hvac_app.py demand branch clamp(u_ff); CAP-5 in test_hvac_app.py
+- Evidence: plan frozen Intent; hvac_app.py demand branch clamp(u_ff); R5 in test_hvac_app.py
 - Open: awaiting user accept Intent or further move
 
 ## 3 — Intent — accepted
@@ -91,7 +91,7 @@ Session: 64b7f198-3a88-470b-b888-e1bdb444d1a5 · Timestamp: 2026-10-18T18:22:30+
 
 Session: 64b7f198-3a88-470b-b888-e1bdb444d1a5 · Timestamp: 2026-10-18T18:22:30+03:00
 
-- Action: User selected Test; ran pytest CAP-5/matrix/write_setpoint subset + manual demand fail-write abort
+- Action: User selected Test; ran pytest R5/matrix/write_setpoint subset + manual demand fail-write abort
 - Result: 16 passed. Manual abort OK (no set_value, WARN unavailable, no command= INFO). Gap: no automated tick test for demand fail-write abort — open/optional
 - Evidence: uv run pytest … -k 'cap5 or matrix_outdoor or matrix_no_valid or write_setpoint' → 16 passed; PYTHONPATH=apps one-off PASS abort True
 - Open: user may add test, accept gap, or mark block done
@@ -135,7 +135,7 @@ Session: 64b7f198-3a88-470b-b888-e1bdb444d1a5 · Timestamp: 2026-10-18T18:27:00+
 
 Session: 64b7f198-3a88-470b-b888-e1bdb444d1a5 · Timestamp: 2026-10-18T18:27:30+03:00
 
-- Action: User selected Test; ran test_coordinator + idle CAP-5/clear tick tests
+- Action: User selected Test; ran test_coordinator + idle R5/clear tick tests
 - Result: 13 passed (coordinator) + 2 passed (idle tick paths). Eligibility/idle cases green. No HA live test.
 - Evidence: uv run pytest tests/test_coordinator.py; test_cap5_plant_on_idle_writes_zero_and_clears; test_idle_paths_clear_blow_up_warned
 - Open: Heating-demand block not accepted
@@ -145,41 +145,41 @@ Session: 64b7f198-3a88-470b-b888-e1bdb444d1a5 · Timestamp: 2026-10-18T18:27:30+
 Session: 64b7f198-3a88-470b-b888-e1bdb444d1a5 · Timestamp: 2026-10-18T18:29:00+03:00
 
 - Action: User said Heating-demand done
-- Result: Accepted; advancing to CAP-5 tests / kill-list
+- Result: Accepted; advancing to R5 tests / kill-list
 - Evidence: user "done"
 
-## 14 — CAP-5 tests / kill-list — Thoughts
+## 14 — R5 tests / kill-list — Thoughts
 
 Session: 64b7f198-3a88-470b-b888-e1bdb444d1a5 · Timestamp: 2026-10-18T18:30:00+03:00
 
-- Action: User selected Thoughts; verified kill-list absent, leave-list/CAP-5 present
+- Action: User selected Thoughts; verified kill-list absent, leave-list/R5 present
 - Result: Block accurate; no rewrite
 - Evidence: tests/test_hvac_app.py; plan Code Map kill/leave lists
 - Open: block not accepted
 
-## 15 — CAP-5 tests / kill-list — Test
+## 15 — R5 tests / kill-list — Test
 
 Session: 64b7f198-3a88-470b-b888-e1bdb444d1a5 · Timestamp: 2026-10-18T18:31:00+03:00
 
-- Action: User selected Test; ran CAP-5/matrix/fail-write; control_tick filter; leave-list sample
-- Result: pending main — expect CAP-5 green, control_tick empty/deselected, leave helpers green
+- Action: User selected Test; ran R5/matrix/fail-write; control_tick filter; leave-list sample
+- Result: pending main — expect R5 green, control_tick empty/deselected, leave helpers green
 - Evidence: pytest -k filters on test_hvac_app.py
 - Open: block not accepted
 
-## 16 — CAP-5 tests / kill-list — Test results
+## 16 — R5 tests / kill-list — Test results
 
 Session: 64b7f198-3a88-470b-b888-e1bdb444d1a5 · Timestamp: 2026-10-18T18:31:30+03:00
 
 - Action: Confirmed pytest outcomes from Test move
-- Result: CAP-5/matrix/fail-write 8 passed; control_tick filter 0 collected (exit 5 expected); leave-list sample 34 passed. Disposition: verified.
+- Result: R5/matrix/fail-write 8 passed; control_tick filter 0 collected (exit 5 expected); leave-list sample 34 passed. Disposition: verified.
 - Evidence: uv run pytest tests/test_hvac_app.py -k filters
-- Open: CAP-5 block not accepted
+- Open: R5 block not accepted
 
-## 17 — CAP-5 tests / kill-list — accepted
+## 17 — R5 tests / kill-list — accepted
 
 Session: 64b7f198-3a88-470b-b888-e1bdb444d1a5 · Timestamp: 2026-10-18T18:32:30+03:00
 
-- Action: User said CAP-5 tests / kill-list done
+- Action: User said R5 tests / kill-list done
 - Result: Accepted; advancing to Dormancy of LADRC
 - Evidence: user "done"
 
@@ -196,7 +196,7 @@ Session: 64b7f198-3a88-470b-b888-e1bdb444d1a5 · Timestamp: 2026-10-18T18:32:45+
 
 Session: 64b7f198-3a88-470b-b888-e1bdb444d1a5 · Timestamp: 2026-10-18T18:33:15+03:00
 
-- Action: User selected Test; CAP-5 demand/idle/off + initialize/idle clear; static control_tick banned-name scan
+- Action: User selected Test; R5 demand/idle/off + initialize/idle clear; static control_tick banned-name scan
 - Result: pending exact counts in chat — expect green + no banned names in control_tick
 - Evidence: pytest named tests; inspect.getsource(HvacApp.control_tick)
 - Open: block not accepted

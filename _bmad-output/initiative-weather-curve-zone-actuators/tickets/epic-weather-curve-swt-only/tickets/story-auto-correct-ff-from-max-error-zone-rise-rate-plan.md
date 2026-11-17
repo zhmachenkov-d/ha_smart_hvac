@@ -20,7 +20,7 @@ context:
 
 ## Intent
 
-**Problem:** CAP-7 is documented (spike decision + ADR 0004) but not live — FF params stay at yaml commission and never adapt from the max-error demand zone’s air rise rate.
+**Problem:** R7 is documented (spike decision + ADR 0004) but not live — FF params stay at yaml commission and never adapt from the max-error demand zone’s air rise rate.
 
 **Approach:** Implement the accepted spike contract so under Heating Demand the app selects that zone for rise-rate only, adapts `base`/`slope` (not `comfort_ref`), persists via B1 JSON only when params actually changed **and** SWT write succeeds, and keeps SWT as `clamp(u_ff)` with updated params — no air→SWT tracking.
 
@@ -32,7 +32,7 @@ context:
 - Plant-on idle **or no demand** → write `0` + clear ephemeral; plant-off → no write + clear ephemeral; neither clears/rewrites `ff_auto_correct_state.json`.
 - Yaml nest `weather_feedforward.auto_correct` (E2): `outdoor_gate_delta_k`, `r_expected_c_per_h`, `near_setpoint_eps_k`, `e_sat_c_per_h` (defaults 12 / 0.25 / 0.3 / 0.25); missing nest → defaults. Other scalars = code constants.
 - Load: yaml FF → overlay `base`/`slope` from JSON if valid and in bounds; `comfort_ref` always yaml.
-- CAP-5 keepers stay green: CAP-5(e) remains single-tick air≠additive (no adapt fixture); CAP-7 adapt≠additive covered separately.
+- R5 keepers stay green: R5(e) remains single-tick air≠additive (no adapt fixture); R7 adapt≠additive covered separately.
 
 **Never:**
 - Air→SWT tracking / `u_track`; adapt `comfort_ref`; new HA entities; resurrect LADRC/ωc; invent law beyond the decision note; commit house entity IDs / touch gitignored `apps/apps.yaml`.
@@ -66,7 +66,7 @@ context:
 - `apps.yaml.example` — Document optional `auto_correct` nest; comment: omit nest = E2 defaults (auto-correct always on); ops delete `ff_auto_correct_state.json` to restore yaml commission.
 - `tests/test_coordinator.py` — Selector + T-hold / lex / demand-pool only.
 - `tests/test_ff_auto_correct.py` — Pure: W15/1A append-on-freeze, I1/CS-base+hysteresis same-tick, N2+G25 / G1#1–6 signs, guards, B1 load/corrupt/OOB, bounds no-op.
-- `tests/test_hvac_app.py` — Hass: plant-off/idle/no-demand flush (JSON untouched), 2C write-fail, D-cmd, demand SWT = clamp(runtime); keep CAP-5 a–e **unchanged** (CAP-5(e) single-tick no-adapt); separate CAP-7 tick test that adapt≠additive air term.
+- `tests/test_hvac_app.py` — Hass: plant-off/idle/no-demand flush (JSON untouched), 2C write-fail, D-cmd, demand SWT = clamp(runtime); keep R5 a–e **unchanged** (R5(e) single-tick no-adapt); separate R7 tick test that adapt≠additive air term.
 - `tests/test_config.py` — Missing nest → defaults; valid nest overrides.
 - Out of scope: ADR/CONTEXT/AGENTS (1.3 done), house `apps/apps.yaml`, `knowledge/`.
 
@@ -74,17 +74,17 @@ context:
 
 **Execution:**
 - [ ] `apps/ha_smart_hvac/models.py` + `config.py` — E2 `AutoCorrectConfig` nest + defaults -- commission surface
-- [ ] `apps/ha_smart_hvac/coordinator.py` — `select_max_error_demand_zone(zones, previous_name)` T-hold/lex -- CAP-7 signal
+- [ ] `apps/ha_smart_hvac/coordinator.py` — `select_max_error_demand_zone(zones, previous_name)` T-hold/lex -- R7 signal
 - [ ] `apps/ha_smart_hvac/ff_auto_correct.py` — Window/I1/nudge/guards/B1 JSON (pure) -- decision law
 - [ ] `apps/ha_smart_hvac/hvac_app.py` + `feedforward.py` — Runtime base/slope + throwaway FF config; plant-off/no-demand flush; append-before-freeze; 2C -- runtime
 - [ ] `apps.yaml.example` — `auto_correct` nest + omit=defaults / delete-JSON restore comment -- ops
 - [ ] `tests/test_ff_auto_correct.py` — Pure matrix/G1 (incl. G1#6) + B1 load/corrupt -- law
-- [ ] `tests/test_hvac_app.py` + `test_coordinator.py` + `test_config.py` — Flush/2C/D-cmd/CAP-7 tick; CAP-5 keepers untouched; selector; nest parse -- green
+- [ ] `tests/test_hvac_app.py` + `test_coordinator.py` + `test_config.py` — Flush/2C/D-cmd/R7 tick; R5 keepers untouched; selector; nest parse -- green
 
 **Acceptance Criteria:**
 - Given sustained demand with full W15 and guards open, when ticks run, then FF `base`/`slope` move with rise-rate and SWT equals `clamp(u_ff)` from post-nudge params (no additive air term).
-- Given CAP-5(e) multi-zone setup on a **single tick** with no adapt window, when max-error zone air changes without changing outdoor/runtime FF, then SWT is unchanged — never `u_ff + f(air)`.
-- Given a CAP-7 adapt tick, when params nudge from rise-rate, then SWT still equals `clamp(u_ff)` from post-nudge params only (air not an additive term).
+- Given R5(e) multi-zone setup on a **single tick** with no adapt window, when max-error zone air changes without changing outdoor/runtime FF, then SWT is unchanged — never `u_ff + f(air)`.
+- Given a R7 adapt tick, when params nudge from rise-rate, then SWT still equals `clamp(u_ff)` from post-nudge params only (air not an additive term).
 - Given plant-off, idle, or no-demand, when tick runs, then ephemeral cleared and `ff_auto_correct_state.json` neither deleted nor rewritten.
 - Given D-cmd block, bounds no-op, or SWT write fail, when adapt would otherwise nudge, then JSON is not written (2C/3A); on bounds no-op SWT may still write the unchanged command.
 - Given restart with valid JSON, when app initializes then first I1 evaluate runs, then `base`/`slope` overlay yaml, ephemeral starts empty, and CS-base fill then hysteresis run **same tick** (slope allowed immediately when `d ≥ gate+hyst`).
@@ -96,7 +96,7 @@ context:
 
 ## Plan Change Log
 
-- 2026-10-19 plan review patch-all: runtime base/slope + throwaway FF config; CS-base→hysteresis same-tick on restart; 3A SWT-ok/JSON-no in Design Notes; no-demand flush explicit; CAP-5(e) vs CAP-7 ACs split; G1#6 matrix/AC; JSON = changed∧write-ok; selector signature; pure vs Hass test split.
+- 2026-10-19 plan review patch-all: runtime base/slope + throwaway FF config; CS-base→hysteresis same-tick on restart; 3A SWT-ok/JSON-no in Design Notes; no-demand flush explicit; R5(e) vs R7 ACs split; G1#6 matrix/AC; JSON = changed∧write-ok; selector signature; pure vs Hass test split.
 
 ## Review Triage Log
 
@@ -105,7 +105,7 @@ context:
 | `_load_ff_overlay` silent on missing JSON | medium | patch | Spike Load §3 + matrix: missing → yaml only **and warn**. Code warns only when `path.exists()`; absent file returns None with no WARNING. Verified in `hvac_app.py`. |
 | `e_sat_c_per_h: 0` → ZeroDivisionError on adapt | medium | patch | `_parse_auto_correct` accepts `0.0`; `process_demand` divides by `e_sat` after W15/I1 advance. Repro with `AutoCorrectConfig(e_sat_c_per_h=0)`. |
 | OOB yaml `base`/`slope` reverse-snap on first clamp | low | reject | Real if commission is OOB, but everyday yaml (`apps.yaml.example` 25/1.2) is in bounds; fix needs clamp-vs-reject design beyond a direct patch. |
-| party-mode `.memlog.md` in diff | false | reject | Pre-existing dirty tree from party mode; not CAP-7 runtime; not introduced as part of story Code Map. |
+| party-mode `.memlog.md` in diff | false | reject | Pre-existing dirty tree from party mode; not R7 runtime; not introduced as part of story Code Map. |
 
 ## Design Notes
 

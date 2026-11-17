@@ -24,9 +24,9 @@ Session: 8d2a06f4-213c-4bc6-8b9b-5d455d0edc8a · Timestamp: 2026-10-17T03:14:30+
 
 Session: 8d2a06f4-213c-4bc6-8b9b-5d455d0edc8a · Timestamp: 2026-10-17T03:15:30+03:00
 
-- Action: Compared frozen Intent to CAP-1/2, architecture flowchart, control-tick-behaviors.
-- Result: Intent aligns with CAP-1+CAP-2 goals and story scope (CAP-6 a/b only). Known tension: companion CAP-2 literal forbids any with_omega_c(proposed) for compute_tracking; Intent Approach allows provisional apply-signal and names write-path — accepted plan decision, not Intent defect. CAP-3/4 still in arch diagram but correctly Never/later.
-- Evidence: story-directional-clamp-strict-apply-plan.md Intent; control-tick-behaviors.md CAP-1/2; architecture-diagrams.md
+- Action: Compared frozen Intent to R1/2, architecture flowchart, control-tick-behaviors.
+- Result: Intent aligns with R1+R2 goals and story scope (R6 a/b only). Known tension: companion R2 literal forbids any with_omega_c(proposed) for compute_tracking; Intent Approach allows provisional apply-signal and names write-path — accepted plan decision, not Intent defect. R3/4 still in arch diagram but correctly Never/later.
+- Evidence: story-directional-clamp-strict-apply-plan.md Intent; control-tick-behaviors.md R1/2; architecture-diagrams.md
 - Open: User accept/reject Intent block
 
 ## 4 — Intent — renegotiate wording
@@ -34,7 +34,7 @@ Session: 8d2a06f4-213c-4bc6-8b9b-5d455d0edc8a · Timestamp: 2026-10-17T03:15:30+
 Session: 8d2a06f4-213c-4bc6-8b9b-5d455d0edc8a · Timestamp: 2026-10-17T03:17:30+03:00
 
 - Action: Human chose option 2; updated frozen Intent in plan + narrative.
-- Result: Approach/Always/matrix Max+ωc↑ clarified; companion CAP-2 not synced.
+- Result: Approach/Always/matrix Max+ωc↑ clarified; companion R2 not synced.
 - Evidence: story-directional-clamp-strict-apply-plan.md; walkthrough-pr-31.md
 - Open: Accept Intent block; dirty tree (plan+narrative)
 
@@ -43,8 +43,8 @@ Session: 8d2a06f4-213c-4bc6-8b9b-5d455d0edc8a · Timestamp: 2026-10-17T03:17:30+
 Session: 8d2a06f4-213c-4bc6-8b9b-5d455d0edc8a · Timestamp: 2026-10-17T03:19:30+03:00
 
 - Action: Re-read renegotiated Intent vs CAP/arch.
-- Result: Main CAP-2 tension closed in Intent; residual: Always cites arch diagram that omits provisional; Min+ωc↓ matrix lacks write-path adjective; companion CAP-2/arch still stale (deferred).
-- Evidence: walkthrough-pr-31.md Intent; architecture-diagrams.md; control-tick-behaviors.md CAP-2
+- Result: Main R2 tension closed in Intent; residual: Always cites arch diagram that omits provisional; Min+ωc↓ matrix lacks write-path adjective; companion R2/arch still stale (deferred).
+- Evidence: walkthrough-pr-31.md Intent; architecture-diagrams.md; control-tick-behaviors.md R2
 - Open: Accept Intent or polish residual wording
 
 ## 6 — Intent — polish 1–2
@@ -96,9 +96,9 @@ Session: 8d2a06f4-213c-4bc6-8b9b-5d455d0edc8a · Timestamp: 2026-10-17T03:26:30+
 
 Session: 8d2a06f4-213c-4bc6-8b9b-5d455d0edc8a · Timestamp: 2026-10-17T03:27:00+03:00
 
-- Action: Compared should_commit_omega_c to CAP-1 and matrix tests.
-- Result: Predicate matches CAP-1 (>= max / <= min). No logic bug. Nits: name used for apply+commit; proposed==current not in matrix (allows, harmless).
-- Evidence: hvac_app.py:112-130; test_hvac_app.py matrix; control-tick-behaviors CAP-1
+- Action: Compared should_commit_omega_c to R1 and matrix tests.
+- Result: Predicate matches R1 (>= max / <= min). No logic bug. Nits: name used for apply+commit; proposed==current not in matrix (allows, harmless).
+- Evidence: hvac_app.py:112-130; test_hvac_app.py matrix; control-tick-behaviors R1
 - Open: Accept Directional helper
 
 ## 12 — Directional helper — Formal review (bmad-code-review quick)
@@ -151,7 +151,7 @@ Session: 8d2a06f4-213c-4bc6-8b9b-5d455d0edc8a · Timestamp: 2026-10-17T03:43:30+
 Session: 8d2a06f4-213c-4bc6-8b9b-5d455d0edc8a · Timestamp: 2026-10-17T03:44:00+03:00
 
 - Action: User accepted Strict apply.
-- Result: Advancing to Tests / CAP-6 locks. Tree still dirty.
+- Result: Advancing to Tests / R6 locks. Tree still dirty.
 - Evidence: walkthrough-pr-31.md
 - Open: Tests block; commit?
 
@@ -160,7 +160,7 @@ Session: 8d2a06f4-213c-4bc6-8b9b-5d455d0edc8a · Timestamp: 2026-10-17T03:44:00+
 Session: 8d2a06f4-213c-4bc6-8b9b-5d455d0edc8a · Timestamp: 2026-10-17T03:44:30+03:00
 
 - Action: Reviewed matrix, ratchet mirror, inspect (post-patch).
-- Result: CAP-6(a)(b) covered as planned. Known gaps: ratchet not live control_tick; no min-side ratchet; relieving only at helper True. Inspect vacuity fixed. Acceptable per Design Notes.
+- Result: R6(a)(b) covered as planned. Known gaps: ratchet not live control_tick; no min-side ratchet; relieving only at helper True. Inspect vacuity fixed. Acceptable per Design Notes.
 - Evidence: test_hvac_app.py:342-465
 - Open: Accept Tests block
 
@@ -168,8 +168,8 @@ Session: 8d2a06f4-213c-4bc6-8b9b-5d455d0edc8a · Timestamp: 2026-10-17T03:44:30+
 
 Session: 8d2a06f4-213c-4bc6-8b9b-5d455d0edc8a · Timestamp: 2026-10-17T03:45:00+03:00
 
-- Action: Ran CAP-6 trio + full Verification suite.
-- Result: 9 CAP-6 related passed; 50 total (hvac_app+ladrc_tuner); ruff clean.
+- Action: Ran R6 trio + full Verification suite.
+- Result: 9 R6 related passed; 50 total (hvac_app+ladrc_tuner); ruff clean.
 - Evidence: pytest -v on three tests; pytest -q suite; ruff
 - Open: Accept Tests block
 
@@ -177,7 +177,7 @@ Session: 8d2a06f4-213c-4bc6-8b9b-5d455d0edc8a · Timestamp: 2026-10-17T03:45:00+
 
 Session: 8d2a06f4-213c-4bc6-8b9b-5d455d0edc8a · Timestamp: 2026-10-17T03:45:30+03:00
 
-- Action: User accepted Tests / CAP-6.
+- Action: User accepted Tests / R6.
 - Result: Advancing to Periphery. Tree still dirty.
 - Evidence: walkthrough-pr-31.md
 - Open: Periphery; wrap-up after; commit?
@@ -187,7 +187,7 @@ Session: 8d2a06f4-213c-4bc6-8b9b-5d455d0edc8a · Timestamp: 2026-10-17T03:45:30+
 Session: 8d2a06f4-213c-4bc6-8b9b-5d455d0edc8a · Timestamp: 2026-10-17T03:46:00+03:00
 
 - Action: Checked plan status, dirty set, companion defer posture.
-- Result: Plan built + Intent renegotiate + CR patch recorded. Companion CAP-2/arch still stale (no deferred-work.md yet). Dirty: plan, inspect test, walkthrough-pr-31/. Ready for wrap-up commit/push.
+- Result: Plan built + Intent renegotiate + CR patch recorded. Companion R2/arch still stale (no deferred-work.md yet). Dirty: plan, inspect test, walkthrough-pr-31/. Ready for wrap-up commit/push.
 - Evidence: git status; story plan frontmatter status built
 - Open: Accept Periphery → Wrap-up
 
@@ -196,7 +196,7 @@ Session: 8d2a06f4-213c-4bc6-8b9b-5d455d0edc8a · Timestamp: 2026-10-17T03:46:00+
 Session: 8d2a06f4-213c-4bc6-8b9b-5d455d0edc8a · Timestamp: 2026-10-17T03:46:30+03:00
 
 - Action: User accepted Periphery; all blocks done.
-- Result: Suggest Wrap-up — commit/push follow-up to PR #31; optional deferred-work for CAP-2 companion; merge when ready.
+- Result: Suggest Wrap-up — commit/push follow-up to PR #31; optional deferred-work for R2 companion; merge when ready.
 - Evidence: walkthrough-pr-31.md all blocks checked
 - Open: User confirm Wrap-up actions
 

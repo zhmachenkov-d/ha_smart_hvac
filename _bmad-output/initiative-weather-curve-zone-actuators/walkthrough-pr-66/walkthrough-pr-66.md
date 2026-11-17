@@ -1,4 +1,4 @@
-# Walkthrough: PR #66 — CAP-7 FF rise-rate auto-correct decision (spike 1.4)
+# Walkthrough: PR #66 — R7 FF rise-rate auto-correct decision (spike 1.4)
 
 Target: [PR #66](https://github.com/zhmachenkov-d/ha_smart_hvac/pull/66) (`spike/1-4-ff-rise-rate-auto-correct-rule` → `main`).
 
@@ -19,17 +19,17 @@ Current block: **Wrap-up** (done — review finished)
 
 Source: frozen Intent in [spike-ff-rise-rate-auto-correct-rule-plan.md](../epic-weather-curve-swt-only/spike-ff-rise-rate-auto-correct-rule-plan.md#L23-L27).
 
-**Problem:** Stories 1.3 (ADR/docs) and 1.5 (CAP-7 implementation) are blocked until the rise-rate signal, adaptation law, guards, persistence shape, and explicit non-goals for Weather Feedforward auto-correct are written down — without inventing an air→SWT tracking term.
+**Problem:** Stories 1.3 (ADR/docs) and 1.5 (R7 implementation) are blocked until the rise-rate signal, adaptation law, guards, persistence shape, and explicit non-goals for Weather Feedforward auto-correct are written down — without inventing an air→SWT tracking term.
 
-**Approach:** Time-boxed design spike: decision note at the spike’s Decision target path (Signal / Law / Guards / Persistence / Non-goals + G1 direction smoke table), draft epic Notes Decision for Denys, stop. No runtime CAP-7 code and no offline script in this ticket.
+**Approach:** Time-boxed design spike: decision note at the spike’s Decision target path (Signal / Law / Guards / Persistence / Non-goals + G1 direction smoke table), draft epic Notes Decision for Denys, stop. No runtime R7 code and no offline script in this ticket.
 
 ---
 
 ### 2. Broad strokes
 
-Docs-only CAP-7 contract lock. Entry points:
+Docs-only R7 contract lock. Entry points:
 
-1. [Decision note](../epic-weather-curve-swt-only/spike-ff-rise-rate-auto-correct-rule-decision.md) — accepted CAP-7 contract (Signal / Law / Guards / Persistence / Non-goals + G1).
+1. [Decision note](../epic-weather-curve-swt-only/spike-ff-rise-rate-auto-correct-rule-decision.md) — accepted R7 contract (Signal / Law / Guards / Persistence / Non-goals + G1).
 2. [Plan](../epic-weather-curve-swt-only/spike-ff-rise-rate-auto-correct-rule-plan.md) — frozen Intent + planning Decisions the note encodes.
 3. [Epic Notes](../epic-weather-curve-swt-only/epic-weather-curve-swt-only.md#L48-L54) — Decision (2026-10-19, Denys) … accepted pointer.
 4. [Spike ticket](../epic-weather-curve-swt-only/spike-ff-rise-rate-auto-correct-rule.md#L32-L47) — AC the decision must satisfy.

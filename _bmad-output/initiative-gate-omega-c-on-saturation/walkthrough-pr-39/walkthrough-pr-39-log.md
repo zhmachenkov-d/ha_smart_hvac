@@ -24,9 +24,9 @@ Session: unavailable · Timestamp: 2026-10-17T05:38:00+03:00
 
 Session: unavailable · Timestamp: 2026-10-17T05:39:00+03:00
 
-- Action: Compared frozen Intent to CAP-2/CAP-4 companions, flowchart, deferred-work, and control_tick (should_apply_omega_c, track_and_guard, apply_proposed, sticky after write).
+- Action: Compared frozen Intent to R2/R4 companions, flowchart, deferred-work, and control_tick (should_apply_omega_c, track_and_guard, apply_proposed, sticky after write).
 - Result: Intent matches shipped scope; companions/deferred cleared; rename+helper+post-write apply_proposed present; latch_out left; no Intent gaps. Soft note only if any — parent will say.
-- Evidence: story-refactor-sweep-plan.md Intent; control-tick-behaviors CAP-2/4; architecture-diagrams; hvac_app.py; deferred-work.md
+- Evidence: story-refactor-sweep-plan.md Intent; control-tick-behaviors R2/4; architecture-diagrams; hvac_app.py; deferred-work.md
 - Open: await user done/next on Intent
 
 ## 4 — Intent — done
@@ -52,42 +52,42 @@ Session: unavailable · Timestamp: 2026-10-17T05:41:30+03:00
 Session: unavailable · Timestamp: 2026-10-17T05:42:00+03:00
 
 - Action: User accepted Broad strokes block.
-- Result: Broad strokes done; advancing to Companion CAP-2/CAP-4 sync.
+- Result: Broad strokes done; advancing to Companion R2/R4 sync.
 - Evidence: walkthrough-pr-39.md
-- Open: Companion CAP-2/CAP-4 sync review
+- Open: Companion R2/R4 sync review
 
-## 7 — Companion CAP-2/CAP-4 sync — Thoughts
+## 7 — Companion R2/R4 sync — Thoughts
 
 Session: unavailable · Timestamp: 2026-10-17T05:43:00+03:00
 
-- Action: Compared companions + flowchart + deferred-work to plan Design Notes and renegotiated CAP-2/CAP-4 Intent.
-- Result: Targets matched; deferred cleared. Soft: CAP-2 intro still “would block” framed while bullets cover allow — accepted as-is.
-- Evidence: control-tick-behaviors.md CAP-2/4; architecture-diagrams.md; deferred-work.md; story-refactor-sweep-plan Design Notes
+- Action: Compared companions + flowchart + deferred-work to plan Design Notes and renegotiated R2/R4 Intent.
+- Result: Targets matched; deferred cleared. Soft: R2 intro still “would block” framed while bullets cover allow — accepted as-is.
+- Evidence: control-tick-behaviors.md R2/4; architecture-diagrams.md; deferred-work.md; story-refactor-sweep-plan Design Notes
 - Open: await user done/next on Companion sync
 
-## 8 — Companion CAP-2/CAP-4 sync — CAP-2 intro edit
+## 8 — Companion R2/R4 sync — R2 intro edit
 
 Session: unavailable · Timestamp: 2026-10-17T05:44:00+03:00
 
-- Action: Rewrote CAP-2 intro in control-tick-behaviors.md to frame proposed-ωc apply (block and allow), not only the blocking case.
+- Action: Rewrote R2 intro in control-tick-behaviors.md to frame proposed-ωc apply (block and allow), not only the blocking case.
 - Result: Soft residual fixed; bullets unchanged.
 - Evidence: control-tick-behaviors.md Strict apply intro
 - Open: await user done/next on Companion sync
 
-## 9 — Companion CAP-2/CAP-4 sync — Thoughts (post-intro)
+## 9 — Companion R2/R4 sync — Thoughts (post-intro)
 
 Session: unavailable · Timestamp: 2026-10-17T05:45:00+03:00
 
-- Action: Re-read CAP-2/CAP-4 companions + flowchart after intro rewrite.
+- Action: Re-read R2/R4 companions + flowchart after intro rewrite.
 - Result: Intro aligns with bullets; prior soft residual closed; no new findings.
 - Evidence: control-tick-behaviors.md L20-57; architecture-diagrams.md; deferred-work.md
 - Open: await user done/next on Companion sync
 
-## 10 — Companion CAP-2/CAP-4 sync — done
+## 10 — Companion R2/R4 sync — done
 
 Session: unavailable · Timestamp: 2026-10-17T05:46:00+03:00
 
-- Action: User accepted Companion CAP-2/CAP-4 sync (after CAP-2 intro edit).
+- Action: User accepted Companion R2/R4 sync (after R2 intro edit).
 - Result: Companion done; advancing to should_apply_omega_c + track_and_guard.
 - Evidence: walkthrough-pr-39.md; control-tick-behaviors.md intro edit
 - Open: rename+helper slice review
@@ -179,7 +179,7 @@ Session: unavailable · Timestamp: 2026-10-17T05:56:00+03:00
 
 - Action: User confirmed wrap-up: commit/push review deltas, merge #39, remove feature branch, mark story 1.5 + epic + initiative done (also story 1.4 plan still built → done).
 - Result: In progress.
-- Evidence: walkthrough-pr-39; control-tick-behaviors CAP-2 intro; inspect rename; status fields
+- Evidence: walkthrough-pr-39; control-tick-behaviors R2 intro; inspect rename; status fields
 - Open: push + CI + merge
 
 ## 21 — wrap-up — complete

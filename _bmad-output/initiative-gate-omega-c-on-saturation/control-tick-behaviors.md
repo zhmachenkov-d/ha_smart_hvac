@@ -1,8 +1,8 @@
 # Control-tick behaviors (gate ωc on saturation)
 
-Load-bearing rules for CAP-1–CAP-4. Kernel holds intent; this file holds the matrices.
+Load-bearing rules for R1–R4. Kernel holds intent; this file holds the matrices.
 
-## Directional commit clamp (CAP-1)
+## Directional commit clamp (R1)
 
 Skip `commit_omega_c` when any of:
 
@@ -17,7 +17,7 @@ Skip `commit_omega_c` when any of:
 
 Full freeze on any SWT clamp is out of scope.
 
-## Strict apply (CAP-2)
+## Strict apply (R2)
 
 On a tick with a proposed ωc, directional clamp and guard trip decide whether that proposal may enter write-path tracking and later persist:
 
@@ -26,7 +26,7 @@ On a tick with a proposed ωc, directional clamp and guard trip decide whether t
 3. If allowed: reuse provisional `u_track`/guard for write-path (no second track); persist only when `apply_proposed` after a successful write (outside decay).
 4. Gate-only-on-persistence (apply proposed, skip commit) remains rejected — it reopens the one-tick ratchet.
 
-## Write-on-change (CAP-3)
+## Write-on-change (R3)
 
 Inside `_write_setpoint` for **all** paths (demand and idle/0):
 
@@ -37,7 +37,7 @@ Inside `_write_setpoint` for **all** paths (demand and idle/0):
 
 Baseline for equality is entity state, not a last-written cache. Equality-skip must not early-return the tick; unreadability abort is separate and intentional.
 
-## Latch ωc decay (CAP-4)
+## Latch ωc decay (R4)
 
 While the blow-up soft-kill latch is **already active at tick start**:
 
@@ -50,7 +50,7 @@ While the blow-up soft-kill latch is **already active at tick start**:
 
 On the trip-edge tick (latch was inactive at start), adapt may still have proposed before the guard; commit remains skipped by guard trip; decay applies from that tick onward when the residue condition holds.
 
-Soft-kill latch (sticky CAP-4):
+Soft-kill latch (sticky R4):
 
 - Soft-kill latch assigned only **after successful `_write_setpoint`** via sticky: `tripped ∨ (latch_in ∧ residue_holds)` where residue is `|u| > 0.8·u_track_max` or non-finite.
 - Latch **holds** while residue is in `(0.8·u_track_max, u_track_max]` (even if not currently tripped); clears when finite `|u| ≤ 0.8·u_track_max`.
