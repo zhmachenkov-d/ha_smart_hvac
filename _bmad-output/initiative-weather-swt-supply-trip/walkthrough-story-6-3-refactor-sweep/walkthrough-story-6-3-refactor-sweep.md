@@ -1,17 +1,17 @@
 # Walkthrough: Story 6.3 — Refactor sweep
-Target: Plan draft — [story-refactor-sweep-plan.md](../tickets/epic-docs-trv-flame-water-law/tickets/story-refactor-sweep-plan.md) · branch `chore/6-3-refactor-sweep-plan` · `5f4b661`+
+Target: [PR #159](https://github.com/zhmachenkov-d/ha_smart_hvac/pull/159) · branch `chore/6-3-refactor-sweep-plan` · `c4eeb9a`
 
-**Current block:** Wrap-up (follow-through 1–3 in progress)
+**Current block:** Wrap-up (done — PR #159 open; merge when ready)
 
 ## Blocks
 - [x] **Intent** — done (Demo; Second opinion I→B)
 - [x] **Broad strokes** — done (Demo)
 - [x] **Slice: Plan draft** — done (Formal review patch-all)
 - [x] **Periphery** — done (presented)
-- [x] **Wrap-up** — done (user confirmed follow-through 1–3: commit · push+PR · implement)
+- [x] **Wrap-up** — done (commit · push+PR · implement; 362 pytest + ruff + blocking rg)
 
 ## Review status
-Wrap-up follow-through in progress — commit narrative, push+PR, implement plan.
+Complete — PR #159 open.
 
 ---
 
@@ -45,4 +45,4 @@ OUT: G–H tests; `control_event` docstring; ADR 0005/0006 body demotion; §1 ta
 ---
 
 ### Wrap-up
-User confirmed follow-through: (1) commit narrative/log, (2) push + PR, (3) implement 6.3 per frozen plan.
+Follow-through done: CAP-8 reword + deferred Settled epic-6; [PR #159](https://github.com/zhmachenkov-d/ha_smart_hvac/pull/159). Verify: 362 pytest, ruff clean, blocking `rg`/spot-read. Merge when ready.
