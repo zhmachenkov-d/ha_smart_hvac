@@ -47,6 +47,8 @@ Places:
 - [0004](../../../../docs/adr/0004-weather-curve-swt.md) / [0005](../../../../docs/adr/0005-fixed-pid-swt.md) / [0006](../../../../docs/adr/0006-optional-rls-adaptive-pid.md) — Live water law → ADR-0008
 - [house-calibration.md](../../../../docs/house-calibration.md) — Live water law → 0008; anti-cycle wiring in lead
 
+Review notes: Demo — [demo-slice-adr-transcript.md](demo-slice-adr-transcript.md).
+
 ---
 
 ### Slice: AGENTS + CONTEXT

@@ -87,3 +87,27 @@ Session: unavailable · Timestamp: 2026-11-17T09:30:30+00:00
 - Result: Broad strokes done. Slice ADR 0008 + historical 0007 / pointers in progress. Tree dirty (walkthrough updates since 6b116b2).
 - Evidence: walkthrough narrative; demo-broad-strokes-transcript.md
 - Open: slice acceptance; ask commit?
+
+## 13 — Slice ADR — commit
+Session: unavailable · Timestamp: 2026-11-17T09:32:30+00:00
+
+- Action: User confirmed commit of walkthrough updates after Broad strokes done.
+- Result: Commit ec4cdcf docs(walkthrough): advance story 6.1 past Broad strokes. party-mode memories still untracked.
+- Evidence: git log -1 ec4cdcf
+- Open: Slice ADR acceptance; Demo suggested
+
+## 14 — Slice ADR — Demo
+Session: unavailable · Timestamp: 2026-11-17T10:01:30+00:00
+
+- Action: Demo spot-read 0008 → 0007 → 0004–0006 → house-calibration; saved transcript.
+- Result: All checks Observed OK (accepted/superseded/pointers/anti-cycle lead).
+- Evidence: demo-slice-adr-transcript.md
+- Open: Slice ADR acceptance; dirty tree
+
+## 15 — Slice ADR done → AGENTS+CONTEXT
+Session: unavailable · Timestamp: 2026-11-17T10:03:30+00:00
+
+- Action: User accepted Slice ADR; presented AGENTS+CONTEXT slice; narrative updated.
+- Result: Slice ADR done. AGENTS+CONTEXT in progress. Tree dirty (demo + log since ec4cdcf).
+- Evidence: demo-slice-adr-transcript.md; narrative
+- Open: slice acceptance; ask commit?
