@@ -44,6 +44,6 @@ after = [{ epic = 4, needs = "TRV soft-close primary anti-cycle live before supp
 id = 6
 slug = "epic-docs-trv-flame-water-law"
 title = "Docs: TRV + flame water law"
-description = "ADR/CONTEXT/AGENTS/knowledge match the shipped weather-curve + TRV soft-close + flame short-on law; supply rise-rate trip language removed from live docs; ADR 0007 trip portion amended or superseded; CAP-7 still out."
+description = "ADR/CONTEXT/AGENTS/knowledge match the shipped weather-curve + TRV soft-close + flame short-on law; supply rise-rate trip language removed from live docs; a new ADR supersedes ADR 0007 for live water law (0007 historical); CAP-7 still out."
 covers = ["R4", "R7", "R8"]
 after = [{ epic = 5, needs = "TRV soft-close and flame short-on shipped so docs match the App" }]

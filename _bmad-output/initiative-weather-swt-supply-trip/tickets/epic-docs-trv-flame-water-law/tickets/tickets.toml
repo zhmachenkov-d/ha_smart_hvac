@@ -1,0 +1,38 @@
+# Epic 6 breakdown — leaf build order. `id` is stable; table order is build order.
+# Approved 2026-11-17. Tracer = new ADR + AGENTS/CONTEXT live law (curve + TRV + flame).
+
+[[entry]]
+id = 1
+type = "story"
+title = "Tracer: ADR + AGENTS/CONTEXT for TRV+flame water law"
+description = "Adds a new ADR as the live water law (weather curve + TRV soft-close + flame short-on; CAP-7 out), marks ADR 0007 historical (supply-trip era), retargets live pointers on ADR 0004–0006 and docs/house-calibration.md, and rewrites AGENTS.md and CONTEXT.md to match the shipped App: Outdoor-gated round-to-0.1(clamp(u_ff)), TRV soft-close (including accuracy as a control_event listen where applicable), flame observe/latch/clear (hold, zone rising-edge, plant-off, Decision C idle write-0), Critical Zone diagnostics-only for SWT/TRV/flame; no live supply rise-rate trip. Marks zombie supply-trip docs/decisions/* that still read as live law as historical. ADR authored in-story (not toolsmith)."
+verify = "New ADR exists as live water law and 0007 is historical; AGENTS.md and CONTEXT.md describe curve + TRV soft-close + flame trip (not supply rise-rate as live anti-cycle), include TRV accuracy listen where applicable, keep Critical Zone diagnostics-only and CAP-7 absent; house-calibration and ADR 0004–0006 live pointers cite the new ADR; supply-trip-only decisions no longer read as live law; uv run pytest and uv run ruff check apps/ha_smart_hvac tests clean."
+covers = ["R1", "R2", "R3"]
+after = ["5.3"]
+hitl = false
+risk = "high"
+notes = ["Tracer bullet: new ADR + AGENTS + CONTEXT (+ live pointers / zombie supply decisions) in one path so agents/operators read one water law.", "R1 here: ADR/AGENTS/CONTEXT supersede for this water law; knowledge demotion is entry 2.", "R2/R3 here: anti-cycle without supply entity; Critical Zone + CAP-7 wording in agent-facing docs.", "after 5.3: TRV soft-close and flame short-on shipped so docs match the App.", "Epic 5 retro P2 / action #2 → this entry."]
+
+[[entry]]
+id = 2
+type = "story"
+title = "knowledge/: live curve+TRV+flame; demote supply-trip"
+description = "Updates knowledge/ live SWT and related concept pages (set-water-temperature, outdoor-temperature, critical-zone, multi-zone-coordinator, indexes, ADRC/LADRC/MADRC/RLS live-law pointers) to weather curve + TRV soft-close + flame short-on under the new ADR from entry 1; demotes supply-trip-only language to historical prior art; updates knowledge/log. Does not restore CAP-7. Page structure for TRV/flame depth is decided in this story."
+verify = "Live SWT-facing knowledge pages cite the new ADR / clamp(u_ff) + TRV soft-close + flame trip and do not present supply rise-rate trip as live law; indexes/log consistent; CAP-7 / ff_auto_correct_state.json absent from live commissioning language; uv run pytest and uv run ruff check apps/ha_smart_hvac tests clean."
+covers = ["R1", "R2", "R3"]
+after = [1]
+hitl = false
+risk = "medium"
+notes = ["Least-certain: breadth of knowledge pages and historical-demotion pattern.", "Shared R1–R3: knowledge here; ADR/AGENTS/CONTEXT in entry 1."]
+
+[[entry]]
+id = 3
+type = "story"
+title = "Refactor sweep"
+description = "Cleans deferred review findings and orphans left by the docs supersede (including stale deferred-work.md epic-3 / entry-4 bullets); no new scope."
+verify = "uv run pytest and uv run ruff check apps/ha_smart_hvac tests clean; no leftover supply-trip-as-live-law docs or stale deferred bullets called out in this epic's deferred notes."
+covers = []
+after = [1, 2]
+hitl = false
+risk = "low"
+notes = ["Scope set at start from plans and review findings this epic deferred.", "Declined separate closing e2e suite — docs verify lives in entries 1–2."]
