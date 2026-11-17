@@ -1,8 +1,8 @@
 ---
-status: superseded by ADR-0007
+status: superseded by ADR-0008
 ---
 
-Live water law: ADR-0007.
+Live water law: ADR-0008.
 
 # Fixed-gain PID Set Water Temperature
 

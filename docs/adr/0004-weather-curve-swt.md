@@ -2,7 +2,7 @@
 status: superseded by ADR-0005
 ---
 
-Live water law: ADR-0007.
+Live water law: ADR-0008.
 
 # Weather-curve-only Set Water Temperature
 
