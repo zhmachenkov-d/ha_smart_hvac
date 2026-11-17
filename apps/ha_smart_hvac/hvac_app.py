@@ -444,13 +444,14 @@ class HvacApp(hass.Hass):
                 accuracy = self._read_float(accuracy_id)
                 if accuracy is None:
                     continue
-                if t_zone > setpoint + accuracy:
+                threshold = setpoint + abs(accuracy)
+                if t_zone > threshold:
                     if self._write_number(
                         closure_id,
                         100.0,
                         reason=(
                             f"overshoot: T_zone={t_zone:.2f} > "
-                            f"setpoint+accuracy={setpoint + accuracy:.2f}"
+                            f"setpoint+|accuracy|={threshold:.2f}"
                         ),
                     ):
                         self._trv_overshoot_latched.add(closure_id)
@@ -460,7 +461,7 @@ class HvacApp(hass.Hass):
                         config.valve_closure_floor,
                         reason=(
                             f"floor: T_zone={t_zone:.2f} ≤ "
-                            f"setpoint+accuracy={setpoint + accuracy:.2f}"
+                            f"setpoint+|accuracy|={threshold:.2f}"
                         ),
                     )
 
