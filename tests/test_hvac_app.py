@@ -1303,6 +1303,26 @@ def test_flame_short_on_under_demand_outdoor_unavailable() -> None:
     assert _set_value_writes(app) == [0.0]
 
 
+def test_restart_mid_flame_does_not_arm_or_latch_on_fall() -> None:
+    """RAM since wipe mid-burn (flame still on) must not re-arm; fall does not latch."""
+    app = _flame_trip_app(flame_on="on")
+    app._monotonic = MagicMock(return_value=50.0)
+    # Mid-burn arm then process restart wiping RAM since while HA flame stays on.
+    app._flame_on_since = 10.0
+    app._flame_on_since = None
+
+    # Non-rising on→on traffic must not invent a since.
+    _fire_flame(app, old="on", new="on")
+    assert app._flame_on_since is None
+
+    _fire_flame(app, old="on", new="off")
+
+    assert app._flame_on_since is None
+    assert not app._flame_trip_latched
+    app.run_in.assert_not_called()
+    assert _set_value_writes(app) == []
+
+
 def test_flame_none_to_on_does_not_arm() -> None:
     app = _flame_trip_app()
     app._monotonic = MagicMock(return_value=5.0)
@@ -1626,7 +1646,7 @@ def test_ungated_flame_event_wipes_since() -> None:
     assert not app._flame_trip_latched
 
 
-def _two_zone_trip_args() -> dict:
+def _two_zone_args() -> dict:
     args = _tick_args()
     args["zones"] = [
         {
@@ -1686,7 +1706,7 @@ def _two_zone_get_state(
 
 def _two_zone_app(**kwargs) -> HvacApp:
     plant_setpoint = kwargs.pop("plant_setpoint", 45.0)
-    app = _tick_app(args=_two_zone_trip_args(), plant_setpoint=plant_setpoint)
+    app = _tick_app(args=_two_zone_args(), plant_setpoint=plant_setpoint)
     app.get_state = MagicMock(
         side_effect=_two_zone_get_state(plant_setpoint=plant_setpoint, **kwargs)
     )
@@ -2011,7 +2031,7 @@ def test_rising_edge_clear_does_not_use_critical_zone() -> None:
     assert "u_ff=" in joined
 
 
-def test_latched_trip_path_does_not_use_critical_zone() -> None:
+def test_latched_demand_does_not_use_critical_zone() -> None:
     """Latched demand writes SWT 0 without consulting Critical Zone."""
     app = _two_zone_app(zone_one_action="heating", zone_two_action="heating")
 

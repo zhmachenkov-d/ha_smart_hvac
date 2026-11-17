@@ -327,10 +327,13 @@ def test_parse_rejects_flame_trip_hold_in_open_unit_interval() -> None:
         parse_config(args)
 
 
-def test_parse_flame_trip_hold_truncates_fractional_seconds() -> None:
+@pytest.mark.parametrize(("raw", "expected"), [(90.9, 90), (900.9, 900)])
+def test_parse_flame_trip_hold_truncates_fractional_seconds(
+    raw: float, expected: int
+) -> None:
     args = _minimal_args()
-    args["flame_trip_hold_s"] = 90.9
-    assert parse_config(args).flame_trip_hold_s == 90
+    args["flame_trip_hold_s"] = raw
+    assert parse_config(args).flame_trip_hold_s == expected
 
 
 # --- Commission parse hardening ----------------------------------------------
