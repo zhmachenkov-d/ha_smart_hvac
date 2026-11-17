@@ -2359,6 +2359,21 @@ def test_trv_exact_overshoot_threshold_writes_floor() -> None:
     assert _TRV_CLOSURE not in app._trv_overshoot_latched
 
 
+def test_trv_negative_accuracy_uses_abs_for_overshoot_band() -> None:
+    """Sonoff accuracy can be signed; overshoot band uses |accuracy|."""
+    # T_zone == setpoint must not trip when accuracy is negative.
+    app = _trv_app(zone_temp=23.0, setpoint=23.0, accuracy=-0.2, closure=10.0)
+    app.control_tick({})
+    assert (_TRV_CLOSURE, 80.0) in _set_value_by_entity(app)
+    assert _TRV_CLOSURE not in app._trv_overshoot_latched
+
+    # Same magnitude as +0.2: overshoot only above setpoint+|accuracy|.
+    app = _trv_app(zone_temp=23.3, setpoint=23.0, accuracy=-0.2, closure=80.0)
+    app.control_tick({})
+    assert (_TRV_CLOSURE, 100.0) in _set_value_by_entity(app)
+    assert _TRV_CLOSURE in app._trv_overshoot_latched
+
+
 def test_trv_zone_temp_unreadable_skips() -> None:
     app = _trv_app(zone_temp="unavailable", setpoint=22.0, accuracy=0.5, closure=80.0)
     app.control_tick({})
