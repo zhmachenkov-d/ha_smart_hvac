@@ -1,14 +1,14 @@
 # Walkthrough: Story 6.1 — Tracer: ADR + AGENTS/CONTEXT for TRV+flame water law
 Target: branch `docs/adr-0008-trv-flame-water-law` · `5ee3974`+`6b116b2` (no PR yet)
 
-**Current block:** Slice: ADR 0008 + historical 0007 / pointers (in progress)
+**Current block:** Slice: Decisions (idle flame + zombies) (in progress)
 
 ## Blocks
 - [x] **Intent** — done (Formal review 6 patch; Test 362 + ruff; Demo)
 - [x] **Broad strokes** — done (Demo transcript)
-- [ ] **Slice: ADR 0008 + historical 0007 / pointers** — in progress
-- [ ] **Slice: AGENTS + CONTEXT** —
-- [ ] **Slice: Decisions (idle flame + zombies)** —
+- [x] **Slice: ADR 0008 + historical 0007 / pointers** — done (Demo)
+- [x] **Slice: AGENTS + CONTEXT** — done (Demo)
+- [ ] **Slice: Decisions (idle flame + zombies)** — in progress
 - [ ] **Periphery** —
 - [ ] **Wrap-up** —
 
@@ -52,12 +52,24 @@ Review notes: Demo — [demo-slice-adr-transcript.md](demo-slice-adr-transcript.
 ---
 
 ### Slice: AGENTS + CONTEXT
-_TBD — parent will supply._
+AGENTS Conventions and CONTEXT glossary are rewritten to the 0008 water law: Outdoor-gated clamp(u_ff), TRV soft-close (incl. accuracy listen), flame short-on clears (hold / rising-edge `_clear_flame_trip_state` / plant-off / Decision C), dual-gate, Critical Zone diagnostics-only, CAP-7 out, and a hard knowledge-not-live-until-6.2 warning. Supply rise-rate survives only as a Historical / `_Avoid_` term in CONTEXT.
+
+Places:
+- [AGENTS.md](../../../../AGENTS.md) — Where things are (0008 + knowledge warn); Conventions water-law bullets
+- [CONTEXT.md](../../../../CONTEXT.md) — Weather Feedforward / TRV soft-close / Flame short-on / Supply rise-rate (historical)
+
+Review notes: Demo — [demo-slice-agents-context-transcript.md](demo-slice-agents-context-transcript.md).
 
 ---
 
 ### Slice: Decisions (idle flame + zombies)
-_TBD — parent will supply._
+Live Decision C is a new flame-era note; supply-era idle / supply-event / write-gated-supply / token-orphan notes get a historical banner (idle also forward-links). TRV-before-prelude drops stale `supply_event` and titles hold-expiry callers.
+
+Places:
+- [adr-idle-flame-clear-after-write.md](../../../../docs/decisions/adr-idle-flame-clear-after-write.md) — live Decision C
+- [adr-idle-trip-clear-after-write.md](../../../../docs/decisions/adr-idle-trip-clear-after-write.md) — historical + Live Decision C link
+- [adr-supply-event-no-outdoor-prelude.md](../../../../docs/decisions/adr-supply-event-no-outdoor-prelude.md) / [adr-write-gated-supply-trip-latch.md](../../../../docs/decisions/adr-write-gated-supply-trip-latch.md) / [adr-trip-hold-token-orphan-guard.md](../../../../docs/decisions/adr-trip-hold-token-orphan-guard.md) — historical banners
+- [adr-trv-before-water-prelude.md](../../../../docs/decisions/adr-trv-before-water-prelude.md) — title + body include hold expiry; no supply_event
 
 ---
 

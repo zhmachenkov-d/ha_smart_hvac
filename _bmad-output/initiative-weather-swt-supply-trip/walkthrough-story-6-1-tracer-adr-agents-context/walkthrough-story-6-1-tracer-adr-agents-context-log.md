@@ -111,3 +111,27 @@ Session: unavailable · Timestamp: 2026-11-17T10:03:30+00:00
 - Result: Slice ADR done. AGENTS+CONTEXT in progress. Tree dirty (demo + log since ec4cdcf).
 - Evidence: demo-slice-adr-transcript.md; narrative
 - Open: slice acceptance; ask commit?
+
+## 16 — Slice AGENTS+CONTEXT — commit
+Session: unavailable · Timestamp: 2026-11-17T10:05:30+00:00
+
+- Action: User confirmed commit after Slice ADR done.
+- Result: Commit d8370cf docs(walkthrough): advance story 6.1 past ADR slice.
+- Evidence: git log -1 d8370cf
+- Open: AGENTS+CONTEXT acceptance; Demo suggested
+
+## 17 — Slice AGENTS+CONTEXT — Demo
+Session: unavailable · Timestamp: 2026-11-17T10:07:00+00:00
+
+- Action: Demo spot-read AGENTS Conventions + CONTEXT glossary; saved transcript.
+- Result: All checks OK (0008 SoT, knowledge-6.2, flame/TRV/Decision C, Supply Historical only).
+- Evidence: demo-slice-agents-context-transcript.md
+- Open: AGENTS+CONTEXT acceptance; dirty tree
+
+## 18 — AGENTS+CONTEXT done → Decisions
+Session: unavailable · Timestamp: 2026-11-17T10:10:30+00:00
+
+- Action: User accepted AGENTS+CONTEXT; presented Decisions slice; narrative updated.
+- Result: Decisions slice in progress. Tree dirty since d8370cf.
+- Evidence: demo-slice-agents-context-transcript.md
+- Open: slice acceptance; ask commit?
