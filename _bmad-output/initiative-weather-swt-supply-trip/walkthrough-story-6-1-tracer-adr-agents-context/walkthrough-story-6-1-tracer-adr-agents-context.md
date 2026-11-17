@@ -1,7 +1,7 @@
 # Walkthrough: Story 6.1 — Tracer: ADR + AGENTS/CONTEXT for TRV+flame water law
-Target: branch `docs/adr-0008-trv-flame-water-law` · `5ee3974`+ (PR pending)
+Target: [PR #157](https://github.com/zhmachenkov-d/ha_smart_hvac/pull/157) · branch `docs/adr-0008-trv-flame-water-law` · `a33946e`+
 
-**Current block:** Wrap-up (done — push/PR/mark in progress)
+**Current block:** Wrap-up (done — PR #157 open; story 6.1 marked done; merge deferred)
 
 ## Blocks
 - [x] **Intent** — done (Formal review 6 patch; Test 362 + ruff; Demo)
@@ -86,4 +86,4 @@ Review notes: Demo — [demo-slice-decisions-transcript.md](demo-slice-decisions
 ### Wrap-up
 Docs tracer for ADR 0008 + AGENTS/CONTEXT is reviewed. Likely follow-through: commit any remaining walkthrough dirt, push `docs/adr-0008-trv-flame-water-law`, open PR, mark story 6.1 done — no Exclusive Session / no runtime. Merge only if the owner asks.
 
-Review notes: User confirmed 1–4; merge deferred.
+Review notes: User confirmed 1–4; pushed; [PR #157](https://github.com/zhmachenkov-d/ha_smart_hvac/pull/157); story marked done (plan type→feature then status done); merge deferred.

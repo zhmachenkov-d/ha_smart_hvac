@@ -175,3 +175,11 @@ Session: unavailable · Timestamp: 2026-11-17T10:30:30+00:00
 - Result: Wrap-up marked done in narrative; parent executing.
 - Evidence: pending push/PR/tickets mark
 - Open: parent finish
+
+## 24 — Wrap-up — follow-through complete
+Session: unavailable · Timestamp: 2026-11-17T10:32:00+00:00
+
+- Action: Committed a33946e; pushed docs/adr-0008-trv-flame-water-law; opened PR #157; marked 6.1 done (fixed plan type story→feature so tickets.py joins).
+- Result: Wrap-up closed. Merge deferred. Left untracked: party-mode memories; _bmad/custom/bmad-walkthrough.toml.
+- Evidence: https://github.com/zhmachenkov-d/ha_smart_hvac/pull/157; tickets find 6.1 status done
+- Open: none (merge not requested)
