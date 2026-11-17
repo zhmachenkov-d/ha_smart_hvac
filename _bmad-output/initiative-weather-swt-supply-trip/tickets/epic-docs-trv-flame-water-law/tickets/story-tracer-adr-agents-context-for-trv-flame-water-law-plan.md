@@ -1,9 +1,9 @@
 ---
 title: 'Tracer: ADR + AGENTS/CONTEXT for TRV+flame water law'
-type: 'story'
+type: 'feature'
 ticket: '1'
 created: '2026-11-17'
-status: built
+status: done
 baseline_revision: '928b2b624929029016b4eee5e0d2ab072ea1f286'
 route: 'full'
 route_source: 'auto'

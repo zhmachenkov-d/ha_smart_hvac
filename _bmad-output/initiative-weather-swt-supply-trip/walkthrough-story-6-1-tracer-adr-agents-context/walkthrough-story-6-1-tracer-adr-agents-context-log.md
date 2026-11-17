@@ -159,3 +159,19 @@ Session: unavailable · Timestamp: 2026-11-17T10:16:30+00:00
 - Result: Periphery in progress. Tree dirty since f4c41ba.
 - Evidence: demo-slice-decisions-transcript.md
 - Open: Periphery acceptance; ask commit?
+
+## 22 — Periphery done → Wrap-up (+ commit note)
+Session: unavailable · Timestamp: 2026-11-17T10:27:30+00:00
+
+- Action: User yes+done on Periphery; parent commits walkthrough; narrative opens Wrap-up.
+- Result: Periphery done. Wrap-up in progress. Excluded from commit: party-mode memories; `_bmad/custom/bmad-walkthrough.toml` (unrelated untracked).
+- Evidence: walkthrough folder; pending Wrap-up confirmation
+- Open: user confirm follow-through (push/PR/mark done)
+
+## 23 — Wrap-up — follow-through
+Session: unavailable · Timestamp: 2026-11-17T10:30:30+00:00
+
+- Action: User confirmed 1-4 (commit walkthrough, push, open PR, mark 6.1 done); merge deferred.
+- Result: Wrap-up marked done in narrative; parent executing.
+- Evidence: pending push/PR/tickets mark
+- Open: parent finish

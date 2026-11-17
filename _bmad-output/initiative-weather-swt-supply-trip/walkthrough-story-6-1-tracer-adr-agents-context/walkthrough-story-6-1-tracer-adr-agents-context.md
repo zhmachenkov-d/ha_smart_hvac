@@ -1,7 +1,7 @@
 # Walkthrough: Story 6.1 — Tracer: ADR + AGENTS/CONTEXT for TRV+flame water law
-Target: branch `docs/adr-0008-trv-flame-water-law` · `5ee3974`+`6b116b2` (no PR yet)
+Target: branch `docs/adr-0008-trv-flame-water-law` · `5ee3974`+ (PR pending)
 
-**Current block:** Periphery (in progress)
+**Current block:** Wrap-up (done — push/PR/mark in progress)
 
 ## Blocks
 - [x] **Intent** — done (Formal review 6 patch; Test 362 + ruff; Demo)
@@ -9,8 +9,8 @@ Target: branch `docs/adr-0008-trv-flame-water-law` · `5ee3974`+`6b116b2` (no PR
 - [x] **Slice: ADR 0008 + historical 0007 / pointers** — done (Demo)
 - [x] **Slice: AGENTS + CONTEXT** — done (Demo)
 - [x] **Slice: Decisions (idle flame + zombies)** — done (Demo)
-- [ ] **Periphery** — in progress
-- [ ] **Wrap-up** —
+- [x] **Periphery** — done (presented)
+- [x] **Wrap-up** — done (commit+push+PR+mark story; merge deferred)
 
 ---
 
@@ -84,4 +84,6 @@ Review notes: Demo — [demo-slice-decisions-transcript.md](demo-slice-decisions
 ---
 
 ### Wrap-up
-_TBD — parent will supply._
+Docs tracer for ADR 0008 + AGENTS/CONTEXT is reviewed. Likely follow-through: commit any remaining walkthrough dirt, push `docs/adr-0008-trv-flame-water-law`, open PR, mark story 6.1 done — no Exclusive Session / no runtime. Merge only if the owner asks.
+
+Review notes: User confirmed 1–4; merge deferred.
