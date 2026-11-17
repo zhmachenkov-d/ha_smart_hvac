@@ -109,3 +109,12 @@ Session: 7ccbb9e7-d84b-4346-9069-5cb8ecc8aa55 · Timestamp: 2026-11-17T14:08:00+
 - Result: Implementation complete pending commit/push/PR.
 - Evidence: adr-cap8; deferred-work Settled epic-6; pytest 362
 - Open: PR URL after gh pr create.
+
+## 13 — Wrap-up — PR #159 opened
+
+Session: 7ccbb9e7-d84b-4346-9069-5cb8ecc8aa55 · Timestamp: 2026-11-17T14:10:00+02:00
+
+- Action: Pushed chore/6-3-refactor-sweep-plan; opened PR #159; implementation committed 6487346.
+- Result: Follow-through 1–3 complete; review open on GitHub.
+- Evidence: https://github.com/zhmachenkov-d/ha_smart_hvac/pull/159
+- Open: Merge when ready; optional mark story 6.3 done in tickets.
