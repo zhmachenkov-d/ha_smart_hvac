@@ -63,3 +63,27 @@ Session: unavailable · Timestamp: 2026-11-17T09:23:30+00:00
 - Result: Intent done. Broad strokes in progress. Tree dirty (review patches + walkthrough + plan).
 - Evidence: walkthrough-story-6-1-tracer-adr-agents-context.md
 - Open: Broad strokes acceptance; ask commit?
+
+## 10 — Broad strokes — commit
+Session: unavailable · Timestamp: 2026-11-17T09:26:30+00:00
+
+- Action: User confirmed commit; staged review patches + walkthrough (excluded party-mode memories).
+- Result: Commit 6b116b2 docs(adr): harden 6.1 water-law docs after walkthrough review. Branch docs/adr-0008-trv-flame-water-law. Left untracked: party-mode/memories/code-review-crew/.
+- Evidence: git log -1 6b116b2; 10 files
+- Open: Broad strokes acceptance; Demo suggested
+
+## 11 — Broad strokes — Demo
+Session: unavailable · Timestamp: 2026-11-17T09:28:30+00:00
+
+- Action: Demo walked five Broad-strokes entry points in order; saved transcript.
+- Result: All five Observed OK (0008 accepted MUST-floor; 0007 superseded; AGENTS/CONTEXT; live Decision C + historical forward link).
+- Evidence: demo-broad-strokes-transcript.md
+- Open: Broad strokes acceptance; tree dirty again (log/narrative/demo after prior commit)
+
+## 12 — Broad strokes done → Slice ADR
+Session: unavailable · Timestamp: 2026-11-17T09:30:30+00:00
+
+- Action: User accepted Broad strokes; presented first slice; narrative updated.
+- Result: Broad strokes done. Slice ADR 0008 + historical 0007 / pointers in progress. Tree dirty (walkthrough updates since 6b116b2).
+- Evidence: walkthrough narrative; demo-broad-strokes-transcript.md
+- Open: slice acceptance; ask commit?

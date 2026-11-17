@@ -1,12 +1,12 @@
 # Walkthrough: Story 6.1 — Tracer: ADR + AGENTS/CONTEXT for TRV+flame water law
-Target: branch `docs/adr-0008-trv-flame-water-law` · `5ee3974` (no PR yet)
+Target: branch `docs/adr-0008-trv-flame-water-law` · `5ee3974`+`6b116b2` (no PR yet)
 
-**Current block:** Broad strokes (in progress)
+**Current block:** Slice: ADR 0008 + historical 0007 / pointers (in progress)
 
 ## Blocks
 - [x] **Intent** — done (Formal review 6 patch; Test 362 + ruff; Demo)
-- [ ] **Broad strokes** — in progress
-- [ ] **Slice: ADR 0008 + historical 0007 / pointers** —
+- [x] **Broad strokes** — done (Demo transcript)
+- [ ] **Slice: ADR 0008 + historical 0007 / pointers** — in progress
 - [ ] **Slice: AGENTS + CONTEXT** —
 - [ ] **Slice: Decisions (idle flame + zombies)** —
 - [ ] **Periphery** —
@@ -34,10 +34,18 @@ Docs-only: live agent water law moves from supply-trip ADR 0007 to ADR 0008 (cur
 4. [CONTEXT.md](../../../../CONTEXT.md) — TRV soft-close + Flame short-on terms; Supply rise-rate demoted
 5. [adr-idle-flame-clear-after-write.md](../../../../docs/decisions/adr-idle-flame-clear-after-write.md) — live Decision C; supply-era idle banner + forward link
 
+Review notes: Demo — [demo-broad-strokes-transcript.md](demo-broad-strokes-transcript.md) (five entry points).
+
 ---
 
 ### Slice: ADR 0008 + historical 0007 / pointers
-_TBD — parent will supply._
+ADR 0008 is the accepted agent-law MUST-floor for curve + TRV soft-close + flame short-on (CAP-7 out). ADR 0007 keeps its supply-trip body but is framed historical and superseded; live-pointers on 0004–0006 and house-calibration retarget to 0008 (0005/0006 status → superseded by ADR-0008; 0004 status stays →0005).
+
+Places:
+- [0008-weather-curve-trv-flame-swt.md](../../../../docs/adr/0008-weather-curve-trv-flame-swt.md) — accepted; gates / TRV / flame / Decision C / dual-gate
+- [0007-weather-curve-supply-trip-swt.md](../../../../docs/adr/0007-weather-curve-supply-trip-swt.md) — superseded + historical framing + live-pointer
+- [0004](../../../../docs/adr/0004-weather-curve-swt.md) / [0005](../../../../docs/adr/0005-fixed-pid-swt.md) / [0006](../../../../docs/adr/0006-optional-rls-adaptive-pid.md) — Live water law → ADR-0008
+- [house-calibration.md](../../../../docs/house-calibration.md) — Live water law → 0008; anti-cycle wiring in lead
 
 ---
 
