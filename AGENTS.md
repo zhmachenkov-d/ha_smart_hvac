@@ -17,7 +17,7 @@ AppDaemon Apps that control multi-zone OpenTherm HVAC through Home Assistant. Py
 - Domain terms and avoid-list: `CONTEXT.md`
 - Architecture decisions: `docs/adr/` (0001 Exclusive Session; 0008 weather-curve SWT + TRV soft-close + flame short-on — do not follow superseded 0004/0005/0006/0007 for live SWT)
 - App package: `apps/ha_smart_hvac/`; entity wiring: `apps/apps.yaml` (gitignored; start from `apps.yaml.example` at repo root)
-- Algorithm depth / citations: `knowledge/` (live water law is ADR 0008 + CONTEXT; **`knowledge/` SWT/anti-cycle pages are not live until story 6.2 — do not follow for water law**)
+- Algorithm depth / citations: `knowledge/` (live water law is ADR 0008 + CONTEXT + `knowledge/`)
 - In-flight planning artifacts: `_bmad-output/`
 
 ## Running and verifying
