@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v3.11.1 (2026-11-17)
+
+### Bug Fixes
+
+- **trv**: Use abs(accuracy) for overshoot band
+  ([`eb79e95`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/eb79e9526db5ee2a788800e6724690e419746ea5))
+
+
 ## v3.11.0 (2026-11-17)
 
 ### Chores
