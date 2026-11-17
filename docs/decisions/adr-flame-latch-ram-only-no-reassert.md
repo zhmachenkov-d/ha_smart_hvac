@@ -1,0 +1,3 @@
+# Flame latch is RAM-only and does not re-assert from flame observers
+
+`_flame_trip_latched` / `_flame_on_since` / hold handle live only in App process memory (lost on AppDaemon reload), and while latched the `flame_event` / `ch_active_event` handlers only wipe `since` — they never rewrite SWT 0. Latched demand zeroing stays on tick/`control_event` `_run_demand`. Recorded from story 5.1 plan Intent Never (`story-tracer-replace-supply-trip-with-flame-short-on-plan.md`) and commit `918debc`, because re-asserting from binary_sensor edges would couple observe traffic to plant writes, and persistence was explicitly out of scope for this thin replace.

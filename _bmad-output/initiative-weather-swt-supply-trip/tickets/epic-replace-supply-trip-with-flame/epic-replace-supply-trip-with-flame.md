@@ -10,6 +10,7 @@ companions: []
 after: []
 refined: true
 risk: high
+status: done
 ---
 
 # Replace supply trip with flame short-on
@@ -60,3 +61,4 @@ Owns supply-trip removal and flame short-on observe/latch/clear on the SWT path,
 - Decision: ADV8 — after flame latch clear via hold expiry, call `_apply_trv_law` then Outdoor prelude + demand (same order as tick/`control_event`) (2026-11-16).
 - Decision: Remove `boiler_water`, `r_max`, and supply-trip hold from App config with the trip path; HA sensor may remain unused (2026-11-16).
 - Decision: Tracer bullet — entry 1 replace supply trip with flame short-on (remove + observe/latch/clear + ADV8 + example); entry 2 house yaml HITL; entry 3 refactor sweep; declined separate remove-then-flame, separate rising-edge clear, and closing e2e suite (2026-11-16).
+- Decision: Epic closed via 5.1–5.3 done; retrospective accepted-with-open-items (docs→epic 6 ticket 1; open remediation deferred) (2026-11-17).

@@ -1,0 +1,3 @@
+# Flame observe gate Plant∧Demand∧ch_active only (never Outdoor)
+
+Flame short-on arm/fall evaluation uses `_flame_observe_gate` — Plant Management on ∧ Heating Demand ∧ `ch_active == "on"` ∧ latch clear — and must not call `_gate_prelude` or require readable Outdoor Temperature. Outdoor remains on the CAP-8 tick/`control_event` weather-curve path. Recorded from story 5.1 plan Intent Always (`story-tracer-replace-supply-trip-with-flame-short-on-plan.md`) and commit `918debc`, because mixing Outdoor into flame observe would block short-on latching when Outdoor flakes and would recreate the dual-gate bug class the supply-trip path already rejected.
