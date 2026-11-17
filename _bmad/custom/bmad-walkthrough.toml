@@ -1,0 +1,28 @@
+# Team: kill O(n²) resume of the walkthrough log/narrative writer (Cursor Task resume
+# preserves full subagent context). Skill step-01 still requires one spawn; never resume it.
+[workflow]
+
+on_activation = """
+Log/narrative writer protocol (project override — MUST):
+1. For step-01 only: spawn a one-shot background writer whose sole job is to create the
+   walkthrough folder plus skeleton narrative and log. Tell it explicitly: exit when the
+   files exist; do NOT stay available for resume.
+2. After that create finishes (or if the files already exist): NEVER resume that writer and
+   NEVER spawn another long-lived Task/subagent for log or narrative updates.
+3. Every later log append and narrative edit MUST be done in this main session with direct
+   file tools (StrReplace / Write / shell append), silently — do not narrate file-writing
+   to the user.
+4. Do not wait on a writer before answering the user after the initial create.
+"""
+
+persistent_facts = [
+  "MUST: After the one-time step-01 create of walkthrough narrative+log, NEVER Task-resume any log/narrative writer and NEVER spawn another long-lived writer for those files. Resume of that writer is forbidden (O(n²) token growth).",
+  "MUST: All later walkthrough log appends and narrative edits happen in the main session via direct file tools only. Prefer appending one log entry (StrReplace on the last Open line, or shell append). Do NOT re-read the entire log solely to append. Do NOT wait on a writer before answering the user.",
+]
+
+on_block_complete = """
+Present the next block first so they can keep going.
+Then, in this main session with direct file tools only (never resume a log/narrative writer):
+check the previous block in the narrative, revise remaining narrative if needed, and append
+one log entry. If the tree is dirty, ask the user whether to commit.
+"""
