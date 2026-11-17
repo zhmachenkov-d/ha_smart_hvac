@@ -136,3 +136,25 @@ Do not change: `knowledge/**`, `apps/ha_smart_hvac/**` runtime, tests (run only)
 | edge-case-hunter | True→False with since None undocumented | low | reject | Same MUST-floor brevity; code returns without latch. |
 | edge-case-hunter | adr-trv-before-water-prelude omits hold-expiry TRV caller | medium | patch | After 3A edit, note lists tick/event only; ADR/AGENTS say hold expiry also runs `_apply_trv_law` — decision note now understates callers. |
 | verification-gap | (none) | false | reject | Docs-only screen; no gaps filed. |
+
+## Code Review
+
+### 2026-11-17 (walkthrough Formal review)
+0 decision-needed, 6 patch, 0 defer, 12 rejected.
+
+- [x] [Review][Patch] AGENTS/CONTEXT rising-edge clear omits `_clear_flame_trip_state` (hold disarm) [AGENTS.md:36; CONTEXT.md:66]
+- [x] [Review][Patch] AGENTS/CONTEXT hold expiry omits prelude-None / zones guard before demand [AGENTS.md:36; CONTEXT.md:66]
+- [x] [Review][Patch] house-calibration L1 still defines Outdoor+FF+plant-only calibration [docs/house-calibration.md:1]
+- [x] [Review][Patch] ADR 0008 opening cite inventory omits zone-rising-edge decision [docs/adr/0008-weather-curve-trv-flame-swt.md:3]
+- [x] [Review][Patch] Historical idle-trip note lacks forward link to live Decision C [docs/decisions/adr-idle-trip-clear-after-write.md:1]
+- [x] [Review][Patch] adr-trv-before-water-prelude title understates hold-expiry caller [docs/decisions/adr-trv-before-water-prelude.md:1]
+
+Rejected:
+- R3 ADR 0008 trailing newline — low; rarely visible, prior triage same class
+- R5/R18 house-calibration §1 flame/TRV table — Intent Never forbids full TRV/flame commissioning tables; prior defer
+- R7 present-tense zombie bodies — false; intentional historical-banner pattern
+- R8 ADR 0007 cites hvac_app for era — false; historical framing + live-pointer present
+- R9 plan tasks unchecked — false; process artifact
+- R10 walkthrough incomplete — false; review-process untracked artifact
+- R11 CONTEXT omits RAM-only — low; ADR/AGENTS are MUST-floor
+- R17 Verify pytest not in diff — false; docs-only by design

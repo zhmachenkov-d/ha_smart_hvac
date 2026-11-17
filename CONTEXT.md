@@ -63,7 +63,7 @@ Commissioned Sonoff TRVs write only `valve_closure_degree` (never `valve_opening
 _Avoid_: valve_opening_degree writes, tying TRV to Outdoor-only gates, Critical Zone closed-loop TRV
 
 **Flame short-on trip**:
-Anti-cycle protection: a `flame_on` True duration shorter than yaml `flame_on_min_s` on True→False fall under `_flame_observe_gate` (Plant∧Demand∧`ch_active` on∧¬latch — never Outdoor) latches SWT `0` only after a successful trip write and hold schedule. Latched demand keeps `0`. Clears on hold expiry (TRV then Outdoor prelude + demand), zone Heating Demand rising-edge under `_gate_prelude`, plant-off (`_clear_flame_trip_state`), and `_go_idle` after successful idle write `0` (write-fail keeps `_flame_trip_latched` — Decision C).
+Anti-cycle protection: a `flame_on` True duration shorter than yaml `flame_on_min_s` on True→False fall under `_flame_observe_gate` (Plant∧Demand∧`ch_active` on∧¬latch — never Outdoor) latches SWT `0` only after a successful trip write and hold schedule. Latched demand keeps `0`. Clears on hold expiry (TRV then Outdoor prelude + demand when prelude returns zones), zone Heating Demand rising-edge under `_gate_prelude` (`_clear_flame_trip_state`), plant-off (`_clear_flame_trip_state`), and `_go_idle` after successful idle write `0` (write-fail keeps `_flame_trip_latched` — Decision C).
 _Avoid_: Outdoor-gated flame observe, re-asserting SWT from flame observers while latched, Critical Zone closed-loop trip
 
 **Supply rise-rate trip**:

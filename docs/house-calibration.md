@@ -1,5 +1,5 @@
 # House calibration
-How to calibrate the HVAC App for a specific house. Calibration is **manual `apps.yaml` commissioning** of Outdoor Temperature, Weather Feedforward (`weather_feedforward`), and plant rails. Optional Zone `weight` is wiring residual only (parsed/validated; not water-law commission). There is no relay/step commissioning procedure.
+How to calibrate the HVAC App for a specific house. Calibration is **manual `apps.yaml` commissioning** of Outdoor Temperature, Weather Feedforward (`weather_feedforward`), plant rails, and required anti-cycle wiring (flame / `ch_active` / TRV). Optional Zone `weight` is wiring residual only (parsed/validated; not water-law commission). There is no relay/step commissioning procedure.
 
 Copy [`apps.yaml.example`](../apps.yaml.example) to `apps.yaml` next to the installed `ha_smart_hvac/` package, then work through the sections below. Never commit live house entity IDs.
 

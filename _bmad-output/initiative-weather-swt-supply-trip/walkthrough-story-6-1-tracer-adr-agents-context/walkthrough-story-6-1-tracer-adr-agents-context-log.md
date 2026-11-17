@@ -1,0 +1,65 @@
+# Review log: Story 6.1 — tracer ADR AGENTS CONTEXT
+Target: no PR · docs/adr-0008-trv-flame-water-law · 5ee3974
+
+## 1 — Orientation — start
+Session: unavailable · Timestamp: 2026-11-17T08:49:00+00:00
+
+- Action: Opened walkthrough for story 6.1; created narrative+log; target confirmed from tickets.toml entry 1 + frozen plan Intent.
+- Result: Target = docs tracer (ADR 0008 + AGENTS/CONTEXT + live pointers / zombie supply decisions). Awaiting parent for PR/branch/commit details and Intent presentation.
+- Evidence: tickets.toml epic-docs entry 1; story-tracer-adr-agents-context-for-trv-flame-water-law-plan.md
+- Open: Orientation / Intent acceptance pending
+
+## 2 — Intent — present
+Session: unavailable · Timestamp: 2026-11-17T08:51:00+00:00
+
+- Action: Confirmed target branch/commit; filled Intent block from frozen plan Problem+Approach; presented Intent to user.
+- Result: Intent in progress; no PR yet.
+- Evidence: plan Intent; git branch docs/adr-0008-trv-flame-water-law @ 5ee3974; main...HEAD 16 files
+- Open: Intent acceptance pending user
+
+## 3 — Intent — Formal review start
+Session: unavailable · Timestamp: 2026-11-17T08:52:30+00:00
+
+- Action: User chose Formal review (bmad-code-review); gathered plan-baseline diff vs 928b2b6 including untracked walkthrough/party memlog; claims from git log; review_mode=full; plan story-tracer-adr-agents-context…; ticket 6.1 from tickets.py find.
+- Result: Checkpoint prepared (16 committed files +3 untracked; ~289/+30 committed). Awaiting user confirm to run lenses.
+- Evidence: /tmp/cr-6-1-diff-eQDsJO.txt; /tmp/cr-6-1-claims-Wo34cg.txt; plan baseline_revision 928b2b6; risk high / review thorough in plan frontmatter
+- Open: user confirm proceed past code-review step-01 checkpoint
+
+## 4 — Intent — Formal review results
+Session: unavailable · Timestamp: 2026-11-17T08:56:00+00:00
+
+- Action: Ran bmad-code-review lenses (blind/edge/verification-gap/intent-alignment) on plan-baseline diff; triage+route.
+- Result: 0 decision-needed, 6 patch (F1–F6: rising-edge clear helper, hold-expiry prelude guard, house-cal L1, ADR cite inventory, idle-trip forward link, TRV prelude title), 0 defer, 12 rejected. Verification-gap clean. Awaiting user patch option 1/2/3.
+- Evidence: /tmp/cr-6-1-triage-36SCpY.md; plan ## Code Review 2026-11-17 walkthrough Formal review
+- Open: user patch handling choice; Intent still in progress
+
+## 5 — Intent — Formal review patches applied
+Session: unavailable · Timestamp: 2026-11-17T09:05:00+00:00
+
+- Action: User chose Apply every patch (1); applied F1–F6.
+- Result: AGENTS/CONTEXT rising-edge `_clear_flame_trip_state` + hold-expiry zones guard; house-cal L1 anti-cycle wiring; ADR 0008 cite +zone-rising-edge; idle-trip Live Decision C link; TRV prelude retitle. Plan walkthrough Formal review patches checked [x]. Tree dirty.
+- Evidence: AGENTS.md; CONTEXT.md; docs/house-calibration.md; docs/adr/0008-…; docs/decisions/adr-idle-trip-…; adr-trv-before-water-prelude.md; plan Code Review 2026-11-17
+- Open: code-review next-steps menu; Intent acceptance; dirty tree uncommitted
+
+## 6 — Intent — Formal review done
+Session: unavailable · Timestamp: 2026-11-17T09:19:00+00:00
+
+- Action: User chose code-review next-step 3 (Done); Formal review move closed.
+- Result: Intent still in progress; patches applied uncommitted; walkthrough resumes on Intent.
+- Evidence: plan Code Review walkthrough Formal review patches [x]
+- Open: Intent acceptance; dirty tree; suggested Test/Demo
+
+## 7 — Intent — Test
+Session: unavailable · Timestamp: 2026-11-17T09:20:00+00:00
+
+- Action: `uv run pytest`; `uv run ruff check apps/ha_smart_hvac tests`; spot greps ADR status / supply terms / CAP-7 / knowledge-6.2 warn / post-patch clear wording.
+- Result: 362 passed; ruff clean. ADR 0008 accepted / 0007 superseded. AGENTS/CONTEXT supply terms only historical. CAP-7 out-of-scope wording present. knowledge-until-6.2 warn present. Post-patch rising-edge helper + prelude zones guard present. Unverified: full human spot-read ADR↔App (Demo).
+- Evidence: pytest 362; ruff All checks passed; rg AGENTS/CONTEXT/ADR
+- Open: Intent acceptance; dirty tree
+## 9 — Intent done → Broad strokes
+Session: unavailable · Timestamp: 2026-11-17T09:23:30+00:00
+
+- Action: User accepted Intent; presented Broad strokes; narrative checked Intent, filled Broad strokes map + slice names.
+- Result: Intent done. Broad strokes in progress. Tree dirty (review patches + walkthrough + plan).
+- Evidence: walkthrough-story-6-1-tracer-adr-agents-context.md
+- Open: Broad strokes acceptance; ask commit?

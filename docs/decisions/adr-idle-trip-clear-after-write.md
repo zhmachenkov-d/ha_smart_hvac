@@ -1,4 +1,4 @@
-Historical — supply rise-rate trip (epic 2); live anti-cycle is flame short-on + TRV soft-close (epics 4–5 / ADR 0008).
+Historical — supply rise-rate trip (epic 2); live anti-cycle is flame short-on + TRV soft-close (epics 4–5 / ADR 0008). Live Decision C: [`adr-idle-flame-clear-after-write.md`](adr-idle-flame-clear-after-write.md).
 
 # Idle trip clear: disarm hold always; latch after idle write 0
 
