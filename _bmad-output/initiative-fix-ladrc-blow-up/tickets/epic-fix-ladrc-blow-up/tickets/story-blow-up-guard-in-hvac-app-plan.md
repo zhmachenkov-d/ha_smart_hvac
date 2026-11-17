@@ -12,16 +12,16 @@ review_source: 'pinned'
 lenses_ran: ['quick']
 review_loop_iteration: 0
 context:
-  - '{project-root}/_bmad-output/initiative-fix-ladrc-blow-up/tickets/epic-fix-ladrc-blow-up/spec-fix-ladrc-blow-up/spec-fix-ladrc-blow-up.md'
+  - '{project-root}/_bmad-output/initiative-fix-ladrc-blow-up/tickets/epic-fix-ladrc-blow-up/epic-fix-ladrc-blow-up.md'
 ---
 
 <frozen-after-approval reason="human-owned intent — do not modify unless human renegotiates">
 
 ## Intent
 
-**Problem:** After `compute_tracking`, a non-finite or over-threshold `|u_track|` still drives `clamp(u_ff + u_track)` and can brick the loop until zone change / idle / plant-off; CAP-3(c) has no regression.
+**Problem:** After `compute_tracking`, a non-finite or over-threshold `|u_track|` still drives `clamp(u_ff + u_track)` and can brick the loop until zone change / idle / plant-off; R3(c) has no regression.
 
-**Approach:** Add an `hvac_app`-only blow-up guard (pure Hass-free seam + WARNING formatter) that trips on non-finite or `|u_track| > u_track_max`, resets ESO, yields `clamp(u_ff)`, WARNING once per episode (Floor MUST fields), advances ESO after reset on the trip tick (decision B), and locks CAP-3(c) without AppDaemon.
+**Approach:** Add an `hvac_app`-only blow-up guard (pure Hass-free seam + WARNING formatter) that trips on non-finite or `|u_track| > u_track_max`, resets ESO, yields `clamp(u_ff)`, WARNING once per episode (Floor MUST fields), advances ESO after reset on the trip tick (decision B), and locks R3(c) without AppDaemon.
 
 ## Boundaries & Constraints
 
@@ -33,7 +33,7 @@ context:
 - WARNING Floor MUST fields (exact prose free): `reason` (`magnitude`|`non-finite`), safe `u_track` render (finite → number; else `nan`/`inf`/`-inf`), `u_track_max`, `critical_zone`. Pure `format_blow_up_warning(...)` builds the string; `control_tick` logs it at WARNING only when `should_warn`. Zone from `decision.critical_zone` at the call site (not a LadrcState API).
 - Pure module-level seams (Hass-free): function name **`guard_u_track`** + `format_blow_up_warning`; wire from `control_tick`; lock call site with `inspect.getsource` like story 1.2 (`guard_u_track` after `compute_tracking`).
 - Tick INFO log: on trip, do **not** emit the normal success line with raw exploded `u_track`; emit INFO with **ff-only `command`** and a clear **`guarded`** marker (prose free). Healthy ticks keep today’s success INFO shape.
-- CAP-3(c): poison `z2` and/or exploded `u_track` → ff-only command, ESO reset inside seam, latch/`should_warn`, formatter Floor fields — no Hass mock. CAP-2 “visible in HA logs” is live/manual, not asserted by pytest.
+- R3(c): poison `z2` and/or exploded `u_track` → ff-only command, ESO reset inside seam, latch/`should_warn`, formatter Floor fields — no Hass mock. R2 “visible in HA logs” is live/manual, not asserted by pytest.
 
 **Never:**
 - Guard API or magnitude check inside `LadrcState`.
@@ -41,18 +41,18 @@ context:
 - Lock a full WARNING sentence template (Floor fields only; prose free).
 - On a trip tick, log INFO that formats raw non-finite / over-threshold `u_track` as if the tick were a normal success.
 - Change continuous-form `advance`, known-input seam math, defaults/`u_track_max` parse, setpoint min/max, `control_interval`, ff, Critical Zone selection, MADRC, or online `b0`/`omega_o` adaptation.
-- Mock full `HvacApp.control_tick` / Hass for CAP-3(c).
+- Mock full `HvacApp.control_tick` / Hass for R3(c).
 
 ## I/O & Edge-Case Matrix
 
 | Scenario | Input / State | Expected | Error Handling |
 |----------|--------------|----------|----------------|
 | Healthy | finite `\|u_track\| ≤ u_track_max`, `latch_in=False` | `clamp(u_ff+u_track)`; no reset; `should_warn=False`; `latch_out=False`; advance as today | Normal path |
-| Magnitude trip | `\|u_track\| > u_track_max`, `latch_in=False` | reset; `clamp(u_ff)`; `should_warn=True`; `latch_out=True`; advance residue ≈ 0 | CAP-2 / CAP-3(c) |
+| Magnitude trip | `\|u_track\| > u_track_max`, `latch_in=False` | reset; `clamp(u_ff)`; `should_warn=True`; `latch_out=True`; advance residue ≈ 0 | R2 / R3(c) |
 | Non-finite trip | `u_track` NaN/Inf, `latch_in=False` | same as magnitude; `reason=non-finite` | Always trip |
 | Consecutive trips | N>1 trip inputs, latch carried | `should_warn` only on first; later `should_warn=False`; still reset + ff-only + advance each trip | episode latch AC |
 | Latch clear | healthy after trip, then trip again | mid healthy → `latch_out=False`; next trip `should_warn=True` | recover without idle |
-| Poisoned z2 | large `z2` → exploded `u_track` via `compute_tracking` then seam | ff-only; post-reset `z2==0` | CAP-3(c) |
+| Poisoned z2 | large `z2` → exploded `u_track` via `compute_tracking` then seam | ff-only; post-reset `z2==0` | R3(c) |
 | Format Floor | magnitude or non-finite + zone | string contains reason, safe u_track, u_track_max, critical_zone; nan/inf no `.2f` crash | Floor MUST |
 | Latch idle clear | `_hands_off` / `_go_idle` / no-demand source | assigns `_blow_up_latch = False` (with existing `clear()`) | inspect lock |
 | Call site | `control_tick` source | calls `guard_u_track` after `compute_tracking`; logs via formatter when `should_warn`; no `LadrcState` guard API | inspect lock |
@@ -66,15 +66,15 @@ context:
 - `apps/hvac/ladrc.py` — `reset` / `compute_tracking`: **reuse only**; no guard API. `reset` does not clear `critical_zone`.
 - `apps/hvac/models.py` — `u_track_max` already default 100 — **read only**.
 - `apps/apps.yaml.example` — L23–24: comment that `u_track_max` is the live magnitude guard (°C).
-- `tests/test_hvac_app.py` — CAP-3(c) seam + consecutive-trip latch + formatter Floor + inspect (`guard_u_track` after `compute_tracking`, latch clears, trip INFO `guarded`); keep residue tests.
-- Continuity: stories 1.2–1.3 seams/config done — do not retouch `LadrcState.advance` / CAP-3(a)(b).
+- `tests/test_hvac_app.py` — R3(c) seam + consecutive-trip latch + formatter Floor + inspect (`guard_u_track` after `compute_tracking`, latch clears, trip INFO `guarded`); keep residue tests.
+- Continuity: stories 1.2–1.3 seams/config done — do not retouch `LadrcState.advance` / R3(a)(b).
 
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `apps/hvac/hvac_app.py` -- `guard_u_track` (full I/O; owns `reset` on trip) + `format_blow_up_warning` Floor MUST + wire `control_tick` (advance B; latch clears; trip INFO ff-only + `guarded`) -- CAP-2.
+- [ ] `apps/hvac/hvac_app.py` -- `guard_u_track` (full I/O; owns `reset` on trip) + `format_blow_up_warning` Floor MUST + wire `control_tick` (advance B; latch clears; trip INFO ff-only + `guarded`) -- R2.
 - [ ] `apps/apps.yaml.example` -- Comment: live magnitude guard (°C) -- operator truth.
-- [ ] `tests/test_hvac_app.py` -- I/O matrix: seam, N consecutive trips, formatter Floor, inspect `guard_u_track` + latch-clear + `guarded` INFO; no Hass -- CAP-3(c).
+- [ ] `tests/test_hvac_app.py` -- I/O matrix: seam, N consecutive trips, formatter Floor, inspect `guard_u_track` + latch-clear + `guarded` INFO; no Hass -- R3(c).
 
 **Acceptance Criteria:**
 - Given finite `|u_track| ≤ u_track_max`, when `guard_u_track` runs, then command is `clamp(u_ff+u_track)`, ESO not reset, `should_warn=False`, `latch_out=False`.
@@ -132,8 +132,8 @@ Trip: (not isfinite(u_track)) or abs(u_track) > u_track_max
 ## Verification
 
 **Commands:**
-- `uv run pytest tests/test_hvac_app.py -q` -- CAP-3(c) seam/latch/formatter + residue green
-- `uv run pytest tests/test_ladrc.py tests/test_ladrc_tuner.py -q` -- CAP-3(a)(b) / parse unchanged
+- `uv run pytest tests/test_hvac_app.py -q` -- R3(c) seam/latch/formatter + residue green
+- `uv run pytest tests/test_ladrc.py tests/test_ladrc_tuner.py -q` -- R3(a)(b) / parse unchanged
 - `uv run ruff check apps/hvac/hvac_app.py tests/test_hvac_app.py` -- clean
 
-**Manual (CAP-2 HA visibility):** confirm WARNING appears in AppDaemon/HA logs on a live trip — not covered by pytest.
+**Manual (R2 HA visibility):** confirm WARNING appears in AppDaemon/HA logs on a live trip — not covered by pytest.

@@ -1,6 +1,6 @@
 # Deferred work — initiative-gate-omega-c-on-saturation
 
-CAP-2 (PR #31) and CAP-4 sticky (PR #34) wording synced in the refactor sweep.
+R2 (PR #31) and R4 sticky (PR #34) wording synced in the refactor sweep.
 
 Package C Q5 Hass-stub locks (multi-tick latched decay persist; equal-value write-on-change side effects) closed in PR #43.
 

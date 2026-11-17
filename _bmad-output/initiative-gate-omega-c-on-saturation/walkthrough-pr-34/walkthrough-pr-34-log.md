@@ -6,7 +6,7 @@ Target: https://github.com/zhmachenkov-d/ha-smart-hvac/pull/34 (`feat/1-2-latch-
 
 Session: unavailable · Timestamp: 2026-10-17T04:13:00+03:00
 
-- Action: Orientation; target confirmed PR #34 (story 1.2 / CAP-4 latch decay + skip adapt).
+- Action: Orientation; target confirmed PR #34 (story 1.2 / R4 latch decay + skip adapt).
 - Result: walkthrough-pr-34/ folder unused; ready for narrative draft.
 - Evidence: PR #34; story-latch-decay-skip-adapt-plan.md; commit e332fef
 - Open: First narrative draft
@@ -26,9 +26,9 @@ Session: unavailable · Timestamp: 2026-10-17T04:14:00+03:00
 
 - Block: Intent
 - Activity: Thoughts (Intent vs PR #34 diff)
-- Action: Compared plan Intent Always/Never/matrix to hvac_app.py CAP-4 wiring and tests
+- Action: Compared plan Intent Always/Never/matrix to hvac_app.py R4 wiring and tests
 - Result: Aligns on skip-adapt-at-start, write-path |u_track| criterion, 0.8 constant, decay commit_omega_c before should_commit else, trip-edge adapt+decay. Finding (open for reviewer): Intent Approach omits sticky latch that holds in (0.8·max, max]; Design Notes + sticky_blow_up_latch implement it — Approach underspecified vs code, not a code defect.
-- Evidence: apps/hvac/hvac_app.py L134-161, L215-225, L304-357; story plan Design Notes sticky CAP-4
+- Evidence: apps/hvac/hvac_app.py L134-161, L215-225, L304-357; story plan Design Notes sticky R4
 - Open: User decide Intent done / renegotiate Approach to name sticky / leave as-is
 
 ## 4 — Intent — renegotiate Approach
@@ -45,7 +45,7 @@ Session: unavailable · Timestamp: 2026-10-17T04:15:00+03:00
 Session: unavailable · Timestamp: 2026-10-17T04:16:00+03:00
 
 - Action: Re-compared renegotiated Approach/Always to sticky_blow_up_latch + decay branch + sticky matrix tests.
-- Result: Aligns. sticky = tripped ∨ (latch_in ∧ residue); hold in (0.8·max, max]; clear at ≤0.8; decay gated on sticky ∧ residue. No open Intent findings. Soft note only: "clears only when ≤0.8" omits latch_in=False clear path — not material for CAP-4.
+- Result: Aligns. sticky = tripped ∨ (latch_in ∧ residue); hold in (0.8·max, max]; clear at ≤0.8; decay gated on sticky ∧ residue. No open Intent findings. Soft note only: "clears only when ≤0.8" omits latch_in=False clear path — not material for R4.
 - Evidence: hvac_app.py L154-161, L304-343; test_sticky_blow_up_latch_matrix; test_decay_stops_when_residue_at_or_below_band
 - Open: User mark Intent done or polish further
 
@@ -63,7 +63,7 @@ Session: unavailable · Timestamp: 2026-10-17T04:17:00+03:00
 Session: unavailable · Timestamp: 2026-10-17T04:18:00+03:00
 
 - Action: Checked Broad strokes prose + 5 entry points against hvac_app.py / test layout.
-- Result: Order and mechanism accurate. Soft (open): “after write-path tracking” slightly ambiguous (sticky is after write-path guard, before plant write/ESO advance). Soft: test link #L505 is section banner; CAP-6(e) matrices from L540; skip-adapt inspect L369.
+- Result: Order and mechanism accurate. Soft (open): “after write-path tracking” slightly ambiguous (sticky is after write-path guard, before plant write/ESO advance). Soft: test link #L505 is section banner; R6(e) matrices from L540; skip-adapt inspect L369.
 - Evidence: hvac_app.py L215-225, L303-343; test_hvac_app.py L369, L506, L540
 - Open: User done / polish prose+anchor / ignore soft nits
 
@@ -197,7 +197,7 @@ Session: unavailable · Timestamp: 2026-10-17T04:31:00+03:00
 
 Session: unavailable · Timestamp: 2026-10-17T04:31:00+03:00
 
-- Action: User accepted Decay commit; advanced to Tests / CAP-6(e) locks.
+- Action: User accepted Decay commit; advanced to Tests / R6(e) locks.
 - Result: Decay slice closed after write_ok mirror patch.
 - Evidence: walkthrough-pr-34.md
 - Open: Review Tests block
@@ -206,9 +206,9 @@ Session: unavailable · Timestamp: 2026-10-17T04:31:00+03:00
 
 Session: unavailable · Timestamp: 2026-10-17T04:32:00+03:00
 
-- Action: Mapped Intent I/O matrix to CAP-6(e) tests + walkthrough fail-write lock.
+- Action: Mapped Intent I/O matrix to R6(e) tests + walkthrough fail-write lock.
 - Result: All matrix rows have a lock. Soft residuals (not defects unless reopened): skip-adapt inspect-only; latched-at-start+residue-OK split across inspect+band-stop; no live AD control_tick.
-- Evidence: test_hvac_app.py CAP-4 section; Intent matrix
+- Evidence: test_hvac_app.py R4 section; Intent matrix
 - Open: User done / Test suite / reopen residuals
 
 ## 24 — Tests — reopen residuals
@@ -234,8 +234,8 @@ Session: unavailable · Timestamp: 2026-10-17T04:35:00+03:00
 Session: unavailable · Timestamp: 2026-10-17T04:35:00+03:00
 
 - Action: Re-reviewed Tests block after accept-all residuals.
-- Result: No new findings. CAP-6(e) + walkthrough fail-write/sticky-after-write locks sufficient for story close posture.
-- Evidence: walkthrough-pr-34.md Tests notes; test_hvac_app.py CAP-4 section
+- Result: No new findings. R6(e) + walkthrough fail-write/sticky-after-write locks sufficient for story close posture.
+- Evidence: walkthrough-pr-34.md Tests notes; test_hvac_app.py R4 section
 - Open: User mark Tests done or Test suite
 
 ## 27 — Tests — Test suite
@@ -261,15 +261,15 @@ Session: unavailable · Timestamp: 2026-10-17T04:36:00+03:00
 Session: unavailable · Timestamp: 2026-10-17T04:37:00+03:00
 
 - Action: Checked plan/PR/CI/deferred-work vs renegotiated Intent and companions.
-- Result: CI pass on published head only. Soft: CAP-4 companion lag (sticky, sticky-after-write) — propose defer to CAP-5 like PR#31 CAP-2. Must push walkthrough patches. No code defect in periphery itself.
-- Evidence: deferred-work.md; control-tick-behaviors.md CAP-4; git status; gh pr checks 34
+- Result: CI pass on published head only. Soft: R4 companion lag (sticky, sticky-after-write) — propose defer to R5 like PR#31 R2. Must push walkthrough patches. No code defect in periphery itself.
+- Evidence: deferred-work.md; control-tick-behaviors.md R4; git status; gh pr checks 34
 - Open: User done / defer companion / commit now
 
-## 30 — Periphery — defer CAP-4 companion
+## 30 — Periphery — defer R4 companion
 
 Session: unavailable · Timestamp: 2026-10-17T04:38:00+03:00
 
-- Action: Appended deferred-work.md entry for CAP-4 companion sticky + sticky-after-write sync (CAP-5).
+- Action: Appended deferred-work.md entry for R4 companion sticky + sticky-after-write sync (R5).
 - Result: Companion lag disposition deferred. Still need commit/push of walkthrough code+docs before merge.
 - Evidence: deferred-work.md PR #34 section; walkthrough-pr-34.md Periphery notes
 - Open: User mark Periphery done → wrap-up

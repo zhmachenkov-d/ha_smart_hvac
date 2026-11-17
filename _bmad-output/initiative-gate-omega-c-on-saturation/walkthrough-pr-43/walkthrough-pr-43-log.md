@@ -43,7 +43,7 @@ Session: 69535401-c457-4276-a2d9-0fe6ef311564 · Timestamp: 2026-10-17T14:36:00+
 Session: 69535401-c457-4276-a2d9-0fe6ef311564 · Timestamp: 2026-10-17T14:37:00+03:00
 
 - Action: Checked five Broad strokes entry points against PR diff and production seams they lock.
-- Result: Five points are enough — both tests, _tick_app, sticky+decay, equality skip. Soft: mirrors / CAP-6(c) unit locks correctly out of Broad strokes (later slice or periphery). No gap vs Intent.
+- Result: Five points are enough — both tests, _tick_app, sticky+decay, equality skip. Soft: mirrors / R6(c) unit locks correctly out of Broad strokes (later slice or periphery). No gap vs Intent.
 - Evidence: test_hvac_app.py:807,1107,1133; hvac_app.py:299-329,440; mirrors ~606
 - Open: await user done/next on Broad strokes
 
@@ -87,7 +87,7 @@ Session: 69535401-c457-4276-a2d9-0fe6ef311564 · Timestamp: 2026-10-17T14:39:00+
 
 Session: 69535401-c457-4276-a2d9-0fe6ef311564 · Timestamp: 2026-10-17T14:39:30+03:00
 
-- Action: Compared equal-value Hass lock to R1, equality-success → sticky+decay, and CAP-6(c) unit companion.
+- Action: Compared equal-value Hass lock to R1, equality-success → sticky+decay, and R6(c) unit companion.
 - Result: R1 clamp(u_ff)=49.0 correct; latch starts False so sticky-after-True-write is proven; exact one next_decayed step. Soft: filters only number/set_value (plan). Soft: adapt apply=False so decay baseline = omega_before. No findings.
 - Evidence: test_hvac_app.py:1133-1173; hvac_app.py:65-66,440-441,300-329; unit:1193
 - Open: await user done/next
@@ -96,7 +96,7 @@ Session: 69535401-c457-4276-a2d9-0fe6ef311564 · Timestamp: 2026-10-17T14:39:30+
 
 Session: 69535401-c457-4276-a2d9-0fe6ef311564 · Timestamp: 2026-10-17T14:40:00+03:00
 
-- Action: Ran Hass equal-value lock + CAP-6(c) unit equality skip (parametrized).
+- Action: Ran Hass equal-value lock + R6(c) unit equality skip (parametrized).
 - Result: 4 passed in 0.29s. Unverified here: full test_hvac_app.py suite.
 - Evidence: `uv run pytest …::test_control_tick_equal_setpoint_skips_set_value_still_sticky_decays …::test_write_setpoint_skips_set_value_when_entity_float_equals -q`
 - Open: await user done/next

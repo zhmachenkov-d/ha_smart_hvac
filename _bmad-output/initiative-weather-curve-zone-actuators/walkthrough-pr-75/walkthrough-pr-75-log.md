@@ -15,18 +15,18 @@ Session: unavailable · Timestamp: 2026-10-19T18:45:00+03:00
 
 Session: 01d9c37a-9b5a-458b-98f1-b2ac33ead5f4 · Timestamp: 2026-10-19T18:46:00+03:00
 
-- Action: Orientation accepted; wrote full narrative blocks 1–7 from frozen story Intent + hvac_app CAP-8 shape.
+- Action: Orientation accepted; wrote full narrative blocks 1–7 from frozen story Intent + hvac_app R8 shape.
 - Result: Narrative ready; current block Intent (in progress); no findings yet.
-- Evidence: walkthrough-pr-75.md; story plan Intent L21–25; hvac_app.py listeners/prelude/dual entry; test_hvac_app.py CAP-8.
+- Evidence: walkthrough-pr-75.md; story plan Intent L21–25; hvac_app.py listeners/prelude/dual entry; test_hvac_app.py R8.
 - Open: Walk blocks with user starting at Intent.
 
 ## 3 — Intent — Thoughts
 
 Session: 01d9c37a-9b5a-458b-98f1-b2ac33ead5f4 · Timestamp: 2026-10-19T18:49:30+03:00
 
-- Action: Compared frozen Intent to PR #75 body, epic CAP-8 Outcome/Done when, and spec CAP-8.
+- Action: Compared frozen Intent to PR #75 body, epic R8 Outcome/Done when, and spec R8.
 - Result: Intent aligns with PR/spec/epic mechanism. Note (open, not blocking Intent): epic Done when #4 + Boundaries include ADR/docs; tracer Intent Never defers ADR to story 2.2 — this PR is code tracer only.
-- Evidence: story plan Intent; PR summary; epic-immediate-swt-reactivity.md L17–30; spec CAP-8.
+- Evidence: story plan Intent; PR summary; epic-immediate-swt-reactivity.md L17–30; spec R8.
 - Open: User accept Intent or dig into ADR scope mismatch.
 
 ## 4 — Intent — finding recorded
@@ -34,7 +34,7 @@ Session: 01d9c37a-9b5a-458b-98f1-b2ac33ead5f4 · Timestamp: 2026-10-19T18:49:30+
 Session: 01d9c37a-9b5a-458b-98f1-b2ac33ead5f4 · Timestamp: 2026-10-19T18:50:30+03:00
 
 - Action: User chose to record ADR/docs scope mismatch as a finding against the epic (not blocking this tracer PR Intent).
-- Result: Finding F1 open — epic Done when #4 / Boundaries require ADR 0004 + CONTEXT/AGENTS + companions for CAP-8; tracer Intent Never + story 2.2 own ADR/docs. Disposition: open (question for epic / story 2.2 sequencing).
+- Result: Finding F1 open — epic Done when #4 / Boundaries require ADR 0004 + CONTEXT/AGENTS + companions for R8; tracer Intent Never + story 2.2 own ADR/docs. Disposition: open (question for epic / story 2.2 sequencing).
 - Evidence: epic-immediate-swt-reactivity.md L30–34; story plan Never (ADR/docs owned by 2.2); PR #75 has no ADR/CONTEXT diffs.
 - Open: F1 — confirm story 2.2 is the ADR follow-through before calling epic Done when #4 satisfied.
 
@@ -77,7 +77,7 @@ Session: 01d9c37a-9b5a-458b-98f1-b2ac33ead5f4 · Timestamp: 2026-10-19T18:52:15+
 
 Session: 01d9c37a-9b5a-458b-98f1-b2ac33ead5f4 · Timestamp: 2026-10-19T22:03:30+03:00
 
-- Action: Walked five Broad strokes entry points in hvac_app + CAP-8 test names.
+- Action: Walked five Broad strokes entry points in hvac_app + R8 test names.
 - Result: Map accurate; W2 dual entry clear (no advance flag). Minor nit (not blocking): prelude no-zones log still says "this tick" though shared with events. No findings opened.
 - Evidence: hvac_app.py L37–130; test_cap8_* L671–937.
 - Open: none.
@@ -87,7 +87,7 @@ Session: 01d9c37a-9b5a-458b-98f1-b2ac33ead5f4 · Timestamp: 2026-10-19T22:03:30+
 Session: 01d9c37a-9b5a-458b-98f1-b2ac33ead5f4 · Timestamp: 2026-10-19T22:04:30+03:00
 
 - Action: Ran `uv run pytest tests/test_hvac_app.py -q -k cap8` and full file.
-- Result: 11 CAP-8 passed; 40/40 test_hvac_app passed. Live Exclusive Session spot-check from PR test plan still unverified.
+- Result: 11 R8 passed; 40/40 test_hvac_app passed. Live Exclusive Session spot-check from PR test plan still unverified.
 - Evidence: pytest -k cap8 (11 passed, 29 deselected); full 40 passed.
 - Open: live AppDaemon spot-check (optional Drive).
 
@@ -96,24 +96,24 @@ Session: 01d9c37a-9b5a-458b-98f1-b2ac33ead5f4 · Timestamp: 2026-10-19T22:04:30+
 Session: 01d9c37a-9b5a-458b-98f1-b2ac33ead5f4 · Timestamp: 2026-10-19T22:05:15+03:00
 
 - Action: User said Broad strokes done.
-- Result: Advancing to CAP-8 listeners. Tests green; live spot-check still optional.
+- Result: Advancing to R8 listeners. Tests green; live spot-check still optional.
 - Evidence: user "done".
 - Open: commit walkthrough-pr-75/? asked again.
 
-## 11 — CAP-8 listeners — Thoughts
+## 11 — R8 listeners — Thoughts
 
 Session: 01d9c37a-9b5a-458b-98f1-b2ac33ead5f4 · Timestamp: 2026-10-19T22:06:30+03:00
 
-- Action: Compared _register_cap8_listeners + test to spec CAP-8 trigger set.
+- Action: Compared _register_cap8_listeners + test to spec R8 trigger set.
 - Result: Full match (plant, outdoor, zone air, climate hvac_action + temperature attrs). run_every kept. Multi-zone registration locked. No findings.
-- Evidence: hvac_app.py L45–58; test L671–712; spec CAP-8 L49–50.
+- Evidence: hvac_app.py L45–58; test L671–712; spec R8 L49–50.
 - Open: none.
 
-## 12 — CAP-8 listeners — accepted
+## 12 — R8 listeners — accepted
 
 Session: 01d9c37a-9b5a-458b-98f1-b2ac33ead5f4 · Timestamp: 2026-10-19T22:07:15+03:00
 
-- Action: User accepted CAP-8 listeners.
+- Action: User accepted R8 listeners.
 - Result: Advancing to Shared gate prelude.
 - Evidence: user "done".
 - Open: walkthrough-pr-75/ still untracked if not committed.
@@ -122,9 +122,9 @@ Session: 01d9c37a-9b5a-458b-98f1-b2ac33ead5f4 · Timestamp: 2026-10-19T22:07:15+
 
 Session: 01d9c37a-9b5a-458b-98f1-b2ac33ead5f4 · Timestamp: 2026-10-19T22:08:30+03:00
 
-- Action: Mapped _gate_prelude branches to CAP-1…CAP-3 + constraints.
-- Result: CAP-3 plant-off = clear + hands_off no write; CAP-2 idle = clear + write 0 (plant-on only); demand returns tuple for CAP-1 fork. Outdoor-missing/no-zones = same write-0 as idle (matrix). No findings.
-- Evidence: hvac_app.py L60–90, L182–187; spec CAP-1…3 L21–30, constraints L55–56.
+- Action: Mapped _gate_prelude branches to R1…R3 + constraints.
+- Result: R3 plant-off = clear + hands_off no write; R2 idle = clear + write 0 (plant-on only); demand returns tuple for R1 fork. Outdoor-missing/no-zones = same write-0 as idle (matrix). No findings.
+- Evidence: hvac_app.py L60–90, L182–187; spec R1…3 L21–30, constraints L55–56.
 - Open: none.
 
 ## 14 — Shared gate prelude — Test
@@ -159,7 +159,7 @@ Session: 01d9c37a-9b5a-458b-98f1-b2ac33ead5f4 · Timestamp: 2026-10-19T22:11:30+
 Session: 01d9c37a-9b5a-458b-98f1-b2ac33ead5f4 · Timestamp: 2026-10-19T22:15:30+03:00
 
 - Action: Ran pytest -k 'cap8_demand or cap8_outdoor_flip or cap8_seed or cap8_equal or cap8_periodic'.
-- Result: 6 passed (demand clamp/no process_demand, outdoor flip, CAP-7 unchanged, seed→event→tick, equality skip, periodic still process_demand).
+- Result: 6 passed (demand clamp/no process_demand, outdoor flip, R7 unchanged, seed→event→tick, equality skip, periodic still process_demand).
 - Evidence: 6 passed, 34 deselected.
 - Open: none.
 
@@ -168,11 +168,11 @@ Session: 01d9c37a-9b5a-458b-98f1-b2ac33ead5f4 · Timestamp: 2026-10-19T22:15:30+
 Session: 01d9c37a-9b5a-458b-98f1-b2ac33ead5f4 · Timestamp: 2026-10-19T22:16:15+03:00
 
 - Action: User accepted Dual entrypoints.
-- Result: Advancing to CAP-8 test matrix. Dual-entry tests 6/6 green.
+- Result: Advancing to R8 test matrix. Dual-entry tests 6/6 green.
 - Evidence: user "done".
 - Open: none.
 
-## 19 — CAP-8 test matrix — Thoughts
+## 19 — R8 test matrix — Thoughts
 
 Session: 01d9c37a-9b5a-458b-98f1-b2ac33ead5f4 · Timestamp: 2026-10-19T22:17:30+03:00
 
@@ -181,11 +181,11 @@ Session: 01d9c37a-9b5a-458b-98f1-b2ac33ead5f4 · Timestamp: 2026-10-19T22:17:30+
 - Evidence: story plan L49–59; test_hvac_app.py L671–956.
 - Open: user may open write-fail gap as finding if desired.
 
-## 20 — CAP-8 test matrix — accepted
+## 20 — R8 test matrix — accepted
 
 Session: 01d9c37a-9b5a-458b-98f1-b2ac33ead5f4 · Timestamp: 2026-10-19T22:18:15+03:00
 
-- Action: User accepted CAP-8 test matrix (write-fail gap left unopened).
+- Action: User accepted R8 test matrix (write-fail gap left unopened).
 - Result: Advancing to Periphery (last block).
 - Evidence: user "done".
 - Open: none.

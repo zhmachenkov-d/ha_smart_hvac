@@ -6,11 +6,11 @@ type = "story"
 title = "Directional clamp + strict apply"
 description = "Add directional should_commit_omega_c (skip commit on guard trip, max+ωc↑, min+ωc↓; allow relieving moves). When commit would be blocked, do not feed proposed ωc into with_omega_c — compute_tracking uses current committed ωc. Wire in control_tick. Tests: commit matrix and Hass-free saturated upward-proposal ratchet regression."
 verify = "uv run pytest: should_commit_omega_c matrix (None/tripped/max+up/max+down/min+down/min+up/interior); saturated upward proposals do not raise applied or committed ωc across ticks."
-covers = ["CAP-1", "CAP-2", "CAP-6"]
+covers = ["R1", "R2", "R6"]
 after = []
 hitl = false
 risk = "medium"
-notes = ["Tracer bullet. CAP-6 parts (a)(b)."]
+notes = ["Tracer bullet. R6 parts (a)(b)."]
 
 [[entry]]
 id = 2
@@ -18,11 +18,11 @@ type = "story"
 title = "Latch decay + skip adapt"
 description = "While blow-up latch is already active at tick start, skip maybe_adapt. Each tick if |u_track| > 0.8·u_track_max or u_track non-finite, step ωc down by existing tuner max_rate_fraction (≥ omega_c_min) and persist even when guard trip blocks normal commit_omega_c. Stop decay when finite |u_track| ≤ 0.8·u_track_max. Criterion is actual tick |u_track|, not |ωc·e/b0|. 0.8 is a code constant."
 verify = "uv run pytest: with latch already active, maybe_adapt is not called; multi-tick |u_track| above threshold decays persisted ωc until ≤ 0.8·u_track_max; non-finite u_track also steps down."
-covers = ["CAP-4", "CAP-6"]
+covers = ["R4", "R6"]
 after = [1]
 hitl = false
 risk = "medium"
-notes = ["Least certain after tracer. CAP-6 part (e)."]
+notes = ["Least certain after tracer. R6 part (e)."]
 
 [[entry]]
 id = 3
@@ -30,11 +30,11 @@ type = "story"
 title = "Write-on-change setpoint"
 description = "In _write_setpoint (demand and idle/0): if plant entity float state equals desired, skip number/set_value but return success so the tick continues. Keep fail-closed abort when entity is unavailable/unknown/unparseable. Equality baseline is entity state, not a last-written cache."
 verify = "uv run pytest: identical entity float skips set_value without aborting tick side effects; unreadable entity returns false and aborts the tick."
-covers = ["CAP-3", "CAP-6"]
+covers = ["R3", "R6"]
 after = [2]
 hitl = false
 risk = "low"
-notes = ["CAP-6 parts (c)(d)."]
+notes = ["R6 parts (c)(d)."]
 
 [[entry]]
 id = 4
@@ -42,7 +42,7 @@ type = "story"
 title = "ADR 0003 + house-calibration"
 description = "Amend ADR 0003 Guards and house-calibration §5 for criterion A: directional clamp, strict apply, write-on-change (fail-closed unreadability), latched |u_track| decay with adapt skipped — not headroom-only full freeze or ops-reset-only recovery."
 verify = "git diff / docs read: ADR 0003 Guards and house-calibration §5 state the locked behaviors under criterion A; no headroom-only full-freeze wording as the rationale."
-covers = ["CAP-5"]
+covers = ["R5"]
 after = [3]
 hitl = false
 risk = "low"

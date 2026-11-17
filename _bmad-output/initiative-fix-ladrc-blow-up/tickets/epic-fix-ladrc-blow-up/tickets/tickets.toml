@@ -8,13 +8,13 @@ type = "story"
 title = "Continuous-form ESO in LadrcState"
 description = "Replace LadrcState.advance exp_map (α=1-exp(-ωo·dt)) with continuous-form ESO (β1=2ωo, β2=ωo² over the sample; RK or equivalent). Add tests that reproduce divergence under exp_map and/or Huang-scale gains, and assert continuous-form multi-tick boundedness with thermal-band gains and tracking-residue u=(command-u_ff)."
 verify = "uv run pytest: exp_map and/or Huang gains diverge over multiple advances; continuous-form ESO with b0/omega_o in thermal band and C-style known input keeps u_track/z finite with |u_track| in tens of °C over N ticks (y≈21, plant clamp 40..55)."
-covers = ["CAP-5", "CAP-3"]
+covers = ["R5", "R3"]
 after = []
 hitl = false
 risk = "high"
 plan_checkpoint = true
 done_checkpoint = true
-notes = ["Tracer bullet. CAP-3 part (a): divergence under old discrete map / Huang. Integrator choice free if tests pass (spec A1)."]
+notes = ["Tracer bullet. R3 part (a): divergence under old discrete map / Huang. Integrator choice free if tests pass (spec A1)."]
 
 [[entry]]
 id = 2
@@ -22,13 +22,13 @@ type = "story"
 title = "Tracking-residue known input in hvac_app"
 description = "In hvac_app after clamp, advance the ESO with (command - u_ff), not absolute command and not pre-clamp u_track. Plant write remains clamp(u_ff + u_track). Add a seam/unit test for the known-input wiring."
 verify = "uv run pytest: tick path (or extracted seam) advances ESO with post-clamp (command - u_ff); plant write still absolute clamped SWT. ADR/spec constraint satisfied in code."
-covers = ["CAP-1"]
+covers = ["R1"]
 after = [1]
 hitl = false
 risk = "medium"
 plan_checkpoint = true
 done_checkpoint = true
-notes = ["Delivers CAP-1 known-input half; defaults/example values are entry 3."]
+notes = ["Delivers R1 known-input half; defaults/example values are entry 3."]
 
 [[entry]]
 id = 3
@@ -36,13 +36,13 @@ type = "story"
 title = "Retune defaults, u_track_max config, ADR amend"
 description = "Set example b0/omega_o to thermal starting band on apps.yaml.example; add u_track_max on LadrcConfig / parse / example (default 100); amend ADR 0002 (exp_map@dt=60 failure, continuous-form ESO, C known-input, Huang forbidden, house calibration); confirm ADR 0003 remains ωc-only; add boundedness tests with new defaults under continuous-form + C known-input."
 verify = "uv run pytest: new defaults keep |u_track| in tens of °C over N ticks with continuous-form + C known-input. apps.yaml.example and parsed config expose u_track_max=100 and new b0/omega_o. ADR 0002 carries the amendment bullets; git diff ADR 0003 empty (ωc-only)."
-covers = ["CAP-1", "CAP-3", "CAP-4"]
+covers = ["R1", "R3", "R4"]
 after = [1, 2]
 hitl = false
 risk = "medium"
 plan_checkpoint = true
 done_checkpoint = true
-notes = ["CAP-3 part (b): new-default boundedness. Threshold field is handoff entry 4 consumes."]
+notes = ["R3 part (b): new-default boundedness. Threshold field is handoff entry 4 consumes."]
 
 [[entry]]
 id = 4
@@ -50,13 +50,13 @@ type = "story"
 title = "Blow-up guard in hvac_app"
 description = "In hvac_app after compute_tracking, if u_track is non-finite or |u_track| exceeds config u_track_max (default 100): reset ESO, command=clamp(u_ff), WARNING once per episode; optionally refuse advance with non-finite state. No guard API in LadrcState. Guard regression tests on a pure testable seam (no full AppDaemon)."
 verify = "Poisoned z2 or exploded u_track yields feedforward-only command, ESO reset, and WARNING path; uv run pytest covers the guard."
-covers = ["CAP-2", "CAP-3"]
+covers = ["R2", "R3"]
 after = [3]
 hitl = false
 risk = "medium"
 plan_checkpoint = true
 done_checkpoint = true
-notes = ["CAP-3 part (c): guard path. Consumes u_track_max from entry 3. Optional refuse-to-advance after guard trip in scope."]
+notes = ["R3 part (c): guard path. Consumes u_track_max from entry 3. Optional refuse-to-advance after guard trip in scope."]
 
 [[entry]]
 id = 5

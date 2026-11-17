@@ -9,7 +9,7 @@ Current block: **Wrap-up** (done — review finished)
 - [x] **1. Intent** — done
 - [x] **2. Broad strokes** — done
 - [x] **3. Max-error demand zone selection** — done
-- [x] **4. Pure CAP-7 adapt law** — done
+- [x] **4. Pure R7 adapt law** — done
 - [x] **5. App runtime: overlay, flush, 2C persist** — done
 - [x] **6. Config and yaml nest** — done
 - [x] **7. Tests** — done
@@ -21,7 +21,7 @@ Current block: **Wrap-up** (done — review finished)
 
 Source: frozen Intent in [story-auto-correct-ff-from-max-error-zone-rise-rate-plan.md](../epic-weather-curve-swt-only/story-auto-correct-ff-from-max-error-zone-rise-rate-plan.md#L21-L25).
 
-**Problem:** CAP-7 is documented (spike decision + ADR 0004) but not live — FF params stay at yaml commission and never adapt from the max-error demand zone’s air rise rate.
+**Problem:** R7 is documented (spike decision + ADR 0004) but not live — FF params stay at yaml commission and never adapt from the max-error demand zone’s air rise rate.
 
 **Approach:** Implement the accepted spike contract so under Heating Demand the app selects that zone for rise-rate only, adapts `base`/`slope` (not `comfort_ref`), persists via B1 JSON only when params actually changed **and** SWT write succeeds, and keeps SWT as `clamp(u_ff)` with updated params — no air→SWT tracking.
 
@@ -29,13 +29,13 @@ Source: frozen Intent in [story-auto-correct-ff-from-max-error-zone-rise-rate-pl
 
 ### 2. Broad strokes
 
-CAP-7 goes live: yaml commission + optional JSON overlay feed mutable runtime `base`/`slope`; demand ticks may nudge them from the max-error zone’s rise rate; SWT stays `clamp(u_ff)`.
+R7 goes live: yaml commission + optional JSON overlay feed mutable runtime `base`/`slope`; demand ticks may nudge them from the max-error zone’s rise rate; SWT stays `clamp(u_ff)`.
 
 1. [ff_auto_correct.py](../../../apps/ha_smart_hvac/ff_auto_correct.py) — pure `FfAutoCorrector` (window / I1 / nudge / guards / B1 load-save).
 2. [hvac_app.py](../../../apps/ha_smart_hvac/hvac_app.py) — owns corrector lifecycle; flush ephemeral on plant-off / idle / no-demand; persist only on `params_changed and write_ok`.
-3. [coordinator.py — select_max_error_demand_zone](../../../apps/ha_smart_hvac/coordinator.py#L18-L36) — CAP-7 signal (T-hold / lex among demand zones).
+3. [coordinator.py — select_max_error_demand_zone](../../../apps/ha_smart_hvac/coordinator.py#L18-L36) — R7 signal (T-hold / lex among demand zones).
 4. [config.py](../../../apps/ha_smart_hvac/config.py) + [models.py — AutoCorrectConfig](../../../apps/ha_smart_hvac/models.py#L57-L62) — optional `auto_correct` nest (E2 defaults).
-5. [test_ff_auto_correct.py](../../../tests/test_ff_auto_correct.py) + [test_hvac_app.py](../../../tests/test_hvac_app.py) — pure law + Hass 2C / flush / CAP-5 keepers.
+5. [test_ff_auto_correct.py](../../../tests/test_ff_auto_correct.py) + [test_hvac_app.py](../../../tests/test_hvac_app.py) — pure law + Hass 2C / flush / R5 keepers.
 
 ---
 
@@ -48,7 +48,7 @@ Among zones with `zone_error > 0`, pick the largest error. T-hold keeps `previou
 
 ---
 
-### 4. Pure CAP-7 adapt law
+### 4. Pure R7 adapt law
 
 `process_demand` appends W15 before freeze early-returns, runs I1 (CS-base then hysteresis same tick), then may nudge `base` or `slope` under N2+G25 / deadband / near-ε / W-skip / D-cmd / bounds. Flush paths (4A absent, Z1 switch, M2 non-finite, empty select) clear ephemeral and hold prior `clamp(u_ff)`. Caller still owns SWT write + JSON.
 
@@ -79,7 +79,7 @@ Optional `weather_feedforward.auto_correct` nest maps to frozen `AutoCorrectConf
 
 ### 7. Tests
 
-Pure suite covers W15/1A, I1/CS-base, guards, B1 corrupt/OOB, bounds no-op. Hass suite covers plant-off/idle/no-demand flush (JSON untouched), write-fail keeps in-memory nudge without JSON, CAP-5 a–e unchanged, plus CAP-7 adapt≠additive. Config tests: missing nest → defaults; valid nest overrides.
+Pure suite covers W15/1A, I1/CS-base, guards, B1 corrupt/OOB, bounds no-op. Hass suite covers plant-off/idle/no-demand flush (JSON untouched), write-fail keeps in-memory nudge without JSON, R5 a–e unchanged, plus R7 adapt≠additive. Config tests: missing nest → defaults; valid nest overrides.
 
 - [test_ff_auto_correct.py](../../../tests/test_ff_auto_correct.py)
 - [test_hvac_app.py](../../../tests/test_hvac_app.py)

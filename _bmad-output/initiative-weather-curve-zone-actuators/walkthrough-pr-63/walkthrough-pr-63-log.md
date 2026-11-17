@@ -1,4 +1,4 @@
-# Review log: PR #63 CAP-4 LADRC removal
+# Review log: PR #63 R4 LADRC removal
 
 Target: https://github.com/zhmachenkov-d/ha_smart_hvac/pull/63
 
@@ -6,7 +6,7 @@ Target: https://github.com/zhmachenkov-d/ha_smart_hvac/pull/63
 
 Session: unavailable · Timestamp: 2026-10-18T19:18:00+03:00
 
-- Action: User confirmed walkthrough target is PR #63 (story 1.2 / CAP-4).
+- Action: User confirmed walkthrough target is PR #63 (story 1.2 / R4).
 - Result: Proceed to narrative; slug walkthrough-pr-63.
 - Evidence: gh pr view 63; plan story-remove-ladrc-and-c-from-the-water-path-plan.md
 - Open: none
@@ -25,7 +25,7 @@ Session: unavailable · Timestamp: 2026-10-18T19:18:00+03:00
 Session: unavailable · Timestamp: 2026-10-18T19:19:30+03:00
 
 - Action: Compared frozen Intent to main...HEAD code/test/yaml surface.
-- Result: Diff matches Approach (modules deleted, helpers gone, config/yaml stripped, CZ purged, CAP-5 keepers). Docs untouched as promised. Ops house-yaml strip still open for user.
+- Result: Diff matches Approach (modules deleted, helpers gone, config/yaml stripped, CZ purged, R5 keepers). Docs untouched as promised. Ops house-yaml strip still open for user.
 - Evidence: git diff main...HEAD; rg on apps/ha_smart_hvac + apps.yaml.example
 - Open: Block 1 still awaiting user done
 
@@ -43,7 +43,7 @@ Session: unavailable · Timestamp: 2026-10-18T19:22:00+03:00
 Session: unavailable · Timestamp: 2026-10-18T19:23:30+03:00
 
 - Action: Walked five Broad strokes entry points against working tree.
-- Result: Map accurate; hvac_app FF-only; config/models stripped; coordinator demand-only; example yaml clean; tests split CAP-5 vs absence. No map gaps found.
+- Result: Map accurate; hvac_app FF-only; config/models stripped; coordinator demand-only; example yaml clean; tests split R5 vs absence. No map gaps found.
 - Evidence: hvac_app.py L33-60; coordinator.py; apps.yaml.example; test_config.py; test_hvac_app.py
 - Open: Block 2 awaiting user done; walkthrough dir still uncommitted
 
@@ -133,7 +133,7 @@ Session: unavailable · Timestamp: 2026-10-18T19:34:00+03:00
 Session: unavailable · Timestamp: 2026-10-18T19:35:30+03:00
 
 - Action: Searched package/tests for select_critical_zone/ControlDecision; reviewed coordinator + absence test.
-- Result: Symbols gone from package; has_heating_demand sole SWT gate; docs still mention Critical Zone (deferred entry 1.3). reference_setpoint kept on ZoneSnapshot for possible CAP-7.
+- Result: Symbols gone from package; has_heating_demand sole SWT gate; docs still mention Critical Zone (deferred entry 1.3). reference_setpoint kept on ZoneSnapshot for possible R7.
 - Evidence: coordinator.py; test_config.py CZ absence; rg
 - Open: Block 5 awaiting done
 
@@ -159,8 +159,8 @@ Session: unavailable · Timestamp: 2026-10-18T19:37:00+03:00
 
 Session: unavailable · Timestamp: 2026-10-18T19:38:30+03:00
 
-- Action: Reviewed test_hvac_app fixtures/CAP-5, test_config absence/parse, leftover LADRC refs in tests/.
-- Result: Fixtures _config-only; CAP-5+attrs-absent present; old suites gone; parse/example migrated. Minor: CAP-5(d) does not assert hasattr absence (a/b/c/e do). No blockers.
+- Action: Reviewed test_hvac_app fixtures/R5, test_config absence/parse, leftover LADRC refs in tests/.
+- Result: Fixtures _config-only; R5+attrs-absent present; old suites gone; parse/example migrated. Minor: R5(d) does not assert hasattr absence (a/b/c/e do). No blockers.
 - Evidence: tests/test_hvac_app.py; tests/test_config.py; rg tests/
 - Open: Block 6 awaiting done
 

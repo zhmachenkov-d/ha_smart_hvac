@@ -12,14 +12,14 @@ review_source: 'pinned'
 lenses_ran: ['quick']
 review_loop_iteration: 0
 context:
-  - '{project-root}/_bmad-output/initiative-fix-ladrc-blow-up/tickets/epic-fix-ladrc-blow-up/spec-fix-ladrc-blow-up/spec-fix-ladrc-blow-up.md'
+  - '{project-root}/_bmad-output/initiative-fix-ladrc-blow-up/tickets/epic-fix-ladrc-blow-up/epic-fix-ladrc-blow-up.md'
 ---
 
 <frozen-after-approval reason="human-owned intent — do not modify unless human renegotiates">
 
 ## Intent
 
-**Problem:** After clamp, `hvac_app.control_tick` advances the ESO with absolute post-clamp `command` (SWT °C). Spec CAP-1 / Constraints require known input `(command − u_ff)` — the tracking residue — not absolute command and not pre-clamp `u_track`. CAP-5 tests already use path C; live app does not.
+**Problem:** After clamp, `hvac_app.control_tick` advances the ESO with absolute post-clamp `command` (SWT °C). Spec R1 / Constraints require known input `(command − u_ff)` — the tracking residue — not absolute command and not pre-clamp `u_track`. R5 tests already use path C; live app does not.
 
 **Approach:** Keep plant write `clamp(u_ff + u_track)`. After a successful write, advance with `(command − u_ff)`. Lock the wiring with a seam/unit test (no need to mock full AppDaemon `control_tick`).
 

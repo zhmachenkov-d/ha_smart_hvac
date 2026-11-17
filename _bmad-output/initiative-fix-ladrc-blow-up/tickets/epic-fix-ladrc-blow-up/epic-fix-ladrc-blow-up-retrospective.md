@@ -18,10 +18,10 @@ headless: false
 
 | Ref | Title | Status | Covers | Plan baseline | Diff range |
 |-----|-------|--------|--------|---------------|------------|
-| 1.1 | Continuous-form ESO in LadrcState | done | CAP-5, CAP-3 | `a3b10592` | `a3b10592..42dfd834` |
-| 1.2 | Tracking-residue known input in hvac_app | done | CAP-1 | `42dfd834` | `42dfd834..8048e80` |
-| 1.3 | Retune defaults, u_track_max config, ADR amend | done | CAP-1, CAP-3, CAP-4 | `8048e80` | `8048e80..a4c0a19` |
-| 1.4 | Blow-up guard in hvac_app | done | CAP-2, CAP-3 | `a4c0a19` | `a4c0a19..039c8e5` |
+| 1.1 | Continuous-form ESO in LadrcState | done | R5, R3 | `a3b10592` | `a3b10592..42dfd834` |
+| 1.2 | Tracking-residue known input in hvac_app | done | R1 | `42dfd834` | `42dfd834..8048e80` |
+| 1.3 | Retune defaults, u_track_max config, ADR amend | done | R1, R3, R4 | `8048e80` | `8048e80..a4c0a19` |
+| 1.4 | Blow-up guard in hvac_app | done | R2, R3 | `a4c0a19` | `a4c0a19..039c8e5` |
 | 1.5 | Refactor sweep | done | — | `039c8e5` | `039c8e5..31d7f9d` (inferred end = HEAD / PR #28 merge) |
 
 **Done when (declared in epic file):** continuous-form + thermal defaults + C known-input keep `|u_track|` in tens of °C; guard → FF-only + reset + WARNING; pytest fails old path / passes fixed; ADR 0002 amended, ADR 0003 ωc-only unchanged.
@@ -31,8 +31,8 @@ headless: false
 | Artifact | Available? | Path / note |
 |----------|------------|-------------|
 | Epic file | yes | `epic-fix-ladrc-blow-up.md` (Done when present → criteria **declared**) |
-| Initiative Requirements | yes | parent `initiative-fix-ladrc-blow-up.md` CAP-1..CAP-5 |
-| Spec | yes | `spec-fix-ladrc-blow-up/spec-fix-ladrc-blow-up.md` |
+| Initiative Requirements | yes | parent `initiative-fix-ladrc-blow-up.md` R1..R5 |
+| Spec | yes | `epic-fix-ladrc-blow-up.md` |
 | Entries (`find`) | yes | refs 1.1–1.5; all `story_file: null` (no refined story files) |
 | Plans | yes | five `*-plan.md` with baselines and `status: done` |
 | Diff ranges + `git_evidence.py` | yes | five distinct ranges (table above); epic-wide `a3b10592..31d7f9d`: 32 commits, `merge_count=8` / `merges_measured=7` (one merge unmeasured); 1.2 range also `3/2` |
@@ -78,8 +78,8 @@ Dispositions: **fix now** / **defer** / **accept**. Each finding lists source th
 
 #### Spec-to-implementation reconciliation
 
-- **F-S1 — Done when #3 / CAP-3 “Huang defaults” fail-lock was only partially delivered (fixed AI-3).** Epic Done when #3 says the suite fails on Huang defaults; `deferred-work.md` had deferred Huang+absolute CAP-3a. Exp_map+thermal diverge was already locked (`test_cap5_exp_map_thermal_c_diverges`). **AI-3 (2026-10-17):** shipped `test_cap3a_huang_absolute_exp_map_diverges`; deferred-work cleared. Huang numbers remain adversarial fixtures (`_default_config`).  
-  **Source:** `epic-fix-ladrc-blow-up.md:38`; `tests/test_ladrc.py` CAP-3a + CAP-5; initiative `deferred-work.md` (empty).  
+- **F-S1 — Done when #3 / R3 “Huang defaults” fail-lock was only partially delivered (fixed AI-3).** Epic Done when #3 says the suite fails on Huang defaults; `deferred-work.md` had deferred Huang+absolute CAP-3a. Exp_map+thermal diverge was already locked (`test_cap5_exp_map_thermal_c_diverges`). **AI-3 (2026-10-17):** shipped `test_cap3a_huang_absolute_exp_map_diverges`; deferred-work cleared. Huang numbers remain adversarial fixtures (`_default_config`).  
+  **Source:** `epic-fix-ladrc-blow-up.md:38`; `tests/test_ladrc.py` CAP-3a + R5; initiative `deferred-work.md` (empty).  
   **Disposition:** fix now (done) — ship Huang diverge test.  
   **Process lesson:** keep Done when in sync when CAP halves are deferred mid-epic.
 
@@ -88,7 +88,7 @@ Dispositions: **fix now** / **defer** / **accept**. Each finding lists source th
   **Disposition:** fix now (docs/board hygiene) — update entry 5 `verify` / notes to match Decision A.  
   **Process lesson:** when plan Intent overrides the entry `verify`, amend the entry in the same session.
 
-- **F-S3 — Cross-ticket interaction: example `b0`/`ωc` × `u_track_max=100` trips the guard on routine under-temperature, not only numerical blow-up.** After zone reset, `u_track = ωc·e/b0`. With example `ωc=0.053`, `b0=5e-4`: `|e|≳0.94°C` → `|u_track|>100`. Reproduced: `e=2` → `u_track=212` (trips). CAP-5/CAP-3(b) multi-tick locks use `T_r−y=0.2°C` and stay in tens (`~21–36`). Done when #1’s “tens of °C” is true for that locked scenario, not for cold Critical Zone entry under shipped example gains.  
+- **F-S3 — Cross-ticket interaction: example `b0`/`ωc` × `u_track_max=100` trips the guard on routine under-temperature, not only numerical blow-up.** After zone reset, `u_track = ωc·e/b0`. With example `ωc=0.053`, `b0=5e-4`: `|e|≳0.94°C` → `|u_track|>100`. Reproduced: `e=2` → `u_track=212` (trips). R5/R3(b) multi-tick locks use `T_r−y=0.2°C` and stay in tens (`~21–36`). Done when #1’s “tens of °C” is true for that locked scenario, not for cold Critical Zone entry under shipped example gains.  
   **Source:** `apps/apps.yaml.example` ladrc block; `apps/hvac/models.py` `kp→omega_c`; `LadrcState.compute_tracking`; PYTHONPATH=apps reproduction 2026-10-16; `tests/test_ladrc.py:8–10,192–200`.  
   **Disposition:** fix now (proposed remediation — calibration/threshold joint story; not auto-applied).  
   **Process lesson:** gains story (1.3) and guard threshold (1.3→1.4) need a joint AC with `|e|≥1°C` cold-start, not only `e≈0.2` multi-tick.
@@ -176,7 +176,7 @@ Proposed only — not applied by this retro. Owners are suggestions.
 | AI-4 | **Done (2026-10-17):** `tickets.toml` entry 5 description/verify/notes aligned with Decision A latch hygiene (no longer claims “no behavior change”) | — | F-S2 |
 | AI-5 | **Done (2026-10-17):** `commit_omega_c` gated by `not guard.tripped`; inspect lock in `test_hvac_app.py` | — | F-R2 |
 | AI-6 | **Done (2026-10-17):** reset-after-success — `guard_u_track` no longer mutates ESO; `control_tick` resets after successful write then advances; seam + inspect locks | — | F-R4 |
-| AI-7 | **Done (2026-10-17):** out-of-band `u_ff` trip clamp test; `should_warn`/`latch_out` inspect lock; deleted tautological CAP-5 helper test; `u_track_max` finite-positive parse validation | — | F-V2–V4, F-R6 |
+| AI-7 | **Done (2026-10-17):** out-of-band `u_ff` trip clamp test; `should_warn`/`latch_out` inspect lock; deleted tautological R5 helper test; `u_track_max` finite-positive parse validation | — | F-V2–V4, F-R6 |
 | AI-8 | **Done (2026-10-17):** epic `status: done`; closure against Done when #1–#4 + all stories done; retro verdict → `accepted` | — | workflow |
 
 **Process lessons (no code change):** keep entry `verify` in sync when plan Intent moves; joint-test gain×threshold across ticket boundaries; when deferring a Done when half, amend Done when in the same change.
@@ -189,7 +189,7 @@ Proposed only — not applied by this retro. Owners are suggestions.
 
 | Done when | Evidence | Met? |
 |-----------|----------|------|
-| 1. Continuous-form + thermal/example path keeps `|u_track|` in tens over multi-tick `y≈21` | CAP-5/CAP-3(b) bounded tests + package A cold-start AC (AI-1) | **Yes** |
+| 1. Continuous-form + thermal/example path keeps `|u_track|` in tens over multi-tick `y≈21` | R5/R3(b) bounded tests + package A cold-start AC (AI-1) | **Yes** |
 | 2. Poisoned/exploded `u_track` → FF-only + reset + WARNING; recover without zone/idle/plant-off | Guard seam + latch; reset-after-success (AI-6); skip ωc commit on trip (AI-5) | **Yes** (unit) |
 | 3. Suite fails old path / passes fixed | exp_map thermal+C + Huang+absolute diverge + continuous bounded + guard (AI-3, AI-7) | **Yes** |
 | 4. ADR 0002 amended; ADR 0003 ωc-only unchanged | ADR 0002 text; empty ADR 0003 diff | **Yes** |

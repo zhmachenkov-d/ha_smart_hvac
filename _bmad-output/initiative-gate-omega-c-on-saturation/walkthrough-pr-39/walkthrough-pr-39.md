@@ -8,7 +8,7 @@ Current block: closed — walkthrough complete; wrap-up: commit/push + merge PR 
 
 - [x] **Intent** — done
 - [x] **Broad strokes** — done
-- [x] **Companion CAP-2/CAP-4 sync** — done (intro CAP-2 edited during review)
+- [x] **Companion R2/R4 sync** — done (intro R2 edited during review)
 - [x] **should_apply_omega_c + track_and_guard** — done
 - [x] **Post-write apply_proposed + tests** — done (inspect renamed during review)
 - [x] **Periphery** — done
@@ -17,27 +17,27 @@ Current block: closed — walkthrough complete; wrap-up: commit/push + merge PR 
 
 Source: [story-refactor-sweep-plan.md](../epic-gate-omega-c-on-saturation/story-refactor-sweep-plan.md) (frozen Intent).
 
-**Problem:** After CAP-1–5 landed, deferred companion drift (CAP-2 provisional apply-signal; CAP-4 sticky-after-write) and soft review nits in `control_tick` (helper naming, redundant post-write commit re-check, duplicated track+guard branches) remain as maintenance debt with no intentional behavior change owed.
+**Problem:** After R1–5 landed, deferred companion drift (R2 provisional apply-signal; R4 sticky-after-write) and soft review nits in `control_tick` (helper naming, redundant post-write commit re-check, duplicated track+guard branches) remain as maintenance debt with no intentional behavior change owed.
 
 **Approach:** Closing sweep: sync deferred companions to stories 1–2 Intents; rename `should_commit_omega_c` → `should_apply_omega_c`; extract a tiny track+guard helper to collapse the three branches; simplify post-write commit to `apply_proposed` (no second helper call); leave `GuardUTrackResult.latch_out` as-is. Keep pytest green; no new capabilities.
 
 **Review notes (Intent):**
 1. Frozen Intent matches behavior-preserving close-out — companions + naming/helper nits only; no new capabilities in diff.
-2. CAP-2/CAP-4 companions, flowchart, and [deferred-work.md](../deferred-work.md) align with stories 1–2 renegotiated wording; PR #31/#34 deferred entries cleared.
+2. R2/R4 companions, flowchart, and [deferred-work.md](../deferred-work.md) align with stories 1–2 renegotiated wording; PR #31/#34 deferred entries cleared.
 3. Shipped `control_tick`: `should_apply_omega_c`, `track_and_guard`, post-write `apply_proposed` commit, sticky-after-write; blocked path does not re-eval the helper on the final guard.
 4. `GuardUTrackResult.latch_out` untouched; sticky path used — no Intent gaps vs code.
 
 ## Broad strokes
 
-What the change is: behavior-preserving close-out of the omega-c gate epic — companions and flowchart catch up to renegotiated CAP-2/CAP-4 wording, and `control_tick` naming/structure matches that language without a second post-write apply gate.
+What the change is: behavior-preserving close-out of the omega-c gate epic — companions and flowchart catch up to renegotiated R2/R4 wording, and `control_tick` naming/structure matches that language without a second post-write apply gate.
 
 Entry points (open in this order):
 
 1. [`should_apply_omega_c`](../../../apps/hvac/hvac_app.py#L112) — renamed directional + guard apply gate
 2. [`track_and_guard`](../../../apps/hvac/hvac_app.py#L239) — nested helper collapsing provisional / blocked-final / no-proposal track+guard
 3. [post-write `if apply_proposed:`](../../../apps/hvac/hvac_app.py#L326) — normal commit after successful write (decay branch unchanged)
-4. [CAP-2 / CAP-4 companions](../spec-gate-omega-c-on-saturation/control-tick-behaviors.md) — provisional apply-signal; sticky-after-write
-5. [flowchart](../spec-gate-omega-c-on-saturation/architecture-diagrams.md) — provisional → write → sticky → `apply_proposed?`
+4. [R2 / R4 companions](../control-tick-behaviors.md) — provisional apply-signal; sticky-after-write
+5. [flowchart](../architecture-diagrams.md) — provisional → write → sticky → `apply_proposed?`
 
 **Review notes (Broad strokes):**
 1. Five entry points cover rename gate, `track_and_guard` collapse, post-write `apply_proposed`, CAP companions, and flowchart — enough to grasp the mechanism without listing every touched file.
@@ -45,24 +45,24 @@ Entry points (open in this order):
 3. Inspect/tests and `deferred-work.md` correctly deferred out of Broad strokes.
 4. Diff confirms behavior-preserving structure change only (rename + helper extract + drop second helper / `omega_to_commit`); no Broad strokes gaps vs Intent.
 
-## Companion CAP-2/CAP-4 sync
+## Companion R2/R4 sync
 
 Companions and mermaid now state the renegotiated Intent: provisional track+guard is an apply-signal only; blocked write-path uses committed ωc with no final re-eval; sticky latch is assigned after successful `_write_setpoint` and holds in `(0.8·u_track_max, u_track_max]`. Deferred PR #31 / #34 entries are cleared.
 
-- [control-tick-behaviors.md CAP-2](../spec-gate-omega-c-on-saturation/control-tick-behaviors.md) — provisional apply-signal bullets
-- [control-tick-behaviors.md CAP-4](../spec-gate-omega-c-on-saturation/control-tick-behaviors.md) — sticky-after-write + hold band
-- [architecture-diagrams.md](../spec-gate-omega-c-on-saturation/architecture-diagrams.md) — flowchart nodes through `apply_proposed?`
+- [control-tick-behaviors.md R2](../control-tick-behaviors.md) — provisional apply-signal bullets
+- [control-tick-behaviors.md R4](../control-tick-behaviors.md) — sticky-after-write + hold band
+- [architecture-diagrams.md](../architecture-diagrams.md) — flowchart nodes through `apply_proposed?`
 - [deferred-work.md](../deferred-work.md) — no open companion items
 
-**Review notes (Companion CAP-2/CAP-4 sync):**
-1. CAP-2/CAP-4 bullets and flowchart match plan Design Notes targets verbatim (provisional apply-signal; sticky-after-write; J=`apply_proposed?`).
+**Review notes (Companion R2/R4 sync):**
+1. R2/R4 bullets and flowchart match plan Design Notes targets verbatim (provisional apply-signal; sticky-after-write; J=`apply_proposed?`).
 2. [deferred-work.md](../deferred-work.md) cleared of PR #31/#34 entries — companion debt closed.
-3. Soft residual closed: CAP-2 intro rewritten to frame proposed-ωc apply (block *and* allow), not only “would block…”.
+3. Soft residual closed: R2 intro rewritten to frame proposed-ωc apply (block *and* allow), not only “would block…”.
 4. No companion/flowchart gaps vs renegotiated Intent or shipped tick order.
 
 ## should_apply_omega_c + track_and_guard
 
-Symbol rename matches CAP-2 “apply” language. Nested `track_and_guard` takes the ladrc config (and its `u_track_max`) plus latch; provisional path sets `apply_proposed`, blocked path re-tracks with committed ωc and must not re-call the apply helper on that final guard.
+Symbol rename matches R2 “apply” language. Nested `track_and_guard` takes the ladrc config (and its `u_track_max`) plus latch; provisional path sets `apply_proposed`, blocked path re-tracks with committed ωc and must not re-call the apply helper on that final guard.
 
 - [`should_apply_omega_c`](../../../apps/hvac/hvac_app.py#L112) — rename + docstring
 - [`track_and_guard`](../../../apps/hvac/hvac_app.py#L239) — compute_tracking + `guard_u_track`
@@ -93,10 +93,10 @@ After a successful write, normal ωc commit is gated only by `apply_proposed` (w
 
 - [story-refactor-sweep-plan.md](../epic-gate-omega-c-on-saturation/story-refactor-sweep-plan.md) — plan artifact (`status: built`)
 - `GuardUTrackResult.latch_out` left intact (not removed; `control_tick` still prefers sticky)
-- Review edits (not in original PR commit): CAP-2 intro in [control-tick-behaviors.md](../spec-gate-omega-c-on-saturation/control-tick-behaviors.md); inspect rename in `tests/test_hvac_app.py`; this walkthrough folder
+- Review edits (not in original PR commit): R2 intro in [control-tick-behaviors.md](../control-tick-behaviors.md); inspect rename in `tests/test_hvac_app.py`; this walkthrough folder
 
 **Review notes (Periphery):**
 1. Plan `status: built`; ADR/`docs/` have no leftover `should_commit_omega_c`.
 2. `latch_out` still on `GuardUTrackResult`; `control_tick` does not read `guard.latch_out` (inspect already locks this).
 3. Soft (accepted): older story plans / walkthroughs still name the pre-rename inspect — historical, not this PR’s deliverable.
-4. Review deltas (CAP-2 intro, inspect rename, walkthrough) need commit + push onto PR #39 before merge.
+4. Review deltas (R2 intro, inspect rename, walkthrough) need commit + push onto PR #39 before merge.

@@ -6,7 +6,7 @@ Target: https://github.com/zhmachenkov-d/ha_smart_hvac/pull/70
 
 Session: unavailable · Timestamp: 2026-10-19T14:52:00+03:00
 
-- Action: Walkthrough opened on PR #70; CAP-7 rise-rate auto-correct implementation (story 1.5).
+- Action: Walkthrough opened on PR #70; R7 rise-rate auto-correct implementation (story 1.5).
 - Result: Narrative seeded; current block Orientation.
 - Evidence: walkthrough-pr-70/walkthrough-pr-70.md
 - Open: Awaiting user confirmation of intent
@@ -15,7 +15,7 @@ Session: unavailable · Timestamp: 2026-10-19T14:52:00+03:00
 
 Session: unavailable · Timestamp: 2026-10-19T14:54:00+03:00
 
-- Action: User approved walkthrough intent — CAP-7 FF rise-rate auto-correct implementation (story 1.5 / PR #70).
+- Action: User approved walkthrough intent — R7 FF rise-rate auto-correct implementation (story 1.5 / PR #70).
 - Result: Orientation complete; scope full PR #70 diff vs main, no exclusions; moving to narrative setup.
 - Evidence: user confirmation ("approve")
 - Open: Block outline pending
@@ -124,11 +124,11 @@ Session: unavailable · Timestamp: 2026-10-19T15:01:45+03:00
 Session: unavailable · Timestamp: 2026-10-19T15:02:30+03:00
 
 - Action: User marked Max-error demand zone selection done.
-- Result: Block 3 accepted (matches spike Signal; 10 coordinator tests passed; coverage gap previous-demanding-not-max deferred/accepted as-is). Advancing to Pure CAP-7 adapt law.
+- Result: Block 3 accepted (matches spike Signal; 10 coordinator tests passed; coverage gap previous-demanding-not-max deferred/accepted as-is). Advancing to Pure R7 adapt law.
 - Evidence: user "done"
 - Open: Block 4 in progress
 
-## 15 — Pure CAP-7 adapt law — Thoughts
+## 15 — Pure R7 adapt law — Thoughts
 
 Session: unavailable · Timestamp: 2026-10-19T15:03:00+03:00
 
@@ -137,7 +137,7 @@ Session: unavailable · Timestamp: 2026-10-19T15:03:00+03:00
 - Evidence: ff_auto_correct.py; spike decision; test_ff_auto_correct.py
 - Open: Block 4 in progress
 
-## 16 — Pure CAP-7 adapt law — Test
+## 16 — Pure R7 adapt law — Test
 
 Session: unavailable · Timestamp: 2026-10-19T15:04:00+03:00
 
@@ -146,7 +146,7 @@ Session: unavailable · Timestamp: 2026-10-19T15:04:00+03:00
 - Evidence: test_ff_auto_correct.py
 - Open: Block 4 in progress
 
-## 17 — Pure CAP-7 adapt law — Test result
+## 17 — Pure R7 adapt law — Test result
 
 Session: unavailable · Timestamp: 2026-10-19T15:04:15+03:00
 
@@ -155,11 +155,11 @@ Session: unavailable · Timestamp: 2026-10-19T15:04:15+03:00
 - Evidence: pytest exit 0
 - Open: Block 4 in progress
 
-## 18 — Pure CAP-7 adapt law — done
+## 18 — Pure R7 adapt law — done
 
 Session: unavailable · Timestamp: 2026-10-19T15:04:45+03:00
 
-- Action: User marked Pure CAP-7 adapt law done.
+- Action: User marked Pure R7 adapt law done.
 - Result: Block 4 accepted (law matches spike; 29 pure tests passed). Advancing to App runtime.
 - Evidence: user "done"
 - Open: Block 5 in progress
@@ -170,14 +170,14 @@ Session: unavailable · Timestamp: 2026-10-19T15:05:00+03:00
 
 - Action: Compared hvac_app overlay/flush/2C to spike Guards Persistence.
 - Result: Pending parent findings.
-- Evidence: hvac_app.py L27-127; test_hvac_app.py CAP-7 cases
+- Evidence: hvac_app.py L27-127; test_hvac_app.py R7 cases
 - Open: Block 5 in progress
 
 ## 20 — App runtime — Test
 
 Session: unavailable · Timestamp: 2026-10-19T15:05:30+03:00
 
-- Action: User chose Test on block 5; running CAP-5/CAP-7 hvac_app tests.
+- Action: User chose Test on block 5; running R5/R7 hvac_app tests.
 - Result: See following entry.
 - Evidence: tests/test_hvac_app.py -k 'cap7 or cap5'
 - Open: Block 5 in progress
@@ -187,7 +187,7 @@ Session: unavailable · Timestamp: 2026-10-19T15:05:30+03:00
 Session: unavailable · Timestamp: 2026-10-19T15:05:45+03:00
 
 - Action: Ran `uv run pytest tests/test_hvac_app.py -k 'cap7 or cap5' -v`.
-- Result: 14 passed (5 CAP-5 keepers + 9 CAP-7: flush×4, write-fail, adapt+JSON, D-cmd, overlay valid/corrupt). Live AppDaemon unverified.
+- Result: 14 passed (5 R5 keepers + 9 R7: flush×4, write-fail, adapt+JSON, D-cmd, overlay valid/corrupt). Live AppDaemon unverified.
 - Evidence: pytest exit 0
 - Open: Block 5 in progress
 
@@ -196,7 +196,7 @@ Session: unavailable · Timestamp: 2026-10-19T15:05:45+03:00
 Session: unavailable · Timestamp: 2026-10-19T15:06:00+03:00
 
 - Action: User marked App runtime done.
-- Result: Block 5 accepted (2C/flush/overlay match spike; 14 CAP-5/7 Hass tests passed). Advancing to Config and yaml nest.
+- Result: Block 5 accepted (2C/flush/overlay match spike; 14 R5/7 Hass tests passed). Advancing to Config and yaml nest.
 - Evidence: user "done"
 - Open: Block 6 in progress
 
@@ -305,7 +305,7 @@ Session: unavailable · Timestamp: 2026-10-19T15:12:40+03:00
 
 - Action: Committed/pushed walkthrough; commented on PR #70; merged to main (auto-merge unavailable; direct merge).
 - Result: PR #70 MERGED (mergeCommit d4a2344). Walkthrough commit 1a73974. Note: some CI jobs still pending at merge time.
-- Evidence: https://github.com/zhmachenkov-d/ha_smart_hvac/pull/70 ; local commit docs(bmad): add PR #70 CAP-7 walkthrough
+- Evidence: https://github.com/zhmachenkov-d/ha_smart_hvac/pull/70 ; local commit docs(bmad): add PR #70 R7 walkthrough
 - Open: none — review finished
 
 ## 35 — story 1.5 marked done

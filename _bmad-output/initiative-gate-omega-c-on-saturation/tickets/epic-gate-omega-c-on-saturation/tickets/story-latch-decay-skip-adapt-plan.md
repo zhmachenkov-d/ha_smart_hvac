@@ -13,9 +13,9 @@ lenses_ran: ['quick']
 review_loop_iteration: 1
 followup_review_recommended: false
 context:
-  - '{project-root}/_bmad-output/initiative-gate-omega-c-on-saturation/spec-gate-omega-c-on-saturation/spec-gate-omega-c-on-saturation.md'
-  - '{project-root}/_bmad-output/initiative-gate-omega-c-on-saturation/spec-gate-omega-c-on-saturation/control-tick-behaviors.md'
-  - '{project-root}/_bmad-output/initiative-gate-omega-c-on-saturation/spec-gate-omega-c-on-saturation/architecture-diagrams.md'
+  - '{project-root}/_bmad-output/initiative-gate-omega-c-on-saturation/initiative-gate-omega-c-on-saturation.md'
+  - '{project-root}/_bmad-output/initiative-gate-omega-c-on-saturation/control-tick-behaviors.md'
+  - '{project-root}/_bmad-output/initiative-gate-omega-c-on-saturation/architecture-diagrams.md'
 warnings: []
 deferred: []
 ---
@@ -32,11 +32,11 @@ deferred: []
 
 **Always:**
 - Skip adapt uses latch state at **tick start** (before `maybe_adapt` / zone-change clear).
-- Sticky CAP-4 latch (not `latch_out` alone) only after successful `_write_setpoint`: hold in `(0.8·u_track_max, u_track_max]` so the 0.8 stop band is reachable; fail-write does not mutate latch.
+- Sticky R4 latch (not `latch_out` alone) only after successful `_write_setpoint`: hold in `(0.8·u_track_max, u_track_max]` so the 0.8 stop band is reachable; fail-write does not mutate latch.
 - Decay uses **actual tick `|u_track|`** (write-path), not `|ωc·e/b0|`; threshold `0.8` is a code constant.
 - Decay step/floor reuse existing `max_rate_fraction` / `omega_c_min`; persist via tuner even when `should_commit_omega_c` would skip.
 - Trip-edge tick may still adapt before the guard; decay may run that same tick once latch is active and residue holds (architecture H→I).
-- CAP-6 (e) only; write-on-change and docs stay later entries.
+- R6 (e) only; write-on-change and docs stay later entries.
 
 **Never:**
 - Propose-then-override while latched; hard reset to `config.omega_c`; one-shot safe-ωc jump.
@@ -59,18 +59,18 @@ deferred: []
 
 ## Code Map
 
-- `apps/hvac/hvac_app.py` `control_tick` ~183–302 — today always calls `maybe_adapt` then strict-apply / `should_commit_omega_c`. Capture latch-at-start; if True skip `maybe_adapt` (`new_omega_c=None`). After write-path guard, assign sticky CAP-4 latch (Design Notes) — do not copy `guard.latch_out` alone. After successful write + ESO advance, decay branch before normal commit (architecture I vs J).
+- `apps/hvac/hvac_app.py` `control_tick` ~183–302 — today always calls `maybe_adapt` then strict-apply / `should_commit_omega_c`. Capture latch-at-start; if True skip `maybe_adapt` (`new_omega_c=None`). After write-path guard, assign sticky R4 latch (Design Notes) — do not copy `guard.latch_out` alone. After successful write + ESO advance, decay branch before normal commit (architecture I vs J).
 - `apps/hvac/hvac_app.py` — add pure helpers: latch-decay residue predicate (`|u| > 0.8·u_track_max` or non-finite) and next ωc (step down by `max_rate_fraction·ωc`, floor `omega_c_min`). Constant `0.8` beside helpers. Optional pure sticky-latch helper if it keeps `control_tick` thin.
 - `apps/hvac/ladrc_tuner.py` `commit_omega_c` / `max_rate_fraction` / `omega_c_min` — reuse persist; do not change adapt rate math or bounds API.
-- `apps/hvac/hvac_app.py` `guard_u_track` — reuse trip/command/`should_warn` as-is; do not change trip magnitude. Sticky soft-kill for CAP-4 is assigned in `control_tick` after the guard returns (not by rewriting `latch_out=tripped` inside `guard_u_track` unless that is the smallest equivalent).
+- `apps/hvac/hvac_app.py` `guard_u_track` — reuse trip/command/`should_warn` as-is; do not change trip magnitude. Sticky soft-kill for R4 is assigned in `control_tick` after the guard returns (not by rewriting `latch_out=tripped` inside `guard_u_track` unless that is the smallest equivalent).
 - `tests/test_hvac_app.py` — residue/step matrix; sticky-latch matrix (trip sets; holds in `(0.8·max, max]`; clears at ≤ band); latched-at-start skips adapt (inspect); multi-tick + non-finite + trip-edge lock **persisted** ωc via real `LadrcTuner.commit_omega_c` / state file (not helper-only mirrors). Reuse `_config` / tuner tmp_path patterns from `tests/test_ladrc_tuner.py`.
-- Spec companions (context frontmatter) — CAP-4 matrix + architecture H→I are the contract; ignore outdated Cursor freeze plans.
+- Spec companions (context frontmatter) — R4 matrix + architecture H→I are the contract; ignore outdated Cursor freeze plans.
 
 ## Tasks & Acceptance
 
 **Execution:**
-- [x] `apps/hvac/hvac_app.py` -- Add decay helpers + `0.8` constant; skip-`maybe_adapt` when latch active at tick start; after write-path guard assign sticky CAP-4 latch; after write+advance if latch active and residue holds, step ωc down and `commit_omega_c`, else `should_commit_omega_c` path -- Implements CAP-4 including reachable 0.8 stop band.
-- [x] `tests/test_hvac_app.py` -- Lock residue/step + sticky latch; latched-at-start skips adapt; multi-tick / non-finite / trip-edge decay with real tuner persist until ≤ `0.8·u_track_max` or floor -- Locks CAP-6 (e).
+- [x] `apps/hvac/hvac_app.py` -- Add decay helpers + `0.8` constant; skip-`maybe_adapt` when latch active at tick start; after write-path guard assign sticky R4 latch; after write+advance if latch active and residue holds, step ωc down and `commit_omega_c`, else `should_commit_omega_c` path -- Implements R4 including reachable 0.8 stop band.
+- [x] `tests/test_hvac_app.py` -- Lock residue/step + sticky latch; latched-at-start skips adapt; multi-tick / non-finite / trip-edge decay with real tuner persist until ≤ `0.8·u_track_max` or floor -- Locks R6 (e).
 
 **Acceptance Criteria:**
 - Given latch already active at tick start, when the demand tick runs, then `maybe_adapt` is not called.
@@ -80,19 +80,19 @@ deferred: []
 
 ## Implementation Notes
 
-- Re-derive after bad_plan: sticky_blow_up_latch + skip-adapt + decay commit; CAP-6(e) tests use real LadrcTuner persist (74 pytest green).
+- Re-derive after bad_plan: sticky_blow_up_latch + skip-adapt + decay commit; R6(e) tests use real LadrcTuner persist (74 pytest green).
 
 ## Plan Change Log
 
-- 2026-10-17 review bad_plan: assigning `_blow_up_latch = guard.latch_out` alone made finite stop at `0.8·u_track_max` unreachable (`latch_out` clears once `|u|≤u_track_max`). Amended Code Map / Design Notes / Tasks for sticky CAP-4 latch after guard + tuner-persist tests. Known-bad avoided: decay-only-while-tripping with helper-only multi-tick mirror. KEEP: `LATCH_DECAY_U_TRACK_FRACTION` / `latch_decay_residue_holds` / `next_decayed_omega_c`; latched-at-start skip-adapt; decay `commit_omega_c` branch before `should_commit` else; entry-1 strict-apply untouched.
+- 2026-10-17 review bad_plan: assigning `_blow_up_latch = guard.latch_out` alone made finite stop at `0.8·u_track_max` unreachable (`latch_out` clears once `|u|≤u_track_max`). Amended Code Map / Design Notes / Tasks for sticky R4 latch after guard + tuner-persist tests. Known-bad avoided: decay-only-while-tripping with helper-only multi-tick mirror. KEEP: `LATCH_DECAY_U_TRACK_FRACTION` / `latch_decay_residue_holds` / `next_decayed_omega_c`; latched-at-start skip-adapt; decay `commit_omega_c` branch before `should_commit` else; entry-1 strict-apply untouched.
 
 ## Review Triage Log
 
 ### 2026-10-17 — Review pass
 - verdicts: 5 findings — high 0, medium 3, low 2, false 0, maybe-false 0
 - findings:
-  - `[medium]` `[bad_plan]` CAP-4 stop at ≤0.8·u_track_max unreachable under latch_out=tripped — verified: decay requires latch and residue; latch_out equals tripped so finite decay only while `|u|>u_track_max`. Amendment: sticky CAP-4 latch after guard (see Plan Change Log).
-  - `[medium]` `[bad_plan]` non-finite test does not lock persist — same root: helper-only CAP-6(e); amendment requires `LadrcTuner.commit_omega_c` / state file in tests.
+  - `[medium]` `[bad_plan]` R4 stop at ≤0.8·u_track_max unreachable under latch_out=tripped — verified: decay requires latch and residue; latch_out equals tripped so finite decay only while `|u|>u_track_max`. Amendment: sticky R4 latch after guard (see Plan Change Log).
+  - `[medium]` `[bad_plan]` non-finite test does not lock persist — same root: helper-only R6(e); amendment requires `LadrcTuner.commit_omega_c` / state file in tests.
   - `[medium]` `[bad_plan]` multi-tick mirror never persists via tuner — same root / amendment.
   - `[low]` `[bad_plan]` multi-tick forces sticky latch production does not have — same root as finding 1; sticky assignment is the plan fix.
   - `[low]` `[bad_plan]` trip-edge inspect-only, no persist proof — same root / amendment (behavioral trip-edge + tuner persist).
@@ -106,20 +106,20 @@ deferred: []
 
 ## Auto Run Result
 
-- **Summary:** CAP-4 latch decay + skip-adapt: while latched at tick start, skip `maybe_adapt`; sticky soft-kill latch holds while residue > 0.8·u_track_max; stepped ωc persist via `commit_omega_c` even when guard trip blocks normal commit.
+- **Summary:** R4 latch decay + skip-adapt: while latched at tick start, skip `maybe_adapt`; sticky soft-kill latch holds while residue > 0.8·u_track_max; stepped ωc persist via `commit_omega_c` even when guard trip blocks normal commit.
 - **Files changed:**
   - `apps/hvac/hvac_app.py` — decay helpers, sticky latch, skip-adapt, decay commit branch
-  - `tests/test_hvac_app.py` — CAP-6(e) matrices and tuner-persist mirrors
+  - `tests/test_hvac_app.py` — R6(e) matrices and tuner-persist mirrors
   - plan file — story 1.2 build plan
 - **Review:** first pass bad_plan (sticky latch) → re-derive; second pass 2 low patches applied, 1 false rejected; deferred none. Patched counts this pass: high 0, medium 0, low 2 → followup_review_recommended false.
 - **Verification:** `uv run pytest tests/test_hvac_app.py tests/test_ladrc_tuner.py -q` → 74 passed; `uv run ruff check apps/hvac/hvac_app.py tests/test_hvac_app.py` → clean.
-- **Residual risks:** Decay/skip-adapt persist locked via Hass-free `_mirror_decay_tick`, not a live AppDaemon `control_tick` (same pattern as entry 1 ratchet). CAP-3/CAP-5 remain later epic entries.
+- **Residual risks:** Decay/skip-adapt persist locked via Hass-free `_mirror_decay_tick`, not a live AppDaemon `control_tick` (same pattern as entry 1 ratchet). R3/R5 remain later epic entries.
 
 ## Design Notes
 
-**Latch-at-start vs post-guard latch.** Skip adapt reads `_blow_up_latch` before `maybe_adapt` (and before `latch_after_zone_change`). After write-path `guard_u_track`, do **not** set `_blow_up_latch = guard.latch_out` alone: that clears as soon as `|u|≤u_track_max` and makes the CAP-4 stop band unreachable.
+**Latch-at-start vs post-guard latch.** Skip adapt reads `_blow_up_latch` before `maybe_adapt` (and before `latch_after_zone_change`). After write-path `guard_u_track`, do **not** set `_blow_up_latch = guard.latch_out` alone: that clears as soon as `|u|≤u_track_max` and makes the R4 stop band unreachable.
 
-**Sticky CAP-4 latch (locked).** Let `latch_in` be `_blow_up_latch` after zone-change clear (the value passed into `guard_u_track`). After **successful** `_write_setpoint` (not merely after the write-path guard returns), set:
+**Sticky R4 latch (locked).** Let `latch_in` be `_blow_up_latch` after zone-change clear (the value passed into `guard_u_track`). After **successful** `_write_setpoint` (not merely after the write-path guard returns), set:
 `_blow_up_latch = guard.tripped or (latch_in and latch_decay_residue_holds(u_track, u_track_max))`.
 Fail-write leaves `_blow_up_latch` unchanged. WARN may still fire before write. Trip-edge (`latch_in` False, `tripped` True) latches and may decay the same tick after a successful write. While residue holds above the 0.8 band, latch stays True even if not currently tripped. When finite `|u|≤0.8·u_track_max`, latch clears. Keep using `guard.should_warn` / `guard.tripped` for WARN and ESO reset — do not change soft-kill command selection.
 

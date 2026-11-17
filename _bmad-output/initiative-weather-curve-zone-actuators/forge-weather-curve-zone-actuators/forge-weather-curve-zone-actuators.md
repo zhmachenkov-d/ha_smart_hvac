@@ -39,4 +39,4 @@ updated: 2026-10-18
 
 ## Open (implementation, not idea)
 
-- _(none — walkthrough closed; see `../spec-weather-curve-swt-only/`)_
+- _(none — walkthrough closed; see `../initiative-weather-curve-zone-actuators.md`)_

@@ -12,16 +12,16 @@ lenses_ran: ['quick']
 review_loop_iteration: 0
 context:
   - '{project-root}/_bmad-output/initiative-gate-omega-c-on-saturation/tickets/epic-gate-omega-c-on-saturation/epic-gate-omega-c-on-saturation-retrospective.md'
-  - '{project-root}/_bmad-output/initiative-gate-omega-c-on-saturation/spec-gate-omega-c-on-saturation/control-tick-behaviors.md'
+  - '{project-root}/_bmad-output/initiative-gate-omega-c-on-saturation/control-tick-behaviors.md'
 ---
 
 <frozen-after-approval reason="human-owned intent — do not modify unless human renegotiates">
 
 ## Intent
 
-**Problem:** After CAP-4 skip-adapt, `LadrcTuner._steady_ticks` stays hot so the first unlatched tick can immediately propose upward ωc and undo decay. Separately, trip + fail-write never sticks the latch, so `should_warn` fires every 60 s. CAP-6 locks are mostly mirrors/inspect and miss both seams.
+**Problem:** After R4 skip-adapt, `LadrcTuner._steady_ticks` stays hot so the first unlatched tick can immediately propose upward ωc and undo decay. Separately, trip + fail-write never sticks the latch, so `should_warn` fires every 60 s. R6 locks are mostly mirrors/inspect and miss both seams.
 
-**Approach:** Package C (retro / product-team): (1) `clear_steady()` when `latch_at_start`; (2) app-level `_blow_up_warned` so fail-write does not spam WARNING while sticky/decay stay after successful write only; (3) Hass-stubbed `control_tick` tests locking AI-1+AI-2 only; (4) companion CAP-4 + WARN episode wording.
+**Approach:** Package C (retro / product-team): (1) `clear_steady()` when `latch_at_start`; (2) app-level `_blow_up_warned` so fail-write does not spam WARNING while sticky/decay stay after successful write only; (3) Hass-stubbed `control_tick` tests locking AI-1+AI-2 only; (4) companion R4 + WARN episode wording.
 
 **Decisions (plan review 2026-10-17):**
 - Q1: Clear `_blow_up_warned` on every successful demand tick that ends with `_blow_up_latch is False`, plus `_hands_off` / `_go_idle` / no-demand clears. Never clear on fail-write early-return.
@@ -34,14 +34,14 @@ context:
 ## Boundaries & Constraints
 
 **Always:**
-- Sticky latch + decay + ESO reset remain after successful plant write only (CAP-4 sticky-after-write / AI-6).
+- Sticky latch + decay + ESO reset remain after successful plant write only (R4 sticky-after-write / AI-6).
 - Fail-write on demand still early-returns before sticky/decay/reset.
 - Directional clamp / strict apply / write-on-change behavior unchanged.
 - Idle / `_go_idle` fail-closed symmetry stays out of scope (retro AI-4 deferred).
 
 **Never:**
 - Full freeze on clamp, changing `u_track_max` / plant limits, online b0/ωo/MADRC.
-- Rewriting all CAP-6 mirrors into Hass stubs.
+- Rewriting all R6 mirrors into Hass stubs.
 - Setting `_blow_up_latch` on fail-write to suppress WARN; use separate `_blow_up_warned`.
 - Expanding this package’s integration stub to multi-tick decay-persist or equal-value write-on-change (deferred explicitly).
 
@@ -62,7 +62,7 @@ context:
 - `apps/hvac/hvac_app.py` — `control_tick` skip-adapt (~214–225); warn/write/sticky (~283–323); `_hands_off` / `_go_idle` / no-demand / `initialize`. Add `clear_steady()` under `latch_at_start`; add `_blow_up_warned` init/set/clear per Q1–Q3.
 - `apps/hvac/ladrc_tuner.py` — reuse `clear_steady()`; do not change tuner API.
 - `tests/test_hvac_app.py` — `_write_stub` pattern; add `_tick_app` Hass stub; named tests for rebound, fail-write WARN, fail-then-success, re-arm; update `test_control_tick_wires_should_warn_and_sticky_latch` / skip-adapt inspect for `clear_steady` and compound warn gate.
-- `spec-gate-omega-c-on-saturation/control-tick-behaviors.md` — CAP-4 bullet for `clear_steady` on `latch_at_start`; WARN episode note (app flag, sticky-after-write unchanged).
+- `control-tick-behaviors.md` — R4 bullet for `clear_steady` on `latch_at_start`; WARN episode note (app flag, sticky-after-write unchanged).
 
 ### Stub recipe (Q4)
 
@@ -81,7 +81,7 @@ Build `HvacConfig` via `parse_config` using the same ladrc numbers as `tests/tes
 - [x] `apps/hvac/hvac_app.py` -- `clear_steady()` on `latch_at_start`; `_blow_up_warned` per Q1–Q3 (log only when `should_warn and not warned`; set on emit; clear on successful demand with latch False + idle/hands_off/no-demand) -- AI-1/AI-2
 - [x] `tests/test_hvac_app.py` -- `_tick_app` + tests: rebound (ωc not up), fail-write single WARN, fail-then-success sticky+decay + no second WARN, episode clear asserts `_blow_up_warned is False`, re-arm after Q1 clear, idle/hands_off/no-demand clear warned -- AI-3 (narrowed)
 - [x] `tests/test_hvac_app.py` -- Update inspect locks: `clear_steady` under latch_at_start; warn gate includes `_blow_up_warned`; fail-write still before sticky
-- [x] `control-tick-behaviors.md` -- Required CAP-4 `clear_steady` + WARN episode sentences (Q6)
+- [x] `control-tick-behaviors.md` -- Required R4 `clear_steady` + WARN episode sentences (Q6)
 
 **Acceptance Criteria:**
 - Given warm steady then latched ticks, when latch clears on a demand tick, then the first unlatched `control_tick` leaves persisted ωc unchanged upward (no upward proposal from residual steady).
@@ -94,7 +94,7 @@ Build `HvacConfig` via `parse_config` using the same ladrc numbers as `tests/tes
 
 ## Implementation Notes
 
-- 2026-10-17: Implemented Package C. `clear_steady()` on `latch_at_start`; app `_blow_up_warned` gates episode WARN (Q1–Q3). Hass-stubbed `_tick_app` locks AI-1+AI-2 only (multi-tick decay-persist / write-on-change deferred). Companion CAP-4 updated. Verified: `uv run pytest tests/test_hvac_app.py -q` → 71 passed; `uv run ruff check apps/hvac/hvac_app.py tests/test_hvac_app.py` → clean. Stub uses thermal b0/ωo/tune with parse-valid `omega_c=0.10` ( `_config()`’s 0.01 is below `omega_c_min` and cannot pass `parse_config`).
+- 2026-10-17: Implemented Package C. `clear_steady()` on `latch_at_start`; app `_blow_up_warned` gates episode WARN (Q1–Q3). Hass-stubbed `_tick_app` locks AI-1+AI-2 only (multi-tick decay-persist / write-on-change deferred). Companion R4 updated. Verified: `uv run pytest tests/test_hvac_app.py -q` → 71 passed; `uv run ruff check apps/hvac/hvac_app.py tests/test_hvac_app.py` → clean. Stub uses thermal b0/ωo/tune with parse-valid `omega_c=0.10` ( `_config()`’s 0.01 is below `omega_c_min` and cannot pass `parse_config`).
 
 ## Plan Change Log
 
@@ -129,7 +129,7 @@ Build `HvacConfig` via `parse_config` using the same ladrc numbers as `tests/tes
 - [x] [Review][Patch] Lock `clear_steady` to latched-only path — add Hass-stubbed unlatched tick that seeds mid-range `_steady_ticks` and asserts it increments (not reset) [`tests/test_hvac_app.py`]
 - [x] [Review][Patch] Pin `_blow_up_warned` (and latch) via `initialize` harness — stubs currently set the flag via `__new__` only [`apps/hvac/hvac_app.py:174`]
 - [x] [Review][Patch] Assert `_blow_up_warned` stays True after fail-then-success sticky tick [`tests/test_hvac_app.py:919`]
-- [x] [Review][Defer] ADR 0003 Guards omit Package C `clear_steady` / episode WARN [`docs/adr/0003-online-ladrc-omega-c-auto-tune.md:21`] — deferred: companion CAP-4 was Q6 scope; ADR sync is agent/spec follow-up
+- [x] [Review][Defer] ADR 0003 Guards omit Package C `clear_steady` / episode WARN [`docs/adr/0003-online-ladrc-omega-c-auto-tune.md:21`] — deferred: companion R4 was Q6 scope; ADR sync is agent/spec follow-up
 - [x] [Review][Defer] Retro / deferred-work still frame AI-3 / WARN open items without Package C close-out note [`epic-gate-omega-c-on-saturation-retrospective.md`] — deferred: process-doc hygiene after build
 
 Rejected:

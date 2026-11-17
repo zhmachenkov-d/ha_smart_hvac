@@ -1,4 +1,4 @@
-# Review log: PR #66 CAP-7 FF rise-rate auto-correct (spike 1.4)
+# Review log: PR #66 R7 FF rise-rate auto-correct (spike 1.4)
 
 Target: https://github.com/zhmachenkov-d/ha_smart_hvac/pull/66
 
@@ -6,7 +6,7 @@ Target: https://github.com/zhmachenkov-d/ha_smart_hvac/pull/66
 
 Session: unavailable · Timestamp: 2026-10-19T11:11:00+03:00
 
-- Action: Walkthrough opened on PR #66; docs-only spike 1.4 locking CAP-7 Weather Feedforward rise-rate auto-correct contract.
+- Action: Walkthrough opened on PR #66; docs-only spike 1.4 locking R7 Weather Feedforward rise-rate auto-correct contract.
 - Result: Narrative seeded; current block Orientation.
 - Evidence: walkthrough-pr-66/walkthrough-pr-66.md
 - Open: Awaiting user confirmation of intent
@@ -15,7 +15,7 @@ Session: unavailable · Timestamp: 2026-10-19T11:11:00+03:00
 
 Session: unavailable · Timestamp: 2026-10-19T11:12:00+03:00
 
-- Action: User confirmed walkthrough intent — lock CAP-7 FF rise-rate auto-correct decision so stories 1.3 and 1.5 invent nothing (docs-only spike 1.4).
+- Action: User confirmed walkthrough intent — lock R7 FF rise-rate auto-correct decision so stories 1.3 and 1.5 invent nothing (docs-only spike 1.4).
 - Result: Orientation complete; scope full PR #66 diff vs main, no exclusions; moving to narrative setup.
 - Evidence: user confirmation
 - Open: Block outline pending
@@ -87,9 +87,9 @@ Session: unavailable · Timestamp: 2026-10-19T11:23:00+03:00
 
 Session: unavailable · Timestamp: 2026-10-19T11:24:00+03:00
 
-- Action: Read decision Signal+Law vs CAP-7 success; checked G1 vs N2 sign; I1/W-skip coherence.
-- Result: Aligns with CAP-7 (max-error→FF only). G1 rows 1–4 match N2 sign. Intentional W15 15×dt vs ~14 span noted for 1.5. G1 mild/far rows simplify past I1 hysteresis band — smoke-only, open accepted-as-is unless reviewer objects. No invent-nothing blocker found in Signal/Law.
-- Evidence: decision.md:19-171; spec CAP-7
+- Action: Read decision Signal+Law vs R7 success; checked G1 vs N2 sign; I1/W-skip coherence.
+- Result: Aligns with R7 (max-error→FF only). G1 rows 1–4 match N2 sign. Intentional W15 15×dt vs ~14 span noted for 1.5. G1 mild/far rows simplify past I1 hysteresis band — smoke-only, open accepted-as-is unless reviewer objects. No invent-nothing blocker found in Signal/Law.
+- Evidence: decision.md:19-171; spec R7
 - Open: Signal and Law not done
 
 ## 11 — Signal and Law — done
