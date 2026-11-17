@@ -135,3 +135,27 @@ Session: unavailable · Timestamp: 2026-11-17T10:10:30+00:00
 - Result: Decisions slice in progress. Tree dirty since d8370cf.
 - Evidence: demo-slice-agents-context-transcript.md
 - Open: slice acceptance; ask commit?
+
+## 19 — Slice Decisions — commit
+Session: unavailable · Timestamp: 2026-11-17T10:12:30+00:00
+
+- Action: User confirmed commit after AGENTS+CONTEXT done.
+- Result: Commit f4c41ba docs(walkthrough): advance story 6.1 past AGENTS slice.
+- Evidence: git log -1 f4c41ba
+- Open: Decisions acceptance; Demo suggested
+
+## 20 — Slice Decisions — Demo
+Session: unavailable · Timestamp: 2026-11-17T10:14:00+00:00
+
+- Action: Demo spot-read live Decision C, zombie banners, TRV prelude; sanity that live flame/TRV notes lack Historical banner.
+- Result: All checks OK.
+- Evidence: demo-slice-decisions-transcript.md
+- Open: Decisions acceptance; dirty tree
+
+## 21 — Decisions done → Periphery
+Session: unavailable · Timestamp: 2026-11-17T10:16:30+00:00
+
+- Action: User accepted Decisions; presented Periphery; narrative updated.
+- Result: Periphery in progress. Tree dirty since f4c41ba.
+- Evidence: demo-slice-decisions-transcript.md
+- Open: Periphery acceptance; ask commit?

@@ -1,15 +1,15 @@
 # Walkthrough: Story 6.1 — Tracer: ADR + AGENTS/CONTEXT for TRV+flame water law
 Target: branch `docs/adr-0008-trv-flame-water-law` · `5ee3974`+`6b116b2` (no PR yet)
 
-**Current block:** Slice: Decisions (idle flame + zombies) (in progress)
+**Current block:** Periphery (in progress)
 
 ## Blocks
 - [x] **Intent** — done (Formal review 6 patch; Test 362 + ruff; Demo)
 - [x] **Broad strokes** — done (Demo transcript)
 - [x] **Slice: ADR 0008 + historical 0007 / pointers** — done (Demo)
 - [x] **Slice: AGENTS + CONTEXT** — done (Demo)
-- [ ] **Slice: Decisions (idle flame + zombies)** — in progress
-- [ ] **Periphery** —
+- [x] **Slice: Decisions (idle flame + zombies)** — done (Demo)
+- [ ] **Periphery** — in progress
 - [ ] **Wrap-up** —
 
 ---
@@ -71,10 +71,15 @@ Places:
 - [adr-supply-event-no-outdoor-prelude.md](../../../../docs/decisions/adr-supply-event-no-outdoor-prelude.md) / [adr-write-gated-supply-trip-latch.md](../../../../docs/decisions/adr-write-gated-supply-trip-latch.md) / [adr-trip-hold-token-orphan-guard.md](../../../../docs/decisions/adr-trip-hold-token-orphan-guard.md) — historical banners
 - [adr-trv-before-water-prelude.md](../../../../docs/decisions/adr-trv-before-water-prelude.md) — title + body include hold expiry; no supply_event
 
+Review notes: Demo — [demo-slice-decisions-transcript.md](demo-slice-decisions-transcript.md).
+
 ---
 
 ### Periphery
-_TBD — parent will supply._
+- [deferred-work.md](../../deferred-work.md) — notes deferred house-calibration §1 table / related hygiene for later sweep
+- [story-tracer-adr-agents-context-for-trv-flame-water-law-plan.md](../../tickets/epic-docs-trv-flame-water-law/tickets/story-tracer-adr-agents-context-for-trv-flame-water-law-plan.md) — build plan + Formal review findings recorded
+- `knowledge/**` — intentionally untouched (story 6.2)
+- App runtime / `apps.yaml.example` / house `apps.yaml` — intentionally untouched
 
 ---
 
