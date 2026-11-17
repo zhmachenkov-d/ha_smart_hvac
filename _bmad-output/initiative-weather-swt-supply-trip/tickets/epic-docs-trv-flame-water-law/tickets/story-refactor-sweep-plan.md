@@ -1,3 +1,10 @@
+---
+title: 'Refactor sweep'
+status: review
+story: '6.3'
+epic: epic-docs-trv-flame-water-law
+---
+
 <frozen-after-approval reason="human-owned intent — do not modify unless human renegotiates">
 
 ## Intent
@@ -30,11 +37,11 @@
 
 ## Tasks & Acceptance
 **Execution (order):**
-1. [ ] Re-spot-read inventory A–I on the implementing branch (not only demo commit `67ebb44`).
-2. [ ] `docs/decisions/adr-cap8-shared-ff-demand-writer.md` — reword body lag clause (line 3 today); spot-read: no claim that AGENTS still has sticky-latch prose / until epic 3.
-3. [ ] `_bmad-output/initiative-weather-swt-supply-trip/deferred-work.md` — **after** step 2: prune A–F (+ E) and C; remove empty deferred headers; fix I nesting then Settled epic-6 note with per-row cites; leave G–H under the exact Prelude-isolation header above.
+1. [x] Re-spot-read inventory A–I on the implementing branch (not only demo commit `67ebb44`).
+2. [x] `docs/decisions/adr-cap8-shared-ff-demand-writer.md` — reword body lag clause (line 3 today); spot-read: no claim that AGENTS still has sticky-latch prose / until epic 3.
+3. [x] `_bmad-output/initiative-weather-swt-supply-trip/deferred-work.md` — **after** step 2: prune A–F (+ E) and C; remove empty deferred headers; fix I nesting then Settled epic-6 note with per-row cites; leave G–H under the exact Prelude-isolation header above.
 4. [x] `…/epic-docs-trv-flame-water-law/tickets/tickets.toml` entry `id=3` — description/verify/notes already updated in Formal review patch-all (G–H exempt; CAP-8 + F + I); confirm no drift at build time.
-5. [ ] Verify — commands + blocking manual checks.
+5. [x] Verify — commands + blocking manual checks.
 
 **Acceptance Criteria:**
 - Given CAP-8 after edit, when opened, then it no longer says AGENTS sticky-latch prose until epic 3, and a spot-read does not imply AGENTS still documents sticky latch.
@@ -53,6 +60,12 @@
 - `rg -n 'No accuracy .control_event. \+ Outdoor-fail|Empty-zone isolation pins law-ran' _bmad-output/initiative-weather-swt-supply-trip/deferred-work.md` → G–H still present
 - house-calibration §1 table still four rows
 - Optional hygiene: `rg -n 'may lag until story 3\.2|AGENTS sticky-latch prose until epic 3' _bmad-output AGENTS.md CONTEXT.md docs/decisions` — report leftovers outside deferred-work; do not expand scope unless identical CAP-8/AGENTS lag strings remain in live docs
+
+## Implementation Notes
+- Re-spot-read on `chore/6-3-refactor-sweep-plan` after main@ba3e820 (6.2 merged): inventory A–I still open as claimed; AGENTS/CONTEXT already have accuracy; CAP-8 lag still present.
+- CAP-8: dropped AGENTS sticky-latch / epic-3 lag clause; kept shared FF writer + equal-float history.
+- deferred-work: pruned A–F/E/C; removed empty 2026-11-14 header; Settled epic-6 with per-row cites; G–H retained under Prelude-isolation header; I nest fixed via Settled epic-6 (removed from under epic-5).
+- Verify: 362 pytest; ruff clean; blocking rg/spot-read pass (Settled C wording avoids false-positive on pruned-pattern rg).
 
 ## Plan Change Log
 - 2026-11-17: Walkthrough Intent+Broad strokes lock — A–F+C IN, G–H OUT, I=B prune-with-cite; CAP-8 documentation-only hygiene.

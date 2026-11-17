@@ -91,3 +91,21 @@ Session: 7ccbb9e7-d84b-4346-9069-5cb8ecc8aa55 · Timestamp: 2026-11-17T14:05:30+
 - Result: 5f4b661 chore(docs): plan story 6.3 deferred-work refactor sweep; tree clean; Periphery still open.
 - Evidence: git log -1 5f4b661; branch chore/6-3-refactor-sweep-plan
 - Open: Periphery done?; push/PR not requested.
+
+## 11 — Periphery — done; Wrap-up presented
+
+Session: 7ccbb9e7-d84b-4346-9069-5cb8ecc8aa55 · Timestamp: 2026-11-17T14:07:00+02:00
+
+- Action: User marked Periphery done; presented Wrap-up with guessed follow-through (push+PR then implement).
+- Result: Advanced to Wrap-up; no push/PR/build until user confirms.
+- Evidence: walkthrough narrative Wrap-up
+- Open: User confirm follow-through; narrative dirty vs 4e8fb5e — ask commit.
+
+## 12 — Wrap-up — follow-through 1–3
+
+Session: 7ccbb9e7-d84b-4346-9069-5cb8ecc8aa55 · Timestamp: 2026-11-17T14:08:00+02:00
+
+- Action: User confirmed 1–3; implemented CAP-8 reword + deferred prune Settled epic-6; verify 362/ruff/blocking rg; wrapping commit+push+PR.
+- Result: Implementation complete pending commit/push/PR.
+- Evidence: adr-cap8; deferred-work Settled epic-6; pytest 362
+- Open: PR URL after gh pr create.
