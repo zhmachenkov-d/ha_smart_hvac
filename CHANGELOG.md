@@ -2,6 +2,110 @@
 
 <!-- version list -->
 
+## v3.11.0 (2026-11-17)
+
+### Chores
+
+- **bmad**: Fold pre-release specs and refresh install
+  ([`ad31a50`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/ad31a50faabd924b06460157f98e65f5f6cea684))
+
+- **bmad**: Kill O(n²) walkthrough writer resume
+  ([`b3a3650`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/b3a3650286f87603e0ee5436f8ff4cb1cc533c29))
+
+- **bmad**: Record code-review-crew memlog for story 6.1
+  ([`6a38ebe`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/6a38ebe351ca0bbba550a2a143e3e863ecfeb232))
+
+- **docs**: Append 6.3 walkthrough log after plan commit
+  ([`4e8fb5e`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/4e8fb5e035749957ab8a5ecf7a539a684ad46b6d))
+
+- **docs**: Mark 6.3 walkthrough wrap-up complete for PR #159
+  ([`37f5e76`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/37f5e76d3ceeffb0df9b890282764cee3de7e6a7))
+
+- **docs**: Plan story 6.3 deferred-work refactor sweep
+  ([`5f4b661`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/5f4b66160d1f8bcb69bbee90c7852f5dc435eb0f))
+
+- **docs**: Record PR #159 in 6.3 walkthrough log
+  ([`c4eeb9a`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/c4eeb9a6946beec0cc2117575c90ac40954089f3))
+
+- **flame**: Close epic-5 refactor sweep leftovers
+  ([`53adfe5`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/53adfe55639ce646db98594b38f378bee02d8e11))
+
+- **po**: Close epic 5 flame short-on
+  ([`131b310`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/131b310bc9ba4609c77616543abc74d5572ab211))
+
+- **po**: Plan epic 6 stories for TRV+flame docs
+  ([`b177a13`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/b177a13a1cb8876c00f65500a568f84ce3b9e76d))
+
+- **po**: Refine epic 6 docs TRV+flame water law
+  ([`c508024`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/c5080244cc12cb397e03ba1584c38baa2ff87166))
+
+- **tickets**: Mark story 5.3 done
+  ([`adf61e6`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/adf61e668009443c86084b34ceab60157667e4e5))
+
+- **tickets**: Mark story 6.1 done after walkthrough
+  ([`a33946e`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/a33946e1e7da7fc697ceef44d430de49668fa091))
+
+- **tickets**: Mark story 6.2 done after PR ready
+  ([`332db69`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/332db6912572ac4054fbd59526ddb139fbd017bd))
+
+- **tickets**: Mark story 6.3 done after PR ready
+  ([`dfe18ff`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/dfe18ff8ba2147a4984bd3edd51d540ce6705991))
+
+### Continuous Integration
+
+- Retrigger conventional-commits after stuck pr-commits job
+  ([`16693fc`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/16693fca69a6f971d1ddee73ecb29e90e215d13f))
+
+### Documentation
+
+- **adr**: Add ADR 0008 for TRV+flame water law
+  ([`5ee3974`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/5ee39747bc996eec6668b30e21db50d9e087c39d))
+
+- **adr**: Harden 6.1 water-law docs after walkthrough review
+  ([`6b116b2`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/6b116b2acbe9aa12ffc00e24f017ff7c040e257a))
+
+- **cap8**: Close epic-6 deferred-work hygiene sweep
+  ([`6487346`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/6487346a799973ac10caab9fa111dd4cc63c31c0))
+
+- **knowledge**: Align live SWT to ADR 0008 TRV+flame
+  ([`67ebb44`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/67ebb4409c181768b4edebbdbad5458b74ccbc75))
+
+- **plan**: Commission house apps.yaml for flame short-on
+  ([`3af6e9e`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/3af6e9e2059cf19022f30ba84fe24953c1748e70))
+
+- **walkthrough**: Advance 5.2 plan verification slice
+  ([`d93ac47`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/d93ac47bc899c44fdd8533abacda8316a999038b))
+
+- **walkthrough**: Advance story 6.1 past ADR slice
+  ([`d8370cf`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/d8370cfc74ac32a2c376a3018969a6dfb4777e92))
+
+- **walkthrough**: Advance story 6.1 past AGENTS slice
+  ([`f4c41ba`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/f4c41baa6f49db86a42ab16bf306921b3f57b348))
+
+- **walkthrough**: Advance story 6.1 past Broad strokes
+  ([`ec4cdcf`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/ec4cdcf3b9bf3665f4b097e1c2c0672cfcefd796))
+
+- **walkthrough**: Advance story 6.1 past Decisions slice
+  ([`d2ec613`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/d2ec6133af11841cdca6ba46264d17ec4d325774))
+
+- **walkthrough**: Mark story 5.2 done after wrap-up
+  ([`908ff8b`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/908ff8b7167568875aaf82267b0963fba9c38bfc))
+
+- **walkthrough**: Record 5.2 house-slice formal review
+  ([`efb9f77`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/efb9f775d57d22a81b6bbac78ca72ab520e66847))
+
+- **walkthrough**: Record PR #157 for story 6.1 wrap-up
+  ([`e6eecdc`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/e6eecdc40f719450be86ed578e5a1bd290763353))
+
+- **walkthrough**: Review story 5.2 house flame commission
+  ([`a0f556f`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/a0f556f65cde898edf3fa6f345e22c237ffaecbd))
+
+### Features
+
+- **trv**: Log valve closure changes with reason
+  ([`8d46161`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/8d4616182fa94c32bf78a34bcbf6adeb0ae79a11))
+
+
 ## v3.10.0 (2026-11-16)
 
 ### Bug Fixes
