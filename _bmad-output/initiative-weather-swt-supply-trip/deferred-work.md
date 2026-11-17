@@ -29,19 +29,9 @@
 - No accuracy `control_event` + Outdoor-fail isolation test — deferred: tick shared-path / prior Intent Formal review
 - Empty-zone isolation pins law-ran only via spy — deferred: plan matrix spy+skip+idle; countable isolation on Outdoor-fail
 
-## Deferred from: story-tracer-replace-supply-trip-with-flame-short-on-plan (2026-11-16 token split)
-- source_plan: `_bmad-output/initiative-weather-swt-supply-trip/tickets/epic-replace-supply-trip-with-flame/tickets/story-tracer-replace-supply-trip-with-flame-short-on-plan.md`
-  summary: Expanded U1/S1 arm-edge goldens (None/unavailable→on, restart mid-flame, already-on at gate open as dedicated ACs)
-  evidence: Token split from 5.1 tracer; Always still requires rising-only strict binary arm — dedicated goldens not needed to ship the law
-- source_plan: `_bmad-output/initiative-weather-swt-supply-trip/tickets/epic-replace-supply-trip-with-flame/tickets/story-tracer-replace-supply-trip-with-flame-short-on-plan.md`
-  summary: apps.yaml.example E1 short comments for flame_on_min_s vs flame_trip_hold_s
-  evidence: Token split; tracer still requires YOUR_* flame placeholders and trip-key removal
-- source_plan: `_bmad-output/initiative-weather-swt-supply-trip/tickets/epic-replace-supply-trip-with-flame/tickets/story-tracer-replace-supply-trip-with-flame-short-on-plan.md`
-  summary: Expanded named supply-analogue test ports (orphan_hold_callback; separate plant_off/no_demand ACs beyond matrix rows)
-  evidence: Token split; Plant off / Gate closed / Hold expiry orphan behavior stay in core matrix
-- source_plan: `_bmad-output/initiative-weather-swt-supply-trip/tickets/epic-replace-supply-trip-with-flame/tickets/story-tracer-replace-supply-trip-with-flame-short-on-plan.md`
-  summary: Dedicated V1 flame_trip_hold_s 900.9→900 truncate AC and example-comment assert
-  evidence: Token split; Always still requires fractional truncate to int ≥1 like former hold
-- source_plan: `_bmad-output/initiative-weather-swt-supply-trip/tickets/epic-replace-supply-trip-with-flame/tickets/story-tracer-replace-supply-trip-with-flame-short-on-plan.md`
-  summary: Dedicated latched flame/ch_active no-SWT AC and meta house-yaml-not-in-verify AC
-  evidence: Token split; Always A (handlers wipe since only) and D1 (entry id=2 owns house yaml) remain
+## Settled: epic-5 flame short-on leftovers (story-refactor-sweep)
+- U1/S1 arm edges: `test_flame_none_to_on_does_not_arm`, `test_flame_unreadable_to_on_does_not_arm`, `test_ch_active_off_to_on_while_flame_already_on_does_not_arm`, plus 5.3 `test_restart_mid_flame_does_not_arm_or_latch_on_fall` (mid-burn since wipe + on→on no-rearm + fall without latch).
+- E1 example comment: `apps.yaml.example` L14 combined min/hold comment.
+- Named supply-analogue ports: `test_orphan_hold_callback_*`, `test_plant_off_*flame*`, `test_idle_*flame*` / armed-since wipes.
+- V1 truncate: `test_parse_flame_trip_hold_truncates_fractional_seconds` covers 90.9→90 and 900.9→900.
+- Latched flame/ch_active no-SWT: `test_already_latched_flame_observe_wipes_since_no_reassert`, `test_ch_active_off_while_latched_keeps_latch_and_zero`; house-yaml meta settled by 5.2 + `tests/test_dual_layout.py`.
