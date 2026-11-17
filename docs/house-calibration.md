@@ -1,9 +1,9 @@
 # House calibration
-How to calibrate the HVAC App for a specific house. Calibration is **manual `apps.yaml` commissioning** of Outdoor Temperature, Weather Feedforward (`weather_feedforward`), and plant rails. Optional Zone `weight` is wiring residual only (parsed/validated; not water-law commission). There is no relay/step commissioning procedure.
+How to calibrate the HVAC App for a specific house. Calibration is **manual `apps.yaml` commissioning** of Outdoor Temperature, Weather Feedforward (`weather_feedforward`), plant rails, and required anti-cycle wiring (flame / `ch_active` / TRV). Optional Zone `weight` is wiring residual only (parsed/validated; not water-law commission). There is no relay/step commissioning procedure.
 
 Copy [`apps.yaml.example`](../apps.yaml.example) to `apps.yaml` next to the installed `ha_smart_hvac/` package, then work through the sections below. Never commit live house entity IDs.
 
-Commission Outdoor Temperature + Weather Feedforward only ([`apps.yaml.example`](../apps.yaml.example)). Live water law: [ADR 0007](adr/0007-weather-curve-supply-trip-swt.md), [`CONTEXT.md`](../CONTEXT.md), AGENTS.md. Exclusive Session: [ADR 0001](adr/0001-exclusive-session-against-production-ha.md).
+Live water law: [ADR 0008](adr/0008-weather-curve-trv-flame-swt.md), [`CONTEXT.md`](../CONTEXT.md), AGENTS.md. Commission Outdoor + Weather Feedforward plus flame / `ch_active` / TRV yaml as required anti-cycle wiring (entity and nest details in [`apps.yaml.example`](../apps.yaml.example)). Plant Management off means no Set Water Temperature write and clears the flame latch; TRV soft-close still applies. Exclusive Session: [ADR 0001](adr/0001-exclusive-session-against-production-ha.md).
 
 ## 1. House wiring (required)
 Replace every `YOUR_*` placeholder:

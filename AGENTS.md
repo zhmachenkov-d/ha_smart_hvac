@@ -1,5 +1,5 @@
 <!-- bmad:context -->
-<!-- Verified 2026-11-14 against 5416a81e2afdf15dd586534cf86c5fa92f092080. Managed by bmad-project-context; edits inside this block are replaced on refresh. Keep anything you want preserved outside the markers. -->
+<!-- Verified 2026-11-17 against 928b2b624929029016b4eee5e0d2ab072ea1f286. Managed by bmad-project-context; edits inside this block are replaced on refresh. Keep anything you want preserved outside the markers. -->
 
 ## ha_smart_hvac
 
@@ -15,9 +15,9 @@ AppDaemon Apps that control multi-zone OpenTherm HVAC through Home Assistant. Py
 ## Where things are
 
 - Domain terms and avoid-list: `CONTEXT.md`
-- Architecture decisions: `docs/adr/` (0001 Exclusive Session; 0007 weather-curve SWT + supply rise-rate trip — do not follow superseded 0004/0005/0006 for live SWT)
+- Architecture decisions: `docs/adr/` (0001 Exclusive Session; 0008 weather-curve SWT + TRV soft-close + flame short-on — do not follow superseded 0004/0005/0006/0007 for live SWT)
 - App package: `apps/ha_smart_hvac/`; entity wiring: `apps/apps.yaml` (gitignored; start from `apps.yaml.example` at repo root)
-- Algorithm depth / citations: `knowledge/` (live water law is ADR 0007; knowledge/ may lag until story 3.2 demotes PID/RLS)
+- Algorithm depth / citations: `knowledge/` (live water law is ADR 0008 + CONTEXT; **`knowledge/` SWT/anti-cycle pages are not live until story 6.2 — do not follow for water law**)
 - In-flight planning artifacts: `_bmad-output/`
 
 ## Running and verifying
@@ -29,12 +29,14 @@ AppDaemon Apps that control multi-zone OpenTherm HVAC through Home Assistant. Py
 
 ## Conventions that differ from defaults
 
-- Plant Management off means no Set Water Temperature write and cleared supply-trip state (`_clear_trip_state`) — not “write 0”.
-- Heating Demand idle (and every other Plant-on non-demand exit) writes 0; Decision C always disarms/wipes trip hold, and clears the latch only after that idle write succeeds; that path is only when Plant Management is on.
-- On demand, Set Water Temperature is round-to-0.1(clamp(u_ff)) with `u_ff = base + slope × (comfort_ref − T_out)` from yaml Weather Feedforward. Outdoor Temperature is on the water path as a `control_event` listener. CAP-7 rise-rate auto-correct, adapting `base`/`slope`, and `ff_auto_correct_state.json` are not on the water path, must not be commissioned, and are out of scope (ADR 0007).
-- Supply rise-rate trip: `r_obs` °C/min vs yaml `r_max` on `supply_event`; latch only after successful trip write `0`; latched demand keeps `0`. Clear on hold expiry (then re-run Outdoor prelude + demand when prelude returns zones), zone Heating Demand rising-edge under `_gate_prelude`, and on `_go_idle` after successful idle write `0` (write-fail keeps latch — Decision C). Dual-gate: Outdoor / `control_*` use `_gate_prelude` (Plant + readable Outdoor + zones + demand); `supply_event` uses `_plant_and_heating_demand` only (never Outdoor prelude).
-- `initialize` runs one full `control_tick` after scheduling. Tick and every eligible `control_event` share the Outdoor-gated FF demand writer — every eligible event may rewrite demand SWT (not a one-shot rising-edge demand latch). Event listeners (Plant Management, Outdoor Temperature, zone air, thermostat `hvac_action` / setpoint) re-evaluate gates via `control_event` and may `_go_idle` / plant-off. Event writes must not reset or reschedule `control_interval`. No debounce; equal-float plant readback skip is the write throttle; unreadable or non-finite plant readback skips the write. Changing Heating Demand inputs must update those listeners in the same change.
-- Critical Zone is diagnostics / logging only and must not drive Set Water Temperature or the supply rise-rate trip.
+- Plant Management off means no Set Water Temperature write and clears flame trip state (`_clear_flame_trip_state`) — not “write 0”; TRV soft-close still applies (closure 100 without clearing `_trv_overshoot_latched`).
+- Heating Demand idle (and every other Plant-on non-demand exit) writes 0; Decision C always disarms flame hold via `_disarm_flame_trip_hold`, and clears `_flame_trip_latched` only after that idle write succeeds; that path is only when Plant Management is on (`docs/decisions/adr-idle-flame-clear-after-write.md`).
+- On demand (and ¬`_flame_trip_latched`), Set Water Temperature is round-to-0.1(clamp(u_ff)) with `u_ff = base + slope × (comfort_ref − T_out)` from yaml Weather Feedforward. Outdoor Temperature is on the water path as a `control_event` listener. Latched demand keeps SWT `0` (no curve / no Critical Zone select-log). CAP-7 rise-rate auto-correct, adapting `base`/`slope`, and `ff_auto_correct_state.json` are not on the water path, must not be commissioned, and are out of scope (ADR 0008).
+- TRV soft-close: `_apply_trv_law` before `_gate_prelude` on tick / `control_event` / flame hold expiry; write only `valve_closure_degree` (never `valve_opening_degree`); plant-on floor / overshoot-100 hysteresis is write-gated; commissioned `accuracy` listens on the same `control_event` path. Flame observe/latch handlers do not run `_apply_trv_law`. Critical Zone never drives TRV.
+- Flame short-on trip: short-on = `flame_on` True duration `< flame_on_min_s` on True→False fall; `_flame_observe_gate` = Plant∧Demand∧`ch_active` on∧¬latch — never Outdoor. Latch only after successful trip write `0` and hold `run_in` scheduled (`_flame_trip_hold_token` orphan guard on hold callback). RAM-only latch — while latched, flame/`ch_active` observers wipe `since` only (no SWT re-assert). Clear on hold expiry (`_apply_trv_law` then Outdoor prelude + demand when prelude returns zones), zone Heating Demand rising-edge under `_gate_prelude` (`_clear_flame_trip_state`), plant-off (`_clear_flame_trip_state`), and Decision C idle write-0 success (write-fail keeps latch).
+- Dual-gate: Outdoor / `control_*` use `_gate_prelude` (Plant + readable Outdoor + zones + demand); flame observe uses `_flame_observe_gate` only (never Outdoor).
+- `initialize` runs one full `control_tick` after scheduling. Tick and every eligible `control_event` share TRV-then-Outdoor-gated FF demand writer — every eligible event may rewrite demand SWT (not a one-shot rising-edge demand latch). Event listeners (Plant Management, Outdoor Temperature, zone air, thermostat `hvac_action` / setpoint, commissioned `accuracy`) re-evaluate via `control_event` and may `_go_idle` / plant-off. Event writes must not reset or reschedule `control_interval`. No debounce; equal-float plant readback skip is the write throttle; unreadable or non-finite plant readback skips the write. Changing Heating Demand inputs must update those listeners in the same change.
+- Critical Zone is diagnostics / logging only and must not drive Set Water Temperature, TRV soft-close, or the flame short-on trip.
 - Do not mark an initiative `done` until every epic in its `tickets.toml` is done.
 
 <!-- /bmad:context -->

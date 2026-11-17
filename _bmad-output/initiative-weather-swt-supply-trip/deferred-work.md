@@ -35,3 +35,6 @@
 - Named supply-analogue ports: `test_orphan_hold_callback_*`, `test_plant_off_*flame*`, `test_idle_*flame*` / armed-since wipes.
 - V1 truncate: `test_parse_flame_trip_hold_truncates_fractional_seconds` covers 90.9→90 and 900.9→900.
 - Latched flame/ch_active no-SWT: `test_already_latched_flame_observe_wipes_since_no_reassert`, `test_ch_active_off_while_latched_keeps_latch_and_zero`; house-yaml meta settled by 5.2 + `tests/test_dual_layout.py`.
+- source_plan: `_bmad-output/initiative-weather-swt-supply-trip/tickets/epic-docs-trv-flame-water-law/tickets/story-tracer-adr-agents-context-for-trv-flame-water-law-plan.md`
+  summary: house-calibration §1 wiring table still lists only Outdoor/plant/zones and describes plant-off as leaving SWT untouched, without flame/`ch_active`/TRV rows or flame-clear wording.
+  evidence: Pre-existing §1; story 6.1 Intent Always limited calibration edits to live-pointer + 1–2 anti-cycle sentences and Never forbids full TRV/flame commissioning tables, so the intro/§1 mismatch remains after this tracer.
