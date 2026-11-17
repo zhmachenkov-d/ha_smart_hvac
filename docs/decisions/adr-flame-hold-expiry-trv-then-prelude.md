@@ -1,0 +1,3 @@
+# Flame hold expiry runs TRV then Outdoor prelude (ADV8)
+
+When `flame_trip_hold_s` elapses with a matching hold token, the App clears the flame latch, calls `_apply_trv_law`, then runs `_gate_prelude` and `_run_demand` when the prelude returns zones — the same TRV-before-water order as tick/`control_event`. Recorded from story 5.1 plan Intent Always / ADV8 (`story-tracer-replace-supply-trip-with-flame-short-on-plan.md`), epic-4 retrospective carry-forward, and commits `918debc` / `202389c`, because clearing the plant latch without re-applying soft-close would leave TRV state stale through the hold window while weather-curve demand resumes.
