@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v3.11.2 (2026-11-18)
+
+### Bug Fixes
+
+- **trv**: Trip overshoot at T_zone >= setpoint+|accuracy|
+  ([`ef4d7a0`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/ef4d7a053a19703a6884248117b6212ace972c3c))
+
+
 ## v3.11.1 (2026-11-17)
 
 ### Bug Fixes
