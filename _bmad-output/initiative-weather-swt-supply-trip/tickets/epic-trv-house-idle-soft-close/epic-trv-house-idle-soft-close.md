@@ -54,7 +54,7 @@ Owns the AppDaemon TRV soft-close law change, yaml commission for floor/hold/clo
 - Waits on epic-docs-trv-flame-water-law because: prior docs epic landed; 6.3 remains blocked until this epic ships.
 - covers: R9, R10 (R10 unchanged; R9 updated 2026-11-20).
 - Decision: Envelope approved thin (`refined: false`) — re-slice 2026-11-20; refine before stories.
-- Decision: Proposed story shape at re-slice (not yet planned): tracer law+tests+example → house yaml HITL → docs amend → refactor sweep (2026-11-20).
+- Decision: Tracer = 7.1 "Tracer: TRV house-idle soft-close"; order 7.1 → (7.2 house yaml HITL ∥ 7.3 docs amend) → 7.4 Refactor sweep; docs one amend story; 7.2 config-only (no Exclusive Session); after 6.2 not 6.3 (2026-11-20).
 - Decision: Refine from parent covers + settled picks — no PM/UX/architecture companions before stories (2026-11-20).
 - Decision: Retire `accuracy` from commissioned TRV (closure-only yaml + no accuracy listeners); overshoot hysteresis removed with it — research §§2,5 (2026-11-20).
 - Decision: Soft-close hold semantics — on house all-idle write floor and start `trv_soft_close_hold_s`; on hold expiry while still idle write 100; on any-zone heating rising-edge cancel hold and write 100; on return to all-idle restart floor+hold; plant-off cancel hold and write 100; equal-float write skip remains the throttle — research §3 flame hold pattern (2026-11-20).
