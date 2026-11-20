@@ -59,8 +59,8 @@ Linear outdoor→water baseline `u_ff = base + slope × (comfort_ref − T_out)`
 _Avoid_: PID, fixed-gain PI on demand-zone air error, online RLS retune, CAP-7, weather-curve auto-correct JSON (historical / out of scope — not live water law)
 
 **TRV soft-close**:
-Commissioned Sonoff TRVs write only `valve_closure_degree` (never `valve_opening_degree`). `_apply_trv_law` runs before the Outdoor water prelude on tick / `control_event` / flame hold expiry. Plant-off writes closure 100 without clearing `_trv_overshoot_latched`; plant-on uses floor / overshoot-100 hysteresis (write-gated). Critical Zone never drives TRV.
-_Avoid_: valve_opening_degree writes, tying TRV to Outdoor-only gates, Critical Zone closed-loop TRV
+Sonoff TRV numbers are **mode limits**, not commanded stem position: `valve_closure_degree` = max how far the valve may close while the TRV is in **idle**; `valve_opening_degree` = max how far it may open while in **heating**. The App writes only `valve_closure_degree` (never `valve_opening_degree` — heating max-open stays with the TRV). `_apply_trv_law` runs before the Outdoor water prelude on tick / `control_event` / flame hold expiry. Plant-off writes closure 100 without clearing `_trv_overshoot_latched`; plant-on uses floor / overshoot-100 hysteresis (write-gated). Critical Zone never drives TRV.
+_Avoid_: treating closure/opening as instantaneous position; valve_opening_degree writes; tying TRV to Outdoor-only gates; Critical Zone closed-loop TRV
 
 **Flame short-on trip**:
 Anti-cycle protection: a `flame_on` True duration shorter than yaml `flame_on_min_s` on True→False fall under `_flame_observe_gate` (Plant∧Demand∧`ch_active` on∧¬latch — never Outdoor) latches SWT `0` only after a successful trip write and hold schedule. Latched demand keeps `0`. Clears on hold expiry (TRV then Outdoor prelude + demand when prelude returns zones), zone Heating Demand rising-edge under `_gate_prelude` (`_clear_flame_trip_state`), plant-off (`_clear_flame_trip_state`), and `_go_idle` after successful idle write `0` (write-fail keeps `_flame_trip_latched` — Decision C).

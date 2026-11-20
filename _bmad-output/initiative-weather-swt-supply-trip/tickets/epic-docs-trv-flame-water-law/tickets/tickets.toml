@@ -35,4 +35,4 @@ covers = []
 after = [1, 2]
 hitl = false
 risk = "low"
-notes = ["Scope from walkthrough Demo inventory A–I + Formal review 2026-11-17.", "G–H (accuracy×Outdoor-fail / empty-zone spy) stay deferred — out of this story.", "Declined separate closing e2e suite — docs verify lives in entries 1–2."]
+notes = ["Scope from walkthrough Demo inventory A–I + Formal review 2026-11-17.", "Blocked until epic 7 done (2026-11-20): house-idle soft-close — no after edge (avoids order cycle with epic 6→7).", "G–H (accuracy×Outdoor-fail / empty-zone spy) stay deferred — out of this story.", "Declined separate closing e2e suite — docs verify lives in entries 1–2."]

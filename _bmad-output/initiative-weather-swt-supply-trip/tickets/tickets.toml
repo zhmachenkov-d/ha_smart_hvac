@@ -47,3 +47,11 @@ title = "Docs: TRV + flame water law"
 description = "ADR/CONTEXT/AGENTS/knowledge match the shipped weather-curve + TRV soft-close + flame short-on law; supply rise-rate trip language removed from live docs; a new ADR supersedes ADR 0007 for live water law (0007 historical); CAP-7 still out."
 covers = ["R4", "R7", "R8"]
 after = [{ epic = 5, needs = "TRV soft-close and flame short-on shipped so docs match the App" }]
+
+[[epic]]
+id = 7
+slug = "epic-trv-house-idle-soft-close"
+title = "TRV house-idle soft-close"
+description = "Under Plant on, when no zone has Heating Demand, commissioned Sonoff TRVs get valve_closure_degree=valve_closure_floor (default 80); after trv_soft_close_hold_s (default 300) or any-zone heating rising-edge, write 100; plant-off still 100; overshoot hysteresis removed from live law; App never writes valve_opening_degree; example+house yaml commission hold; ADR/CONTEXT/AGENTS/knowledge amended."
+covers = ["R9", "R10"]
+after = [{ epic = 6, needs = "prior docs epic landed; 6.3 remains blocked until this epic ships" }]
