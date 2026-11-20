@@ -60,3 +60,4 @@ Owns domain-doc amend after TRV + flame ship. Does not own TRV or flame runtime 
 - Decision: `knowledge/` page structure left to stories; live pages must match App; supply-trip-only → historical (2026-11-17).
 - Decision: Stale `deferred-work.md` epic-3 bullets are hygiene in tracer/sweep, not a refine blocker; `control_event` docstring remediation stays out of this epic (2026-11-17).
 - Decision: Story slice approved — tracer bullet is 6.1 (new ADR + AGENTS/CONTEXT + live pointers / zombie supply decisions); then 6.2 knowledge live curve+TRV+flame + demote supply-trip (least-certain); then 6.3 Refactor sweep. Declined separate closing e2e suite; ADR written in-story (not toolsmith). No opening refactor. (2026-11-17).
+- Decision: Replan 2026-11-20 — story 6.3 blocked until new TRV house-idle soft-close epic; live R9 no longer overshoot hysteresis; docs amend follows that epic.

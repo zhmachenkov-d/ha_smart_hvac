@@ -10,6 +10,8 @@ timestamp: 2026-11-17T12:00:00Z
 
 **TRV soft-close** is the App’s commissioned Sonoff TRV law under [ADR 0008](../../docs/adr/0008-weather-curve-trv-flame-swt.md): write only `valve_closure_degree` (never `valve_opening_degree`), and run `_apply_trv_law` **before** `_gate_prelude` / the Outdoor water prelude on `control_tick`, `control_event`, and flame hold expiry ([`adr-trv-before-water-prelude`](../../docs/decisions/adr-trv-before-water-prelude.md)).
 
+**Limit semantics** (not stem position): `valve_closure_degree` is the max close allowed while the TRV is in **idle**; `valve_opening_degree` is the max open allowed while in **heating**. Raising closure does not choke an active heating open — heating max-open stays with the TRV.
+
 Flame observe / latch handlers do **not** run `_apply_trv_law`. [Critical Zone](/concepts/critical-zone.md) never drives TRV.
 
 ## Plant-off vs plant-on

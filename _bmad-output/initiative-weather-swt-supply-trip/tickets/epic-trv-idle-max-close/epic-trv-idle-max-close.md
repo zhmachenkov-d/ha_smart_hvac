@@ -55,3 +55,4 @@ Owns Sonoff TRV soft-close listeners/writes and yaml commission for closure/accu
 - Decision: Refine from parent covers only — no extra companions before stories (2026-11-15).
 - Decision: Tracer bullet — entry 1 TRV idle max-close soft-close (config + law + listeners + example); entry 2 house yaml HITL; entry 3 refactor sweep; declined separate e2e suite (2026-11-15).
 - Decision: Epic closed via 4.1–4.3 done; retrospective accepted-with-open-items (ADV8→epic 5; docs→epic 6) (2026-11-16).
+- Decision: Replan 2026-11-20 — delivered floor+overshoot R9 is superseded for live law by house-idle soft-close; epic stays done as historical delivery; new epic covers updated R9.
