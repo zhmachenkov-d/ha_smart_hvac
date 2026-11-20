@@ -1,27 +1,23 @@
 ---
 type: Concept
 title: TRV soft-close
-description: Commissioned Sonoff TRVs write valve_closure_degree before the Outdoor water prelude; plant-off max-close keeps overshoot latch (ADR 0008).
+description: Commissioned Sonoff TRVs write valve_closure_degree before the Outdoor water prelude; house-idle floor + hold then 100 (ADR 0008).
 tags: [trv, plant, zone]
-timestamp: 2026-11-17T12:00:00Z
+timestamp: 2026-11-20T12:00:00Z
 ---
 
 # TRV soft-close
 
-**TRV soft-close** is the App’s commissioned Sonoff TRV law under [ADR 0008](../../docs/adr/0008-weather-curve-trv-flame-swt.md): write only `valve_closure_degree` (never `valve_opening_degree`), and run `_apply_trv_law` **before** `_gate_prelude` / the Outdoor water prelude on `control_tick`, `control_event`, and flame hold expiry ([`adr-trv-before-water-prelude`](../../docs/decisions/adr-trv-before-water-prelude.md)).
+**TRV soft-close** is the App’s commissioned Sonoff TRV law under [ADR 0008](../../docs/adr/0008-weather-curve-trv-flame-swt.md): write only `valve_closure_degree` (never `valve_opening_degree`), and run `_apply_trv_law` **before** `_gate_prelude` / the Outdoor water prelude on `control_tick`, `control_event`, and flame hold expiry ([`adr-trv-before-water-prelude`](../../docs/decisions/adr-trv-before-water-prelude.md)). Soft-close hold expiry writes closure `100` while still all-idle and does **not** run the Outdoor prelude.
 
 **Limit semantics** (not stem position): `valve_closure_degree` is the max close allowed while the TRV is in **idle**; `valve_opening_degree` is the max open allowed while in **heating**. Raising closure does not choke an active heating open — heating max-open stays with the TRV.
 
-Flame observe / latch handlers do **not** run `_apply_trv_law`. [Critical Zone](/concepts/critical-zone.md) never drives TRV.
+Sonoff TRV mappings are **closure-only**; a leftover yaml `accuracy` key is a `ConfigError`. The App does not register accuracy listeners for soft-close. Flame observe / latch handlers do **not** run `_apply_trv_law`. [Critical Zone](/concepts/critical-zone.md) never drives TRV.
 
 ## Plant-off vs plant-on
 
-- **Plant Management off:** every commissioned TRV gets closure `100` **without** clearing `_trv_overshoot_latched` ([`adr-trv-plant-off-no-latch-clear`](../../docs/decisions/adr-trv-plant-off-no-latch-clear.md)). No [Set Water Temperature](/concepts/set-water-temperature.md) write on plant-off.
-- **Plant Management on:** floor / overshoot-to-100 hysteresis is **write-gated** ([`adr-trv-write-gated-overshoot-latch`](../../docs/decisions/adr-trv-write-gated-overshoot-latch.md)) — overshoot latches only after a successful closure-100 write; clear to floor discards the latch only after a successful floor write.
-
-## Accuracy listen
-
-When a thermostat `accuracy` entity is commissioned, it listens on the same shared `control_event` path as other CAP-8 inputs ([`adr-trv-accuracy-shared-control-event`](../../docs/decisions/adr-trv-accuracy-shared-control-event.md)) — re-evaluate TRV then Outdoor-gated water, not a separate TRV-only loop.
+- **Plant Management off:** every commissioned TRV gets closure `100` and any soft-close hold is cancelled. No [Set Water Temperature](/concepts/set-water-temperature.md) write on plant-off.
+- **Plant Management on:** first observe of house all-idle writes yaml `valve_closure_floor` (default **80**) and arms one soft-close hold of yaml `trv_soft_close_hold_s` (default **300**); while still all-idle with that hold active, later ticks/events do not re-arm. Hold expiry while idle writes closure `100` and stays at `100` without re-flooring; orphan/token-mismatch expiry is a no-op. Any Heating Demand (cold start, rising-edge, or sustained) writes closure `100` and cancels or never arms the hold. Return to all-idle writes floor again and arms a new hold.
 
 ## Related
 
@@ -31,8 +27,5 @@ When a thermostat `accuracy` entity is commissioned, it listens on the same shar
 # Citations
 
 - [`CONTEXT.md`](../../CONTEXT.md) — TRV soft-close
-- [ADR 0008](../../docs/adr/0008-weather-curve-trv-flame-swt.md) — live water law (TRV before prelude)
+- [ADR 0008](../../docs/adr/0008-weather-curve-trv-flame-swt.md) — live water law (house-idle soft-close)
 - [`docs/decisions/adr-trv-before-water-prelude.md`](../../docs/decisions/adr-trv-before-water-prelude.md)
-- [`docs/decisions/adr-trv-write-gated-overshoot-latch.md`](../../docs/decisions/adr-trv-write-gated-overshoot-latch.md)
-- [`docs/decisions/adr-trv-plant-off-no-latch-clear.md`](../../docs/decisions/adr-trv-plant-off-no-latch-clear.md)
-- [`docs/decisions/adr-trv-accuracy-shared-control-event.md`](../../docs/decisions/adr-trv-accuracy-shared-control-event.md)

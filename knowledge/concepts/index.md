@@ -20,6 +20,6 @@ description: Index of concepts in the knowledge bundle.
 | [RLS adaptive PID](/concepts/rls-adaptive-pid.md) | Historical RLS retune of Kp/Ki — not on the live water path; superseded by ADR 0008. |
 | [Set Water Temperature](/concepts/set-water-temperature.md) | OpenTherm SWT from Weather Feedforward `round-to-0.1(clamp(u_ff))` with TRV soft-close and flame short-on (ADR 0008). |
 | [Total disturbance](/concepts/total-disturbance.md) | ADRC’s lumped unknown — internal model error plus external loads — estimated by the ESO and cancelled in the control law. |
-| [TRV soft-close](/concepts/trv-soft-close.md) | Commissioned Sonoff TRVs write valve_closure_degree before the Outdoor water prelude; plant-off max-close keeps overshoot latch (ADR 0008). |
+| [TRV soft-close](/concepts/trv-soft-close.md) | Commissioned Sonoff TRVs write valve_closure_degree before the Outdoor water prelude; house-idle floor + hold then 100 (ADR 0008). |
 | [Zone](/concepts/zone.md) | Controllable heating area with a temperature reading and one or more HA climate thermostats, sharing boiler demand. |
 | [Zone Error](/concepts/zone-error.md) | Difference between a Zone’s thermostat setpoint and that Zone’s current temperature. |
