@@ -18,13 +18,14 @@ notes = ["Tracer: config + house-idle/hold/edge/plant-off + example yaml + tests
 id = 2
 type = "story"
 title = "Commission house apps.yaml for house-idle soft-close"
-description = "Operator updates house apps/apps.yaml against the schema from entry 1: add trv_soft_close_hold_s (default 300), keep or adjust valve_closure_floor, drop accuracy keys from commissioned Sonoff TRVs (closure-only); house entity IDs unchanged unless the owner confirms. No live Exclusive Session required in this story."
-verify = "House apps/apps.yaml parses with trv_soft_close_hold_s, valve_closure_floor, and per-TRV closure without accuracy; entity IDs match the pre-change backup unless the owner confirmed a change."
+description = "HITL: operator updates gitignored house apps/apps.yaml to the schema from entry 1 — add explicit trv_soft_close_hold_s: 300, keep valve_closure_floor: 80, drop accuracy from commissioned Sonoff TRVs (closure-only); house entity IDs unchanged unless the owner confirms. No Exclusive Session."
+verify = "Backup apps.yaml.pre-7.2; house yaml has hold 300 + floor 80; four Sonoff closure-only (zero accuracy); bathroom/kitchen/wc plain; entity IDs match backup unless owner confirmed; header closure-only; git check-ignore house+backup; offline parse accepts; no App/example/docs/AD edits."
 covers = ["R1", "R2"]
 after = [1]
 hitl = true
 risk = "medium"
-notes = ["HITL: ask before changing house entity IDs (AGENTS.md).", "Shared R1/R2: house commission here; law+example in entry 1; docs amend in entry 3.", "Config-only — live Exclusive Session check out unless user asks."]
+refine = false
+notes = ["HITL: ask before changing house entity IDs (AGENTS.md).", "Shared R1/R2: house commission here; law+example in entry 1; docs amend in entry 3.", "Config-only — no Exclusive Session / run-appdaemon unless user asks.", "Decisions 2026-11-20: keep floor 80; explicit hold 300; IDs unchanged; strip accuracy from livingroom×2/bedroom/childroom only."]
 
 [[entry]]
 id = 3
