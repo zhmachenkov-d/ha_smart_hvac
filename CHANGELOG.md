@@ -2,6 +2,33 @@
 
 <!-- version list -->
 
+## v3.12.0 (2026-11-20)
+
+### Bug Fixes
+
+- **trv**: Harden house-idle soft-close after review
+  ([`90dcc7a`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/90dcc7a0b203fa807db7fdde979fa03bc37d726b))
+
+### Chores
+
+- **po**: Refine epic 7 TRV house-idle soft-close
+  ([`bd6f393`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/bd6f393f428553dd21072a065d3432280aebe24f))
+
+- **po**: Refine story 7.1 house-idle soft-close tracer
+  ([`468ac9f`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/468ac9fe5aeafedd64cad5fd0c40c849cd796f1a))
+
+- **po**: Replan TRV house-idle soft-close
+  ([`efb3d88`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/efb3d88149406e486d8dc684c7f705d9ca4e0cf7))
+
+- **po**: Slice epic 7 into house-idle soft-close stories
+  ([`529244b`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/529244bd63ae8ad57116a43fd87f432e5197bfcd))
+
+### Features
+
+- **trv**: Replace overshoot soft-close with house-idle hold
+  ([`4a531d5`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/4a531d5cbd9b1dff38809cd51e970adaf106514c))
+
+
 ## v3.11.2 (2026-11-18)
 
 ### Bug Fixes
