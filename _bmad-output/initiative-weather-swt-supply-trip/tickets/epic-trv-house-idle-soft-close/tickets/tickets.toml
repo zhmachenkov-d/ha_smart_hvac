@@ -1,0 +1,51 @@
+# Epic 7 breakdown — leaf build order. `id` is stable; table order is build order.
+# Approved 2026-11-20. Tracer = house-idle soft-close through config + hold + writes + example yaml.
+
+[[entry]]
+id = 1
+type = "story"
+title = "Tracer: TRV house-idle soft-close"
+description = "Replace plant-on floor+overshoot soft-close with house-idle soft-close (config + hold + writes + example yaml) so epic R1/R2 are true in the App and tests, leaving house apps.yaml and live docs to later stories."
+verify = "Plant on enter-idle writes floor and arms hold once; hold expiry while idle or any demand writes 100 and cancel uses flame-style token/orphan; return to idle restarts floor+hold; plant-off writes 100 and cancels hold; closure-only commission (accuracy ConfigError); no valve_opening_degree; Critical Zone does not drive soft-close; apps.yaml.example has trv_soft_close_hold_s + closure-only TRV; uv run pytest and uv run ruff check apps/ha_smart_hvac tests clean."
+covers = ["R1", "R2"]
+after = ["6.2"]
+hitl = false
+risk = "high"
+refine = false
+notes = ["Tracer: config + house-idle/hold/edge/plant-off + example yaml + tests.", "after 6.2; not 6.3 (cycle).", "House yaml = 7.2; docs = 7.3.", "Picks 2026-11-20: demand→100; arm hold on first all-idle observe; accuracy reject; flame-style token.", "Risk: wrong soft-close soft-closes under demand or skips soft-close when idle."]
+
+[[entry]]
+id = 2
+type = "story"
+title = "Commission house apps.yaml for house-idle soft-close"
+description = "Operator updates house apps/apps.yaml against the schema from entry 1: add trv_soft_close_hold_s (default 300), keep or adjust valve_closure_floor, drop accuracy keys from commissioned Sonoff TRVs (closure-only); house entity IDs unchanged unless the owner confirms. No live Exclusive Session required in this story."
+verify = "House apps/apps.yaml parses with trv_soft_close_hold_s, valve_closure_floor, and per-TRV closure without accuracy; entity IDs match the pre-change backup unless the owner confirmed a change."
+covers = ["R1", "R2"]
+after = [1]
+hitl = true
+risk = "medium"
+notes = ["HITL: ask before changing house entity IDs (AGENTS.md).", "Shared R1/R2: house commission here; law+example in entry 1; docs amend in entry 3.", "Config-only — live Exclusive Session check out unless user asks."]
+
+[[entry]]
+id = 3
+type = "story"
+title = "Docs: amend ADR/CONTEXT/AGENTS/knowledge for house-idle soft-close"
+description = "Amends live ADR 0008, CONTEXT.md, AGENTS.md, and knowledge/ to document the law shipped in entry 1: house-idle → floor → hold-or-heating-edge → 100; commissioned = closure-only; overshoot hysteresis and accuracy listeners are not live soft-close law; plant-off still writes 100; App never writes valve_opening_degree. CAP-7 stays out."
+verify = "ADR 0008, CONTEXT.md, AGENTS.md, and live knowledge pages describe house-idle soft-close with floor+hold (not overshoot/accuracy as live law); CAP-7 absent from live commissioning language; uv run pytest and uv run ruff check apps/ha_smart_hvac tests clean."
+covers = ["R1", "R2"]
+after = [1]
+hitl = false
+risk = "medium"
+notes = ["Shared R1/R2: docs here; App law in entry 1; house yaml in entry 2.", "Can run parallel with entry 2.", "House HITL kept second per re-slice Decision (2026-11-20); docs breadth is amend-only after epic 6."]
+
+[[entry]]
+id = 4
+type = "story"
+title = "Refactor sweep"
+description = "Closes epic-7 deferred cleanup only from tracer/docs plans and review findings: prune dead overshoot/accuracy soft-close helpers and obsolete tests/docs mentions deferred during 7.1–7.3; no new product laws; leave epic-6.3 CAP-8 hygiene to that story once unblocked."
+verify = "Deferred epic-7 cleanup bullets pruned or settled; no dead overshoot/accuracy soft-close path left as live; uv run pytest and uv run ruff check apps/ha_smart_hvac tests clean."
+covers = []
+after = [1, 2, 3]
+hitl = false
+risk = "low"
+notes = ["Default closing sweep for >3 entries; scope set at start from deferred findings only."]

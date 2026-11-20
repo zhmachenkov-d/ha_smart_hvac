@@ -28,6 +28,7 @@ _MAX_CONTROL_INTERVAL = 86400
 
 _DEFAULT_FLAME_ON_MIN_S = 300.0
 _DEFAULT_FLAME_TRIP_HOLD_S = 900
+_DEFAULT_TRV_SOFT_CLOSE_HOLD_S = 300
 _DEFAULT_VALVE_CLOSURE_FLOOR = 80.0
 
 # Top-level keys parse_config reads.
@@ -38,6 +39,7 @@ _KNOWN_KEYS = frozenset(
         "ch_active",
         "flame_on_min_s",
         "flame_trip_hold_s",
+        "trv_soft_close_hold_s",
         "plant_management",
         "plant_setpoint",
         "setpoint_min",
@@ -132,17 +134,14 @@ def _parse_thermostat(raw: Any, *, zone_name: str) -> ThermostatConfig:
     if not isinstance(raw, dict):
         raise ConfigError(f"{label}: thermostat must be a string or mapping")
     climate = _entity_id(raw.get("climate"), label=f"{label}: climate")
-    if "valve_closure" not in raw or "accuracy" not in raw:
-        raise ConfigError(
-            f"{label}: thermostat mapping requires valve_closure and accuracy"
+    if "accuracy" in raw:
+        raise ConfigError(f"{label}: thermostat mapping must not include accuracy")
+    valve_closure = None
+    if "valve_closure" in raw:
+        valve_closure = _entity_id(
+            raw.get("valve_closure"), label=f"{label}: valve_closure"
         )
-    valve_closure = _entity_id(
-        raw.get("valve_closure"), label=f"{label}: valve_closure"
-    )
-    accuracy = _entity_id(raw.get("accuracy"), label=f"{label}: accuracy")
-    return ThermostatConfig(
-        climate=climate, valve_closure=valve_closure, accuracy=accuracy
-    )
+    return ThermostatConfig(climate=climate, valve_closure=valve_closure)
 
 
 def _parse_zone(raw: Any) -> ZoneConfig:
@@ -238,6 +237,15 @@ def parse_config(args: dict[str, Any]) -> HvacConfig:
     if flame_trip_hold_s < 1:
         raise ConfigError("flame_trip_hold_s must be >= 1")
 
+    trv_hold_raw = _number(
+        args, "trv_soft_close_hold_s", _DEFAULT_TRV_SOFT_CLOSE_HOLD_S
+    )
+    if trv_hold_raw <= 0:
+        raise ConfigError("trv_soft_close_hold_s must be > 0")
+    trv_soft_close_hold_s = int(trv_hold_raw)
+    if trv_soft_close_hold_s < 1:
+        raise ConfigError("trv_soft_close_hold_s must be >= 1")
+
     setpoint_min = _number(args, "setpoint_min")
     setpoint_max = _number(args, "setpoint_max")
     if setpoint_min >= setpoint_max:
@@ -279,6 +287,7 @@ def parse_config(args: dict[str, Any]) -> HvacConfig:
         control_interval=control_interval,
         flame_on_min_s=flame_on_min_s,
         flame_trip_hold_s=flame_trip_hold_s,
+        trv_soft_close_hold_s=trv_soft_close_hold_s,
         weather_feedforward=weather_feedforward,
         zones=tuple(_parse_zone(z) for z in zones_raw),
         valve_closure_floor=valve_closure_floor,

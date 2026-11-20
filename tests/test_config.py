@@ -86,6 +86,7 @@ def test_parse_apps_yaml_example() -> None:
     assert "ch_active" in args
     assert "flame_on_min_s" in args
     assert "flame_trip_hold_s" in args
+    assert "trv_soft_close_hold_s" in args
     assert "auto_correct" not in args.get("weather_feedforward", {})
     assert "ff_auto_correct" not in example_text
     assert "rls_state" not in example_text
@@ -114,13 +115,31 @@ def test_parse_apps_yaml_example() -> None:
     assert thermos[0].valve_closure == (
         "number.YOUR_ZONE_ONE_SONOFF_TRV_VALVE_CLOSURE_DEGREE"
     )
-    assert thermos[0].accuracy == (
-        "number.YOUR_ZONE_ONE_SONOFF_TRV_TEMPERATURE_CONTROL_ACCURACY"
-    )
     assert thermos[0].commissioned
+    assert config.trv_soft_close_hold_s == 300
     assert thermos[1].climate == "climate.YOUR_ZONE_ONE_GENERIC_THERMOSTAT"
     assert not thermos[1].commissioned
     assert config.ignored_keys == ()
+
+
+def test_parse_trv_soft_close_hold_defaults() -> None:
+    config = parse_config(_minimal_args())
+    assert config.trv_soft_close_hold_s == 300
+
+
+@pytest.mark.parametrize("key", ["trv_soft_close_hold_s"])
+@pytest.mark.parametrize("value", [0, -1, math.nan, math.inf])
+def test_parse_rejects_non_positive_trv_hold_scalars(key: str, value: object) -> None:
+    args = _minimal_args()
+    args[key] = value
+    with pytest.raises(ConfigError, match=rf"^{re.escape(key)} must be"):
+        parse_config(args)
+
+
+def test_parse_trv_soft_close_hold_truncates_fractional_seconds() -> None:
+    args = _minimal_args()
+    args["trv_soft_close_hold_s"] = 300.9
+    assert parse_config(args).trv_soft_close_hold_s == 300
 
 
 def test_parse_flame_short_on_defaults() -> None:
@@ -533,13 +552,33 @@ def test_parse_accepts_valve_closure_floor_inclusive_bounds(value: float) -> Non
     assert parse_config(args).valve_closure_floor == pytest.approx(float(value))
 
 
-def test_parse_thermostat_mapping_commissioned() -> None:
+def test_parse_rejects_trv_accuracy_in_mapping() -> None:
     args = _minimal_args()
     args["zones"][0]["thermostats"] = [
         {
             "climate": "climate.trv",
             "valve_closure": "number.trv_closure",
             "accuracy": "number.trv_accuracy",
+        }
+    ]
+    with pytest.raises(ConfigError, match="must not include accuracy"):
+        parse_config(args)
+
+
+def test_parse_accepts_climate_only_trv_mapping() -> None:
+    args = _minimal_args()
+    args["zones"][0]["thermostats"] = [{"climate": "climate.trv"}]
+    trv = parse_config(args).zones[0].thermostats[0]
+    assert trv.climate == "climate.trv"
+    assert not trv.commissioned
+
+
+def test_parse_thermostat_mapping_commissioned() -> None:
+    args = _minimal_args()
+    args["zones"][0]["thermostats"] = [
+        {
+            "climate": "climate.trv",
+            "valve_closure": "number.trv_closure",
         },
         "climate.generic",
     ]
@@ -547,7 +586,6 @@ def test_parse_thermostat_mapping_commissioned() -> None:
     trv, generic = config.zones[0].thermostats
     assert trv.climate == "climate.trv"
     assert trv.valve_closure == "number.trv_closure"
-    assert trv.accuracy == "number.trv_accuracy"
     assert trv.commissioned
     assert generic.climate == "climate.generic"
     assert not generic.commissioned
@@ -558,32 +596,20 @@ def test_parse_thermostat_mapping_commissioned() -> None:
     [
         None,
         42,
-        {"climate": "climate.trv", "valve_closure": "number.trv_closure"},
-        {"climate": "climate.trv", "accuracy": "number.trv_accuracy"},
         {
             "climate": "climate.trv",
             "valve_closure": "",
-            "accuracy": "number.trv_accuracy",
-        },
-        {
-            "climate": "climate.trv",
-            "valve_closure": "number.trv_closure",
-            "accuracy": "",
         },
         {
             "climate": "climate.trv",
             "valve_closure": 12,
-            "accuracy": "number.trv_accuracy",
         },
         {
             "climate": "climate.trv",
-            "valve_closure": "number.trv_closure",
-            "accuracy": 0.5,
+            "accuracy": "number.trv_accuracy",
         },
-        {"climate": "climate.trv"},
         {
             "valve_closure": "number.trv_closure",
-            "accuracy": "number.trv_accuracy",
         },
         {
             "climate": "",
@@ -628,12 +654,11 @@ def test_parse_rejects_whitespace_only_entity_id(field_path: tuple) -> None:
 
 def test_parse_rejects_whitespace_only_trv_entity_fields() -> None:
     args = _minimal_args()
-    for field in ("climate", "valve_closure", "accuracy"):
+    for field in ("climate", "valve_closure"):
         args = _minimal_args()
         thermo = {
             "climate": "climate.trv",
             "valve_closure": "number.trv_closure",
-            "accuracy": "number.trv_accuracy",
         }
         thermo[field] = "\t  "
         args["zones"][0]["thermostats"] = [thermo]
@@ -656,7 +681,6 @@ def test_parse_strips_padded_entity_ids() -> None:
                 {
                     "climate": "  climate.trv  ",
                     "valve_closure": " number.trv_closure ",
-                    "accuracy": "\tnumber.trv_accuracy\t",
                 },
                 "  climate.generic  ",
             ],
@@ -673,5 +697,4 @@ def test_parse_strips_padded_entity_ids() -> None:
     trv, generic = zone.thermostats
     assert trv.climate == "climate.trv"
     assert trv.valve_closure == "number.trv_closure"
-    assert trv.accuracy == "number.trv_accuracy"
     assert generic.climate == "climate.generic"
