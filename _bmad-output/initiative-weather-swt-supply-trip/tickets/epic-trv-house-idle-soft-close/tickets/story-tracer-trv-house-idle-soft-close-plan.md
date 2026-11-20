@@ -3,7 +3,7 @@ title: 'Tracer: TRV house-idle soft-close'
 type: 'feature'
 ticket: '1'
 created: '2026-11-20'
-status: 'built'
+status: done
 baseline_revision: '468ac9fe5aeafedd64cad5fd0c40c849cd796f1a'
 route: 'full'
 route_source: 'auto'
@@ -138,7 +138,7 @@ Evidence HEAD; research `2ec1908088a50a2a88fb157b9652532cbb46e704` still matches
   - `[false]` `[reject]` Plan markdown artifact in diff — workflow deliverable, mirrors intent
   - `[false]` `[reject]` Stale AGENTS vs app until 7.3 — intent excludes
 ## Design Notes
-House all-idle uses existing `has_heating_demand` / `_read_zones` (Heating Demand = climate `hvac_action=heating`). Soft-close hold copies flame token/`run_in`/`cancel_timer` without coupling to flame latch. Accuracy retirement is hard ConfigError so house yaml cannot silently keep overshoot inputs.
+House all-idle soft-close demand probes each climate `hvac_action` directly (Heating Demand = `hvac_action=heating`); it does not require readable zone air/setpoint via `_read_zones` (water path keeps `_read_zones`). Floor/hold arm and expiry `closed_idle` require every commissioned closure write to succeed. Soft-close hold copies flame token/`run_in`/`cancel_timer` without coupling to flame latch. Accuracy retirement is hard ConfigError so house yaml cannot silently keep overshoot inputs.
 
 ## Verification
 **Commands:**
@@ -159,3 +159,33 @@ House all-idle uses existing `has_heating_demand` / `_read_zones` (Heating Deman
 - **Patched counts:** high 5 findings (1 root), medium 8 findings (write-gate + verification pins).
 - **Verification:** `uv run pytest` — 365 passed; `uv run ruff check apps/ha_smart_hvac tests` — clean (post-patch).
 - **Residual risks:** House `apps/apps.yaml` still may carry `accuracy` until 7.2 (parse will fail); AGENTS/CONTEXT/ADR lag until 7.3; partial multi-TRV expiry write success as above.
+
+## Code Review
+### 2026-11-20 (follow-up after bmad-build-auto)
+**Code review complete.** 0 `decision-needed`, 5 `patch`, 0 `defer`, 16 rejected. Decision F1 → A (hvac_action demand probe).
+
+- [x] [Review][Patch] Soft-close Heating Demand via climate `hvac_action` without requiring readable zone temp/setpoint [apps/ha_smart_hvac/hvac_app.py:461-464] — decision A: probe `hvac_action` per climate so unreadable air/setpoint cannot drop a heating zone into house-idle floor
+- [x] [Review][Patch] Hold expiry any-success `closed_idle` leaves sibling TRVs stuck off 100; multi-TRV expiry untested [apps/ha_smart_hvac/hvac_app.py:201-213]
+- [x] [Review][Patch] First all-idle arms hold and sets `holding` even when all floor writes fail/skip [apps/ha_smart_hvac/hvac_app.py:469-475]
+- [x] [Review][Patch] Flame-latched + house-idle soft-close floor/arm path untested [tests/test_hvac_app.py:2218-2235]
+- [x] [Review][Patch] equal-float already-at-floor path does not assert hold arm / holding episode [tests/test_hvac_app.py:2254-2257]
+
+#### Rejected
+- R7 low — floor value already pinned by first-observe / floor-override tests
+- R9 false — accuracy listeners cannot exist under current schema
+- R10 low — tick-path demand covers law; dedicated hvac_action control_event pin optional
+- R11 low — cosmetic log-string asserts
+- R12 low — other SWT isolation pins remain
+- R13 false — accuracy migration guidance is 7.2 scope
+- R14 false — residual tracked as F2; not a standalone defect
+- R17 low — zero-commissioned hold churn has no valve harm
+- R20 false — story episode law (Reading A), not epic continuous floor
+- R21 false — story requires sustained demand → 100
+- R22 false — docs/house yaml deferred to 7.2/7.3
+- R23 false — matching-token plant-off/demand no-op aligns with still-idle AC
+- R25 false — empty `_read_zones` → idle is intentional Design Notes reading
+- R26 false — BMAD plan artifact is workflow deliverable
+- R27 low — accuracy/CZ inventory asserts optional
+- R28 false — pytest/ruff claim is Auto Run Result, not a code defect
+
+- Patches applied 2026-11-20 follow-up: F1 hvac_action demand probe; F2/F3 all-commissioned write gates; F4/F5 tests. `uv run pytest` + ruff clean.

@@ -185,6 +185,34 @@ class HvacApp(hass.Hass):
             token=token,
         )
 
+    def _any_climate_heating(self, config: HvacConfig) -> bool:
+        """True when any commissioned climate reports hvac_action=heating.
+
+        Soft-close demand must not require readable zone air or setpoint —
+        those gates belong to the Outdoor water path via ``_read_zones``.
+        """
+        for zone in config.zones:
+            for thermo in zone.thermostats:
+                if self._read_hvac_action(thermo.climate) == "heating":
+                    return True
+        return False
+
+    def _write_commissioned_closures(
+        self, config: HvacConfig, value: float, *, reason: str
+    ) -> bool:
+        """Write every commissioned closure; True iff all succeed and ≥1 exist."""
+        commissioned = 0
+        ok = 0
+        for zone in config.zones:
+            for thermo in zone.thermostats:
+                closure_id = thermo.valve_closure
+                if closure_id is None:
+                    continue
+                commissioned += 1
+                if self._write_number(closure_id, value, reason=reason):
+                    ok += 1
+        return commissioned > 0 and ok == commissioned
+
     def _trv_soft_close_hold_expired(self, kwargs: dict) -> None:
         """Idle hold elapsed: closure 100 only (no Outdoor prelude or SWT)."""
         if kwargs.get("token") != self._trv_soft_close_hold_token:
@@ -194,23 +222,15 @@ class HvacApp(hass.Hass):
         if not plant_management_enabled(self.get_state(config.plant_management)):
             self._trv_idle_episode = None
             return
-        zones = self._read_zones(config)
-        if zones and has_heating_demand(zones):
+        if self._any_climate_heating(config):
             self._trv_idle_episode = None
             return
-        wrote_100 = False
-        for zone in config.zones:
-            for thermo in zone.thermostats:
-                closure_id = thermo.valve_closure
-                if closure_id is None:
-                    continue
-                if self._write_number(
-                    closure_id,
-                    100.0,
-                    reason="soft-close hold expired while idle",
-                ):
-                    wrote_100 = True
-        self._trv_idle_episode = "closed_idle" if wrote_100 else None
+        all_ok = self._write_commissioned_closures(
+            config,
+            100.0,
+            reason="soft-close hold expired while idle",
+        )
+        self._trv_idle_episode = "closed_idle" if all_ok else None
 
     def flame_event(
         self,
@@ -443,36 +463,30 @@ class HvacApp(hass.Hass):
         config = self._config
         plant_on = plant_management_enabled(self.get_state(config.plant_management))
 
-        def write_all_closures(value: float, *, reason: str) -> None:
-            for zone in config.zones:
-                for thermo in zone.thermostats:
-                    closure_id = thermo.valve_closure
-                    if closure_id is None:
-                        continue
-                    self._write_number(closure_id, value, reason=reason)
-
         if not plant_on:
             self._disarm_trv_soft_close_hold()
             self._trv_idle_episode = None
-            write_all_closures(100.0, reason="plant management off")
+            self._write_commissioned_closures(
+                config, 100.0, reason="plant management off"
+            )
             return
 
-        zones = self._read_zones(config)
-        if zones and has_heating_demand(zones):
+        if self._any_climate_heating(config):
             self._disarm_trv_soft_close_hold()
             self._trv_idle_episode = None
-            write_all_closures(100.0, reason="heating demand")
+            self._write_commissioned_closures(config, 100.0, reason="heating demand")
             return
 
         if self._trv_idle_episode in ("holding", "closed_idle"):
             return
 
-        write_all_closures(
+        if self._write_commissioned_closures(
+            config,
             config.valve_closure_floor,
             reason="house all-idle soft-close floor",
-        )
-        self._arm_trv_soft_close_hold()
-        self._trv_idle_episode = "holding"
+        ):
+            self._arm_trv_soft_close_hold()
+            self._trv_idle_episode = "holding"
 
     def _write_setpoint(
         self, value: float, *, plant_reading: object = _READ_PLANT
