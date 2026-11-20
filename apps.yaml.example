@@ -16,6 +16,8 @@ hvac:
   ch_active: binary_sensor.YOUR_CH_ACTIVE
   flame_on_min_s: 300
   flame_trip_hold_s: 900
+  # House all-idle soft-close hold (whole seconds before closure 100).
+  trv_soft_close_hold_s: 300
   plant_management: switch.YOUR_PLANT_MANAGEMENT
   plant_setpoint: number.YOUR_PLANT_SETPOINT
   setpoint_min: 50
@@ -32,9 +34,8 @@ hvac:
       temperature: sensor.YOUR_ZONE_ONE_TEMPERATURE
       weight: 1.0
       thermostats:
-        # Sonoff TRV: climate + explicit closure/accuracy number entities.
+        # Sonoff TRV: climate + closure number entity (no accuracy).
         - climate: climate.YOUR_ZONE_ONE_SONOFF_TRV
           valve_closure: number.YOUR_ZONE_ONE_SONOFF_TRV_VALVE_CLOSURE_DEGREE
-          accuracy: number.YOUR_ZONE_ONE_SONOFF_TRV_TEMPERATURE_CONTROL_ACCURACY
         # Generic climate-only thermostat (no TRV soft-close).
         - climate.YOUR_ZONE_ONE_GENERIC_THERMOSTAT

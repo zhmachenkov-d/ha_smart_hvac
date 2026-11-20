@@ -7,15 +7,14 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class ThermostatConfig:
-    """Climate entity plus optional Sonoff TRV closure/accuracy wiring."""
+    """Climate entity plus optional Sonoff TRV closure wiring."""
 
     climate: str
     valve_closure: str | None = None
-    accuracy: str | None = None
 
     @property
     def commissioned(self) -> bool:
-        return self.valve_closure is not None and self.accuracy is not None
+        return self.valve_closure is not None
 
 
 @dataclass(frozen=True)
@@ -86,6 +85,7 @@ class HvacConfig:
     control_interval: int
     flame_on_min_s: float
     flame_trip_hold_s: int
+    trv_soft_close_hold_s: int
     weather_feedforward: WeatherFeedforwardConfig
     zones: tuple[ZoneConfig, ...]
     valve_closure_floor: float = 80.0

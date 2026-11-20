@@ -42,7 +42,9 @@ class HvacApp(hass.Hass):
         self._flame_trip_hold_handle: object | None = None
         self._flame_trip_hold_token = 0
         self._zone_heating_prior: dict[str, bool] = {}
-        self._trv_overshoot_latched: set[str] = set()
+        self._trv_soft_close_hold_handle: object | None = None
+        self._trv_soft_close_hold_token = 0
+        self._trv_idle_episode: str | None = None
 
         self._register_control_listeners()
         self.listen_state(self.flame_event, self._config.flame_on)
@@ -58,7 +60,7 @@ class HvacApp(hass.Hass):
         self.log("HVAC weather-curve SWT app initialized")
 
     def _register_control_listeners(self) -> None:
-        """Re-evaluate gate on plant / outdoor / zone air / thermo attrs / accuracy."""
+        """Re-evaluate gate on plant / outdoor / zone air / thermostat attrs."""
         config = self._config
         self.listen_state(self.control_event, config.plant_management)
         self.listen_state(self.control_event, config.outdoor_temperature)
@@ -71,8 +73,6 @@ class HvacApp(hass.Hass):
                 self.listen_state(
                     self.control_event, thermo.climate, attribute="temperature"
                 )
-                if thermo.accuracy is not None:
-                    self.listen_state(self.control_event, thermo.accuracy)
 
     def _gate_prelude(self) -> tuple[list[ZoneSnapshot], float] | None:
         """Plant / Outdoor / Heating Demand prelude. (zones, outdoor) or None."""
@@ -168,6 +168,49 @@ class HvacApp(hass.Hass):
             return
         zones, outdoor = outcome
         self._run_demand(zones, outdoor)
+
+    def _disarm_trv_soft_close_hold(self) -> None:
+        """Cancel soft-close hold and invalidate pending expiry callbacks."""
+        self._trv_soft_close_hold_token += 1
+        if self._trv_soft_close_hold_handle is not None:
+            self.cancel_timer(self._trv_soft_close_hold_handle)
+            self._trv_soft_close_hold_handle = None
+
+    def _arm_trv_soft_close_hold(self) -> None:
+        token = self._trv_soft_close_hold_token + 1
+        self._trv_soft_close_hold_token = token
+        self._trv_soft_close_hold_handle = self.run_in(
+            self._trv_soft_close_hold_expired,
+            self._config.trv_soft_close_hold_s,
+            token=token,
+        )
+
+    def _trv_soft_close_hold_expired(self, kwargs: dict) -> None:
+        """Idle hold elapsed: closure 100 only (no Outdoor prelude or SWT)."""
+        if kwargs.get("token") != self._trv_soft_close_hold_token:
+            return
+        self._trv_soft_close_hold_handle = None
+        config = self._config
+        if not plant_management_enabled(self.get_state(config.plant_management)):
+            self._trv_idle_episode = None
+            return
+        zones = self._read_zones(config)
+        if zones and has_heating_demand(zones):
+            self._trv_idle_episode = None
+            return
+        wrote_100 = False
+        for zone in config.zones:
+            for thermo in zone.thermostats:
+                closure_id = thermo.valve_closure
+                if closure_id is None:
+                    continue
+                if self._write_number(
+                    closure_id,
+                    100.0,
+                    reason="soft-close hold expired while idle",
+                ):
+                    wrote_100 = True
+        self._trv_idle_episode = "closed_idle" if wrote_100 else None
 
     def flame_event(
         self,
@@ -396,74 +439,40 @@ class HvacApp(hass.Hass):
         return True
 
     def _apply_trv_law(self) -> None:
-        """Idle max-close on commissioned Sonoff TRVs; runs before water prelude."""
+        """House-idle soft-close on commissioned TRVs; runs before water prelude."""
         config = self._config
         plant_on = plant_management_enabled(self.get_state(config.plant_management))
-        for zone in config.zones:
-            for thermo in zone.thermostats:
-                closure_id = thermo.valve_closure
-                accuracy_id = thermo.accuracy
-                if closure_id is None or accuracy_id is None:
-                    continue
-                if not plant_on:
-                    self._write_number(
-                        closure_id,
-                        100.0,
-                        reason="plant management off",
-                    )
-                    continue
 
-                t_zone = self._read_float(zone.temperature)
-                setpoint = self._read_setpoint(thermo.climate)
-                if t_zone is None or setpoint is None:
-                    continue
+        def write_all_closures(value: float, *, reason: str) -> None:
+            for zone in config.zones:
+                for thermo in zone.thermostats:
+                    closure_id = thermo.valve_closure
+                    if closure_id is None:
+                        continue
+                    self._write_number(closure_id, value, reason=reason)
 
-                latched = closure_id in self._trv_overshoot_latched
-                if latched:
-                    if t_zone <= setpoint:
-                        if self._write_number(
-                            closure_id,
-                            config.valve_closure_floor,
-                            reason=(
-                                f"overshoot clear: T_zone={t_zone:.2f} ≤ "
-                                f"setpoint={setpoint:.2f}"
-                            ),
-                        ):
-                            self._trv_overshoot_latched.discard(closure_id)
-                    else:
-                        self._write_number(
-                            closure_id,
-                            100.0,
-                            reason=(
-                                f"overshoot hold: T_zone={t_zone:.2f} > "
-                                f"setpoint={setpoint:.2f}"
-                            ),
-                        )
-                    continue
+        if not plant_on:
+            self._disarm_trv_soft_close_hold()
+            self._trv_idle_episode = None
+            write_all_closures(100.0, reason="plant management off")
+            return
 
-                accuracy = self._read_float(accuracy_id)
-                if accuracy is None:
-                    continue
-                threshold = setpoint + abs(accuracy)
-                if t_zone >= threshold:
-                    if self._write_number(
-                        closure_id,
-                        100.0,
-                        reason=(
-                            f"overshoot: T_zone={t_zone:.2f} >= "
-                            f"setpoint+|accuracy|={threshold:.2f}"
-                        ),
-                    ):
-                        self._trv_overshoot_latched.add(closure_id)
-                else:
-                    self._write_number(
-                        closure_id,
-                        config.valve_closure_floor,
-                        reason=(
-                            f"floor: T_zone={t_zone:.2f} < "
-                            f"setpoint+|accuracy|={threshold:.2f}"
-                        ),
-                    )
+        zones = self._read_zones(config)
+        if zones and has_heating_demand(zones):
+            self._disarm_trv_soft_close_hold()
+            self._trv_idle_episode = None
+            write_all_closures(100.0, reason="heating demand")
+            return
+
+        if self._trv_idle_episode in ("holding", "closed_idle"):
+            return
+
+        write_all_closures(
+            config.valve_closure_floor,
+            reason="house all-idle soft-close floor",
+        )
+        self._arm_trv_soft_close_hold()
+        self._trv_idle_episode = "holding"
 
     def _write_setpoint(
         self, value: float, *, plant_reading: object = _READ_PLANT

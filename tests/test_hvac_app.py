@@ -33,10 +33,8 @@ _ZONE_TEMP = "sensor.zone_one_temp"
 _CLIMATE = "climate.zone_one"
 _ZONE_NAME = "zone_one"
 _TRV_CLOSURE = "number.zone_one_trv_closure"
-_TRV_ACCURACY = "number.zone_one_trv_accuracy"
 _CLIMATE_GENERIC = "climate.zone_one_generic"
 _TRV_CLOSURE_2 = "number.zone_two_trv_closure"
-_TRV_ACCURACY_2 = "number.zone_two_trv_accuracy"
 _ZONE_TEMP_2 = "sensor.zone_two_temp"
 _CLIMATE_2 = "climate.zone_two_trv"
 
@@ -106,7 +104,9 @@ def _tick_app(
     app._flame_trip_hold_handle = None
     app._flame_trip_hold_token = 0
     app._zone_heating_prior = {}
-    app._trv_overshoot_latched = set()
+    app._trv_soft_close_hold_handle = None
+    app._trv_soft_close_hold_token = 0
+    app._trv_idle_episode = None
     app._monotonic = MagicMock(return_value=0.0)
 
     def get_state(entity_id: str, attribute: str | None = None):
@@ -160,7 +160,6 @@ def _trv_tick_args() -> dict:
                 {
                     "climate": _CLIMATE,
                     "valve_closure": _TRV_CLOSURE,
-                    "accuracy": _TRV_ACCURACY,
                 },
                 _CLIMATE_GENERIC,
             ],
@@ -174,9 +173,8 @@ def _trv_app(
     plant_management: str = "on",
     zone_temp: object = 20.0,
     setpoint: object = 22.0,
-    accuracy: object = 0.5,
     closure: object = 50.0,
-    hvac_action: str = "heating",
+    hvac_action: str = "idle",
     plant_setpoint: object = 45.0,
     outdoor: object = _OUTDOOR_TEMP,
     valve_closure_floor: float | None = None,
@@ -198,8 +196,6 @@ def _trv_app(
     def get_state(entity_id: str, attribute: str | None = None):
         if entity_id == _TRV_CLOSURE:
             return closure
-        if entity_id == _TRV_ACCURACY:
-            return accuracy
         if entity_id == _CLIMATE_GENERIC:
             if attribute == "temperature":
                 return setpoint
@@ -511,7 +507,9 @@ def test_critical_zone_does_not_change_swt() -> None:
     app._flame_trip_hold_handle = None
     app._flame_trip_hold_token = 0
     app._zone_heating_prior = {}
-    app._trv_overshoot_latched = set()
+    app._trv_soft_close_hold_handle = None
+    app._trv_soft_close_hold_token = 0
+    app._trv_idle_episode = None
 
     def get_state(entity_id: str, attribute: str | None = None):
         if entity_id == _PLANT_MGMT:
@@ -575,7 +573,9 @@ def test_partial_zone_skip_uses_successful_snapshots_only() -> None:
     app._flame_trip_hold_handle = None
     app._flame_trip_hold_token = 0
     app._zone_heating_prior = {}
-    app._trv_overshoot_latched = set()
+    app._trv_soft_close_hold_handle = None
+    app._trv_soft_close_hold_token = 0
+    app._trv_idle_episode = None
 
     def get_state(entity_id: str, attribute: str | None = None):
         if entity_id == _PLANT_MGMT:
@@ -636,7 +636,9 @@ def test_partial_zone_skip_unavailable_thermostat_setpoint() -> None:
     app._flame_trip_hold_handle = None
     app._flame_trip_hold_token = 0
     app._zone_heating_prior = {}
-    app._trv_overshoot_latched = set()
+    app._trv_soft_close_hold_handle = None
+    app._trv_soft_close_hold_token = 0
+    app._trv_idle_episode = None
 
     def get_state(entity_id: str, attribute: str | None = None):
         if entity_id == _PLANT_MGMT:
@@ -1461,7 +1463,7 @@ def test_flame_hold_expiry_gated_runs_trv_then_curve() -> None:
 
 def test_flame_hold_expiry_applies_trv_valve_then_curve() -> None:
     """ADV8: commissioned TRV gets a closure write before weather-curve SWT."""
-    app = _trv_app(zone_temp=20.0, setpoint=22.0, accuracy=0.5, closure=10.0)
+    app = _trv_app(closure=10.0, hvac_action="heating")
     app._flame_trip_latched = True
     app._flame_trip_hold_handle = "hold-handle"
     app._flame_trip_hold_token = 7
@@ -1470,7 +1472,7 @@ def test_flame_hold_expiry_applies_trv_valve_then_curve() -> None:
 
     assert not app._flame_trip_latched
     writes = _set_value_by_entity(app)
-    assert (_TRV_CLOSURE, app._config.valve_closure_floor) in writes
+    assert (_TRV_CLOSURE, 100.0) in writes
     assert (_PLANT_SETPOINT, _expected_command()) in writes
     trv_i = next(i for i, (eid, _) in enumerate(writes) if eid == _TRV_CLOSURE)
     plant_i = next(i for i, (eid, _) in enumerate(writes) if eid == _PLANT_SETPOINT)
@@ -2080,81 +2082,156 @@ def test_latched_demand_does_not_use_critical_zone() -> None:
     assert "u_ff=" not in joined
 
 
-def test_trv_runs_while_flame_latched() -> None:
-    """TRV soft-close still applies on tick while flame-latched; SWT stays 0."""
-    app = _trv_app(zone_temp=20.0, setpoint=22.0, accuracy=0.5, closure=10.0)
-    app._flame_trip_latched = True
-    app.control_tick({})
-    writes = _set_value_by_entity(app)
-    assert (_TRV_CLOSURE, app._config.valve_closure_floor) in writes
-    assert (_PLANT_SETPOINT, 0.0) in writes
-    assert not any("u_ff=" in m for m in _info_msgs(app))
-    assert not any("critical_zone=" in m for m in _info_msgs(app))
-
-
-def test_trv_runs_while_flame_latched_via_control_event() -> None:
-    """TRV soft-close still applies on control_event while flame-latched."""
-    app = _trv_app(zone_temp=20.0, setpoint=22.0, accuracy=0.5, closure=10.0)
-    app._flame_trip_latched = True
-    _fire_control_event(app)
-    writes = _set_value_by_entity(app)
-    assert (_TRV_CLOSURE, app._config.valve_closure_floor) in writes
-    assert (_PLANT_SETPOINT, 0.0) in writes
-    assert not any("u_ff=" in m for m in _info_msgs(app))
-
-
-def test_trv_at_or_below_setpoint_writes_floor() -> None:
-    app = _trv_app(zone_temp=22.0, setpoint=22.0, accuracy=0.5, closure=10.0)
+def test_trv_idle_first_observe_writes_floor_and_arms_hold() -> None:
+    app = _trv_app(zone_temp=20.0, setpoint=22.0, closure=10.0, hvac_action="idle")
     app.control_tick({})
     assert (_TRV_CLOSURE, 80.0) in _set_value_by_entity(app)
-    assert _TRV_CLOSURE not in app._trv_overshoot_latched
-    assert not any(
-        "valve_opening" in str(c.kwargs.get("entity_id", ""))
-        for c in app.call_service.call_args_list
-    )
+    assert app._trv_idle_episode == "holding"
+    app.run_in.assert_called_once()
+    assert app.run_in.call_args.args[0].__func__ is HvacApp._trv_soft_close_hold_expired
+    assert app.run_in.call_args.args[1] == app._config.trv_soft_close_hold_s
+    assert app._trv_soft_close_hold_handle == app.run_in.return_value
+    assert app.run_in.call_args.kwargs.get("token") == app._trv_soft_close_hold_token
 
 
-def test_trv_overshoot_writes_100_and_latches() -> None:
-    app = _trv_app(zone_temp=23.0, setpoint=22.0, accuracy=0.5, closure=80.0)
+def test_trv_second_idle_tick_does_not_restart_hold() -> None:
+    app = _trv_app(closure=80.0, hvac_action="idle")
     app.control_tick({})
+    app.run_in.reset_mock()
+    app.control_tick({})
+    app.run_in.assert_not_called()
+    assert app._trv_idle_episode == "holding"
+
+
+def test_trv_hold_expiry_writes_100_while_idle() -> None:
+    app = _trv_app(closure=80.0, hvac_action="idle")
+    app._trv_idle_episode = "holding"
+    app._trv_soft_close_hold_token = 3
+    app._trv_soft_close_hold_expired({"token": 3})
     assert (_TRV_CLOSURE, 100.0) in _set_value_by_entity(app)
-    assert _TRV_CLOSURE in app._trv_overshoot_latched
+    assert app._trv_idle_episode == "closed_idle"
+    assert all(eid != _PLANT_SETPOINT for eid, _ in _set_value_by_entity(app))
 
 
-def test_trv_dead_band_keeps_100_while_latched() -> None:
-    app = _trv_app(zone_temp=22.3, setpoint=22.0, accuracy=0.5, closure=80.0)
-    app._trv_overshoot_latched.add(_TRV_CLOSURE)
-    app.control_tick({})
-    assert (_TRV_CLOSURE, 100.0) in _set_value_by_entity(app)
-    assert _TRV_CLOSURE in app._trv_overshoot_latched
-
-
-def test_trv_clear_writes_floor_and_unlatches() -> None:
-    app = _trv_app(zone_temp=21.5, setpoint=22.0, accuracy=0.5, closure=100.0)
-    app._trv_overshoot_latched.add(_TRV_CLOSURE)
-    app.control_tick({})
-    assert (_TRV_CLOSURE, 80.0) in _set_value_by_entity(app)
-    assert _TRV_CLOSURE not in app._trv_overshoot_latched
-
-
-def test_trv_unreadable_skips_latch_mutate() -> None:
-    app = _trv_app(zone_temp=23.0, setpoint=22.0, accuracy="unavailable", closure=80.0)
-    app.control_tick({})
+def test_trv_orphan_soft_close_hold_no_write() -> None:
+    app = _trv_app(closure=80.0, hvac_action="idle")
+    app._trv_soft_close_hold_token = 2
+    app._trv_soft_close_hold_expired({"token": 1})
     assert all(eid != _TRV_CLOSURE for eid, _ in _set_value_by_entity(app))
-    assert _TRV_CLOSURE not in app._trv_overshoot_latched
 
 
-def test_trv_plant_off_writes_100_no_plant_setpoint() -> None:
-    app = _trv_app(
-        plant_management="off",
-        zone_temp=20.0,
-        setpoint=22.0,
-        closure=80.0,
-    )
+def test_trv_expiry_matching_token_under_demand_no_write_clears_episode() -> None:
+    app = _trv_app(closure=80.0, hvac_action="idle")
+    app.control_tick({})
+    token = app._trv_soft_close_hold_token
+    app._trv_soft_close_hold_handle = None
+    app.get_state = _trv_app(hvac_action="heating").get_state
+    app.call_service.reset_mock()
+    app._trv_soft_close_hold_expired({"token": token})
+    assert all(eid != _TRV_CLOSURE for eid, _ in _set_value_by_entity(app))
+    assert app._trv_idle_episode is None
+
+
+def test_trv_expiry_matching_token_plant_off_no_write_clears_episode() -> None:
+    app = _trv_app(closure=80.0, hvac_action="idle")
+    app._trv_idle_episode = "holding"
+    app._trv_soft_close_hold_token = 5
+    base_get = app.get_state
+
+    def plant_off(entity_id: str, attribute: str | None = None):
+        if entity_id == _PLANT_MGMT:
+            return "off"
+        return base_get(entity_id, attribute)
+
+    app.get_state = MagicMock(side_effect=plant_off)
+    app.call_service.reset_mock()
+    app._trv_soft_close_hold_expired({"token": 5})
+    assert all(eid != _TRV_CLOSURE for eid, _ in _set_value_by_entity(app))
+    assert app._trv_idle_episode is None
+
+
+def test_trv_demand_writes_100_cancels_hold() -> None:
+    app = _trv_app(closure=80.0, hvac_action="idle")
+    app.control_tick({})
+    app._trv_soft_close_hold_handle = "trv-hold"
+    app.cancel_timer.reset_mock()
+    app.get_state = _trv_app(hvac_action="heating").get_state
+    app.control_tick({})
+    app.cancel_timer.assert_called_with("trv-hold")
+    assert (_TRV_CLOSURE, 100.0) in _set_value_by_entity(app)
+    assert app._trv_idle_episode is None
+
+
+def test_trv_cold_start_heating_writes_100_no_hold() -> None:
+    app = _trv_app(closure=80.0, hvac_action="heating")
+    app.control_tick({})
+    assert (_TRV_CLOSURE, 100.0) in _set_value_by_entity(app)
+    app.run_in.assert_not_called()
+    assert app._trv_idle_episode is None
+
+
+def test_trv_return_to_idle_refloors_and_rearms() -> None:
+    app = _trv_app(closure=10.0, hvac_action="idle")
+    app.control_tick({})
+    base_get = app.get_state
+    app.call_service.reset_mock()
+
+    def heating(entity_id: str, attribute: str | None = None):
+        if entity_id == _CLIMATE and attribute == "hvac_action":
+            return "heating"
+        return base_get(entity_id, attribute)
+
+    app.get_state = MagicMock(side_effect=heating)
+    app.control_tick({})
+    assert (_TRV_CLOSURE, 100.0) in _set_value_by_entity(app)
+    assert app._trv_idle_episode is None
+
+    app.call_service.reset_mock()
+
+    def idle_again(entity_id: str, attribute: str | None = None):
+        if entity_id == _CLIMATE and attribute == "hvac_action":
+            return "idle"
+        return base_get(entity_id, attribute)
+
+    app.get_state = MagicMock(side_effect=idle_again)
+    app.run_in.reset_mock()
+    app.control_tick({})
+    assert (_TRV_CLOSURE, 80.0) in _set_value_by_entity(app)
+    assert app._trv_idle_episode == "holding"
+    app.run_in.assert_called_once()
+    assert app.run_in.call_args.args[0].__func__ is HvacApp._trv_soft_close_hold_expired
+    assert app.run_in.call_args.args[1] == app._config.trv_soft_close_hold_s
+    assert app._trv_soft_close_hold_handle == app.run_in.return_value
+    assert app.run_in.call_args.kwargs.get("token") == app._trv_soft_close_hold_token
+
+
+def test_trv_plant_off_writes_100_cancels_hold() -> None:
+    app = _trv_app(plant_management="off", closure=80.0, hvac_action="idle")
+    app._trv_soft_close_hold_handle = "trv-hold"
+    app._trv_idle_episode = "holding"
+    app.control_tick({})
+    app.cancel_timer.assert_called_with("trv-hold")
+    assert (_TRV_CLOSURE, 100.0) in _set_value_by_entity(app)
+    assert app._trv_idle_episode is None
+
+
+def test_trv_runs_while_flame_latched() -> None:
+    """TRV soft-close on tick while flame-latched; heating demand → closure 100."""
+    app = _trv_app(closure=10.0, hvac_action="heating")
+    app._flame_trip_latched = True
     app.control_tick({})
     writes = _set_value_by_entity(app)
     assert (_TRV_CLOSURE, 100.0) in writes
-    assert all(eid != _PLANT_SETPOINT for eid, _ in writes)
+    assert (_PLANT_SETPOINT, 0.0) in writes
+
+
+def test_trv_runs_while_flame_latched_via_control_event() -> None:
+    app = _trv_app(closure=10.0, hvac_action="heating")
+    app._flame_trip_latched = True
+    _fire_control_event(app)
+    writes = _set_value_by_entity(app)
+    assert (_TRV_CLOSURE, 100.0) in writes
+    assert (_PLANT_SETPOINT, 0.0) in writes
 
 
 def test_trv_plain_string_thermostats_no_closure_write() -> None:
@@ -2163,77 +2240,35 @@ def test_trv_plain_string_thermostats_no_closure_write() -> None:
     assert _set_value_by_entity(app) == []
 
 
-def test_trv_independent_of_heating_demand() -> None:
-    app = _trv_app(
-        zone_temp=23.0,
-        setpoint=22.0,
-        accuracy=0.5,
-        closure=80.0,
-        hvac_action="idle",
-    )
-    app.control_tick({})
-    assert (_TRV_CLOSURE, 100.0) in _set_value_by_entity(app)
-    assert _TRV_CLOSURE in app._trv_overshoot_latched
-    # Idle demand → SWT 0, not weather curve
-    assert (_PLANT_SETPOINT, 0.0) in _set_value_by_entity(app)
-
-
 def test_trv_never_uses_write_setpoint_for_closure() -> None:
-    app = _trv_app(zone_temp=20.0, setpoint=22.0, closure=10.0)
+    app = _trv_app(closure=10.0, hvac_action="idle")
     with (
         patch.object(app, "_write_setpoint", wraps=app._write_setpoint) as plant_spy,
         patch.object(app, "_write_number", wraps=app._write_number) as num_spy,
     ):
         app.control_tick({})
-    assert any(c.args == (_TRV_CLOSURE, 80.0) for c in num_spy.call_args_list)
-    plant_values = [c.args[0] for c in plant_spy.call_args_list]
-    assert 80.0 not in plant_values
-    assert (_TRV_CLOSURE, 80.0) in _set_value_by_entity(app)
+    assert any(c.args[0] == _TRV_CLOSURE for c in num_spy.call_args_list)
+    assert 80.0 not in [c.args[0] for c in plant_spy.call_args_list]
 
 
 def test_trv_equal_float_skips_set_value() -> None:
-    app = _trv_app(zone_temp=20.0, setpoint=22.0, closure=80.0)
+    app = _trv_app(closure=80.0, hvac_action="idle")
     app.control_tick({})
     assert all(eid != _TRV_CLOSURE for eid, _ in _set_value_by_entity(app))
-    assert not any(m.startswith("TRV ") for m in _info_msgs(app))
-
-
-def test_trv_overshoot_logs_closure_change_with_reason() -> None:
-    app = _trv_app(zone_temp=23.0, setpoint=22.0, accuracy=0.5, closure=80.0)
-    app.control_tick({})
-    assert any(
-        m.startswith(f"TRV {_TRV_CLOSURE}: closure 80.0 → 100.0") and "overshoot:" in m
-        for m in _info_msgs(app)
-    )
 
 
 def test_trv_floor_logs_closure_change_with_reason() -> None:
-    app = _trv_app(zone_temp=20.0, setpoint=22.0, accuracy=0.5, closure=10.0)
+    app = _trv_app(closure=10.0, hvac_action="idle")
     app.control_tick({})
     assert any(
-        m.startswith(f"TRV {_TRV_CLOSURE}: closure 10.0 → 80.0") and "floor:" in m
-        for m in _info_msgs(app)
-    )
-
-
-def test_trv_clear_logs_closure_change_with_reason() -> None:
-    app = _trv_app(zone_temp=21.5, setpoint=22.0, accuracy=0.5, closure=100.0)
-    app._trv_overshoot_latched.add(_TRV_CLOSURE)
-    app.control_tick({})
-    assert any(
-        m.startswith(f"TRV {_TRV_CLOSURE}: closure 100.0 → 80.0")
-        and "overshoot clear:" in m
+        m.startswith(f"TRV {_TRV_CLOSURE}: closure 10.0 → 80.0")
+        and "house all-idle" in m
         for m in _info_msgs(app)
     )
 
 
 def test_trv_plant_off_logs_closure_change_with_reason() -> None:
-    app = _trv_app(
-        plant_management="off",
-        zone_temp=20.0,
-        setpoint=22.0,
-        closure=80.0,
-    )
+    app = _trv_app(plant_management="off", closure=80.0)
     app.control_tick({})
     assert any(
         m.startswith(f"TRV {_TRV_CLOSURE}: closure 80.0 → 100.0")
@@ -2242,56 +2277,25 @@ def test_trv_plant_off_logs_closure_change_with_reason() -> None:
     )
 
 
-def test_trv_overshoot_hold_logs_closure_change_with_reason() -> None:
-    app = _trv_app(zone_temp=22.3, setpoint=22.0, accuracy=0.5, closure=80.0)
-    app._trv_overshoot_latched.add(_TRV_CLOSURE)
-    app.control_tick({})
-    assert any(
-        m.startswith(f"TRV {_TRV_CLOSURE}: closure 80.0 → 100.0")
-        and "overshoot hold:" in m
-        for m in _info_msgs(app)
-    )
-
-
 def test_trv_control_event_applies_law() -> None:
-    app = _trv_app(zone_temp=23.0, setpoint=22.0, accuracy=0.5, closure=50.0)
-    _fire_control_event(app)
-    assert (_TRV_CLOSURE, 100.0) in _set_value_by_entity(app)
-    assert _TRV_CLOSURE in app._trv_overshoot_latched
+    app = _trv_app(closure=50.0, hvac_action="idle")
+    _fire_control_event(app, entity=_ZONE_TEMP)
+    assert (_TRV_CLOSURE, 80.0) in _set_value_by_entity(app)
 
 
 def test_trv_floor_override_used() -> None:
-    app = _trv_app(
-        zone_temp=20.0, setpoint=22.0, closure=10.0, valve_closure_floor=85.0
-    )
+    app = _trv_app(closure=10.0, hvac_action="idle", valve_closure_floor=85.0)
     app.control_tick({})
     assert (_TRV_CLOSURE, 85.0) in _set_value_by_entity(app)
 
 
-def test_trv_overshoot_closure_unavailable_does_not_latch() -> None:
-    app = _trv_app(zone_temp=23.0, setpoint=22.0, accuracy=0.5, closure="unavailable")
+def test_trv_closure_unavailable_skips_write() -> None:
+    app = _trv_app(closure="unavailable", hvac_action="idle")
     app.control_tick({})
     assert all(eid != _TRV_CLOSURE for eid, _ in _set_value_by_entity(app))
-    assert _TRV_CLOSURE not in app._trv_overshoot_latched
 
 
-def test_trv_clear_closure_unavailable_keeps_latch() -> None:
-    app = _trv_app(zone_temp=21.5, setpoint=22.0, accuracy=0.5, closure="unavailable")
-    app._trv_overshoot_latched.add(_TRV_CLOSURE)
-    app.control_tick({})
-    assert all(eid != _TRV_CLOSURE for eid, _ in _set_value_by_entity(app))
-    assert _TRV_CLOSURE in app._trv_overshoot_latched
-
-
-def test_trv_equal_float_clear_discards_latch() -> None:
-    app = _trv_app(zone_temp=21.5, setpoint=22.0, accuracy=0.5, closure=80.0)
-    app._trv_overshoot_latched.add(_TRV_CLOSURE)
-    app.control_tick({})
-    assert all(eid != _TRV_CLOSURE for eid, _ in _set_value_by_entity(app))
-    assert _TRV_CLOSURE not in app._trv_overshoot_latched
-
-
-def test_initialize_trv_mapping_listens_on_climate_attrs() -> None:
+def test_initialize_trv_no_accuracy_listen() -> None:
     app = _init_app(args=_trv_tick_args())
 
     def get_state(entity_id: str, attribute: str | None = None):
@@ -2299,8 +2303,6 @@ def test_initialize_trv_mapping_listens_on_climate_attrs() -> None:
             return "off"
         if entity_id == _TRV_CLOSURE:
             return 80.0
-        if entity_id == _TRV_ACCURACY:
-            return 0.5
         if entity_id == _ZONE_TEMP:
             return 20.0
         if entity_id == _OUTDOOR:
@@ -2311,317 +2313,27 @@ def test_initialize_trv_mapping_listens_on_climate_attrs() -> None:
             if attribute == "temperature":
                 return 22.0
             if attribute == "hvac_action":
-                return "heating"
+                return "idle"
             return "heat"
         return None
 
     app.get_state = MagicMock(side_effect=get_state)
     app.initialize()
-
-    attr_listens = [
-        (c.args[1], c.kwargs.get("attribute"))
-        for c in app.listen_state.call_args_list
-        if c.kwargs.get("attribute") in ("hvac_action", "temperature")
-    ]
-    assert (_CLIMATE, "hvac_action") in attr_listens
-    assert (_CLIMATE, "temperature") in attr_listens
-    assert (_CLIMATE_GENERIC, "hvac_action") in attr_listens
-    assert (_CLIMATE_GENERIC, "temperature") in attr_listens
-    assert all(
-        entity not in (_TRV_CLOSURE, _TRV_ACCURACY) for entity, _ in attr_listens
-    )
-    entity_listens = [
-        (c.args[0], c.args[1])
-        for c in app.listen_state.call_args_list
-        if len(c.args) >= 2 and c.kwargs.get("attribute") is None
-    ]
-    assert (app.control_event, _TRV_ACCURACY) in entity_listens
-    assert all(entity != _TRV_CLOSURE for _, entity in entity_listens)
-    assert not any(
-        len(c.args) >= 2 and c.args[1] == _TRV_CLOSURE
-        for c in app.listen_state.call_args_list
-    )
+    listens = [c.args[1] for c in app.listen_state.call_args_list if len(c.args) >= 2]
+    assert _TRV_CLOSURE not in listens
     assert (_TRV_CLOSURE, 100.0) in _set_value_by_entity(app)
 
 
-def test_trv_clear_at_exact_setpoint_unlatches() -> None:
-    app = _trv_app(zone_temp=22.0, setpoint=22.0, accuracy=0.5, closure=100.0)
-    app._trv_overshoot_latched.add(_TRV_CLOSURE)
-    app.control_tick({})
-    assert (_TRV_CLOSURE, 80.0) in _set_value_by_entity(app)
-    assert _TRV_CLOSURE not in app._trv_overshoot_latched
-
-
-def test_trv_exact_overshoot_threshold_writes_100_and_latches() -> None:
-    app = _trv_app(zone_temp=22.5, setpoint=22.0, accuracy=0.5, closure=10.0)
-    app.control_tick({})
-    assert (_TRV_CLOSURE, 100.0) in _set_value_by_entity(app)
-    assert _TRV_CLOSURE in app._trv_overshoot_latched
-
-
-def test_trv_negative_accuracy_uses_abs_for_overshoot_band() -> None:
-    """Sonoff accuracy can be signed; overshoot band uses |accuracy|."""
-    # T_zone == setpoint must not trip when accuracy is negative.
-    app = _trv_app(zone_temp=23.0, setpoint=23.0, accuracy=-0.2, closure=10.0)
-    app.control_tick({})
-    assert (_TRV_CLOSURE, 80.0) in _set_value_by_entity(app)
-    assert _TRV_CLOSURE not in app._trv_overshoot_latched
-
-    # Same magnitude as +0.2: overshoot at/above setpoint+|accuracy|.
-    app = _trv_app(zone_temp=23.3, setpoint=23.0, accuracy=-0.2, closure=80.0)
-    app.control_tick({})
-    assert (_TRV_CLOSURE, 100.0) in _set_value_by_entity(app)
-    assert _TRV_CLOSURE in app._trv_overshoot_latched
-
-
-def test_trv_zone_temp_unreadable_skips() -> None:
-    app = _trv_app(zone_temp="unavailable", setpoint=22.0, accuracy=0.5, closure=80.0)
-    app.control_tick({})
-    assert all(eid != _TRV_CLOSURE for eid, _ in _set_value_by_entity(app))
-    assert _TRV_CLOSURE not in app._trv_overshoot_latched
-
-
-def test_trv_setpoint_unreadable_skips() -> None:
-    app = _trv_app(zone_temp=23.0, setpoint="unavailable", accuracy=0.5, closure=80.0)
-    app.control_tick({})
-    assert all(eid != _TRV_CLOSURE for eid, _ in _set_value_by_entity(app))
-    assert _TRV_CLOSURE not in app._trv_overshoot_latched
-
-
-def test_trv_latched_accuracy_unavailable_still_clears() -> None:
-    app = _trv_app(zone_temp=21.5, setpoint=22.0, accuracy="unavailable", closure=100.0)
-    app._trv_overshoot_latched.add(_TRV_CLOSURE)
-    app.control_tick({})
-    assert (_TRV_CLOSURE, 80.0) in _set_value_by_entity(app)
-    assert _TRV_CLOSURE not in app._trv_overshoot_latched
-
-
-def test_trv_latched_accuracy_unavailable_keeps_100() -> None:
-    app = _trv_app(zone_temp=22.3, setpoint=22.0, accuracy="unavailable", closure=80.0)
-    app._trv_overshoot_latched.add(_TRV_CLOSURE)
-    app.control_tick({})
-    assert (_TRV_CLOSURE, 100.0) in _set_value_by_entity(app)
-    assert _TRV_CLOSURE in app._trv_overshoot_latched
-
-
-def test_trv_plant_off_via_control_event() -> None:
-    app = _trv_app(
-        plant_management="off",
-        zone_temp=20.0,
-        setpoint=22.0,
-        closure=80.0,
-    )
-    _fire_control_event(app)
-    writes = _set_value_by_entity(app)
-    assert (_TRV_CLOSURE, 100.0) in writes
-    assert all(eid != _PLANT_SETPOINT for eid, _ in writes)
-
-
-def test_trv_no_valve_opening_degree_entity_writes() -> None:
-    source = _HVAC_APP_PATH.read_text(encoding="utf-8")
-    assert "valve_opening_degree" not in source
-
-
-def test_trv_accuracy_state_change_reapplies_law() -> None:
-    """Plant on; accuracy-only control_event re-applies floor/100."""
-    app = _trv_app(zone_temp=20.0, setpoint=22.0, accuracy=0.5, closure=10.0)
-    _fire_control_event(app, entity=_TRV_ACCURACY)
-    assert (_TRV_CLOSURE, 80.0) in _set_value_by_entity(app)
-    assert _TRV_CLOSURE not in app._trv_overshoot_latched
-
-
-def test_trv_outdoor_fail_still_applies_before_prelude() -> None:
-    app = _trv_app(
-        zone_temp=20.0,
-        setpoint=22.0,
-        accuracy=0.5,
-        closure=10.0,
-        outdoor="unavailable",
-    )
-    with patch.object(app, "_apply_trv_law", wraps=app._apply_trv_law) as trv_spy:
-        app.control_tick({})
-    trv_spy.assert_called()
-    assert (_TRV_CLOSURE, 80.0) in _set_value_by_entity(app)
-    assert (_PLANT_SETPOINT, 0.0) in _set_value_by_entity(app)
-    assert any(
-        f"Outdoor temperature unavailable: {_OUTDOOR}" in m for m in _warn_msgs(app)
-    )
-
-
-def test_trv_empty_zone_prelude_still_runs_law() -> None:
-    app = _trv_app(
-        zone_temp="unavailable",
-        setpoint=22.0,
-        accuracy=0.5,
-        closure=10.0,
-    )
-    with patch.object(app, "_apply_trv_law", wraps=app._apply_trv_law) as trv_spy:
-        app.control_tick({})
-    trv_spy.assert_called()
-    # Own zone T unreadable → per-TRV skip; prelude still idles SWT.
-    assert all(eid != _TRV_CLOSURE for eid, _ in _set_value_by_entity(app))
-    assert (_PLANT_SETPOINT, 0.0) in _set_value_by_entity(app)
-    assert any("No zones with valid readings" in m for m in _warn_msgs(app))
-
-
-def test_trv_sibling_zone_temp_unreadable_own_reads_still_write() -> None:
-    args = _tick_args()
-    args["zones"] = [
-        {
-            "name": _ZONE_NAME,
-            "temperature": _ZONE_TEMP,
-            "thermostats": [
-                {
-                    "climate": _CLIMATE,
-                    "valve_closure": _TRV_CLOSURE,
-                    "accuracy": _TRV_ACCURACY,
-                }
-            ],
-        },
-        {
-            "name": "zone_two",
-            "temperature": _ZONE_TEMP_2,
-            "thermostats": [
-                {
-                    "climate": _CLIMATE_2,
-                    "valve_closure": _TRV_CLOSURE_2,
-                    "accuracy": _TRV_ACCURACY_2,
-                }
-            ],
-        },
-    ]
-    app = _tick_app(plant_setpoint=45.0, zone_temp=20.0, setpoint=22.0, args=args)
-    base = app.get_state.side_effect
-
-    def get_state(entity_id: str, attribute: str | None = None):
-        if entity_id == _TRV_CLOSURE:
-            return 10.0
-        if entity_id == _TRV_ACCURACY:
-            return 0.5
-        if entity_id == _ZONE_TEMP_2:
-            return "unavailable"
-        if entity_id == _TRV_CLOSURE_2:
-            return 10.0
-        if entity_id == _TRV_ACCURACY_2:
-            return 0.5
-        if entity_id == _CLIMATE_2:
-            if attribute == "temperature":
-                return 22.0
-            if attribute == "hvac_action":
-                return "heating"
-            return "heat"
-        return base(entity_id, attribute)
-
-    app.get_state = MagicMock(side_effect=get_state)
-    app.control_tick({})
-    writes = _set_value_by_entity(app)
-    assert (_TRV_CLOSURE, 80.0) in writes
-    assert all(eid != _TRV_CLOSURE_2 for eid, _ in writes)
-
-
-def test_trv_multi_independent_latches_and_mixed_plain_skipped() -> None:
-    args = _tick_args()
-    args["zones"] = [
-        {
-            "name": _ZONE_NAME,
-            "temperature": _ZONE_TEMP,
-            "thermostats": [
-                {
-                    "climate": _CLIMATE,
-                    "valve_closure": _TRV_CLOSURE,
-                    "accuracy": _TRV_ACCURACY,
-                },
-                _CLIMATE_GENERIC,
-                {
-                    "climate": _CLIMATE_2,
-                    "valve_closure": _TRV_CLOSURE_2,
-                    "accuracy": _TRV_ACCURACY_2,
-                },
-            ],
-        }
-    ]
-    app = _tick_app(plant_setpoint=45.0, zone_temp=23.0, setpoint=22.0, args=args)
-    base = app.get_state.side_effect
-
-    def get_state(entity_id: str, attribute: str | None = None):
-        if entity_id == _TRV_CLOSURE:
-            return 10.0
-        if entity_id == _TRV_ACCURACY:
-            return 0.5
-        if entity_id == _TRV_CLOSURE_2:
-            return 100.0
-        if entity_id == _TRV_ACCURACY_2:
-            return 0.5
-        if entity_id == _CLIMATE_GENERIC:
-            if attribute == "temperature":
-                return 22.0
-            if attribute == "hvac_action":
-                return "heating"
-            return "heat"
-        if entity_id == _CLIMATE_2:
-            if attribute == "temperature":
-                return 22.0
-            if attribute == "hvac_action":
-                return "heating"
-            return "heat"
-        return base(entity_id, attribute)
-
-    # Phase 1: shared T=21.5 — TRV1 unlatched → floor; latched TRV2 → clear.
-    app._trv_overshoot_latched.add(_TRV_CLOSURE_2)
-
-    def get_state_clear(entity_id: str, attribute: str | None = None):
-        if entity_id == _ZONE_TEMP:
-            return 21.5
-        return get_state(entity_id, attribute)
-
-    app.get_state = MagicMock(side_effect=get_state_clear)
-    app.control_tick({})
-    writes = _set_value_by_entity(app)
-    assert (_TRV_CLOSURE, 80.0) in writes
-    assert (_TRV_CLOSURE_2, 80.0) in writes
-    assert _TRV_CLOSURE not in app._trv_overshoot_latched
-    assert _TRV_CLOSURE_2 not in app._trv_overshoot_latched
-    assert all(not str(eid).startswith("climate.") for eid, _ in writes)
-
-    # Phase 2: overshoot latches TRV1 only; TRV2 high setpoint stays at floor.
-    app.call_service.reset_mock()
-    app._trv_overshoot_latched.clear()
-
-    def get_state_overshoot(entity_id: str, attribute: str | None = None):
-        if entity_id == _ZONE_TEMP:
-            return 23.0
-        if entity_id == _TRV_CLOSURE_2:
-            return 10.0
-        if entity_id == _CLIMATE_2:
-            if attribute == "temperature":
-                return 30.0  # high setpoint → no overshoot for TRV2
-            if attribute == "hvac_action":
-                return "heating"
-            return "heat"
-        return get_state(entity_id, attribute)
-
-    app.get_state = MagicMock(side_effect=get_state_overshoot)
-    app.control_tick({})
-    writes = _set_value_by_entity(app)
-    assert (_TRV_CLOSURE, 100.0) in writes
-    assert _TRV_CLOSURE in app._trv_overshoot_latched
-    assert (_TRV_CLOSURE_2, 80.0) in writes
-    assert _TRV_CLOSURE_2 not in app._trv_overshoot_latched
-    assert all(not str(eid).startswith("climate.") for eid, _ in writes)
-
-
-def test_trv_cold_start_overshoot_latches_on_initialize() -> None:
+def test_trv_cold_start_idle_floors_on_initialize() -> None:
     app = _init_app(args=_trv_tick_args())
 
     def get_state(entity_id: str, attribute: str | None = None):
         if entity_id == _PLANT_MGMT:
             return "on"
         if entity_id == _TRV_CLOSURE:
-            return 80.0
-        if entity_id == _TRV_ACCURACY:
-            return 0.5
+            return 10.0
         if entity_id == _ZONE_TEMP:
-            return 23.0
+            return 20.0
         if entity_id == _OUTDOOR:
             return _OUTDOOR_TEMP
         if entity_id == _PLANT_SETPOINT:
@@ -2630,11 +2342,142 @@ def test_trv_cold_start_overshoot_latches_on_initialize() -> None:
             if attribute == "temperature":
                 return 22.0
             if attribute == "hvac_action":
-                return "heating"
+                return "idle"
             return "heat"
         return None
 
     app.get_state = MagicMock(side_effect=get_state)
     app.initialize()
+    assert (_TRV_CLOSURE, 80.0) in _set_value_by_entity(app)
+    assert app._trv_idle_episode == "holding"
+
+
+def test_trv_plant_off_via_control_event() -> None:
+    app = _trv_app(plant_management="off", closure=80.0)
+    _fire_control_event(app)
     assert (_TRV_CLOSURE, 100.0) in _set_value_by_entity(app)
-    assert _TRV_CLOSURE in app._trv_overshoot_latched
+
+
+def test_trv_no_valve_opening_degree_entity_writes() -> None:
+    source = _HVAC_APP_PATH.read_text(encoding="utf-8")
+    assert "valve_opening_degree" not in source
+
+
+def test_trv_outdoor_fail_still_applies_before_prelude() -> None:
+    app = _trv_app(closure=10.0, hvac_action="idle", outdoor="unavailable")
+    with patch.object(app, "_apply_trv_law", wraps=app._apply_trv_law) as trv_spy:
+        app.control_tick({})
+    trv_spy.assert_called()
+    assert (_TRV_CLOSURE, 80.0) in _set_value_by_entity(app)
+    assert (_PLANT_SETPOINT, 0.0) in _set_value_by_entity(app)
+
+
+def test_trv_empty_zone_prelude_still_runs_law() -> None:
+    app = _trv_app(zone_temp="unavailable", hvac_action="idle", closure=10.0)
+    with patch.object(app, "_apply_trv_law", wraps=app._apply_trv_law) as trv_spy:
+        app.control_tick({})
+    trv_spy.assert_called()
+    assert (_TRV_CLOSURE, 80.0) in _set_value_by_entity(app)
+    assert (_PLANT_SETPOINT, 0.0) in _set_value_by_entity(app)
+
+
+def test_trv_multi_zone_commissioned_idle_writes_all() -> None:
+    args = _tick_args()
+    args["zones"] = [
+        {
+            "name": _ZONE_NAME,
+            "temperature": _ZONE_TEMP,
+            "thermostats": [{"climate": _CLIMATE, "valve_closure": _TRV_CLOSURE}],
+        },
+        {
+            "name": "zone_two",
+            "temperature": _ZONE_TEMP_2,
+            "thermostats": [{"climate": _CLIMATE_2, "valve_closure": _TRV_CLOSURE_2}],
+        },
+    ]
+    app = _tick_app(zone_temp=20.0, setpoint=22.0, hvac_action="idle", args=args)
+    base = app.get_state.side_effect
+
+    def get_state(entity_id: str, attribute: str | None = None):
+        if entity_id in (_TRV_CLOSURE, _TRV_CLOSURE_2):
+            return 10.0
+        if entity_id == _ZONE_TEMP_2:
+            return 20.0
+        if entity_id == _CLIMATE_2:
+            if attribute == "temperature":
+                return 22.0
+            if attribute == "hvac_action":
+                return "idle"
+            return "heat"
+        return base(entity_id, attribute)
+
+    app.get_state = MagicMock(side_effect=get_state)
+    app.control_tick({})
+    writes = _set_value_by_entity(app)
+    assert (_TRV_CLOSURE, 80.0) in writes
+    assert (_TRV_CLOSURE_2, 80.0) in writes
+
+
+def test_trv_any_demand_writes_100_on_all_commissioned_trvs() -> None:
+    args = _tick_args()
+    args["zones"] = [
+        {
+            "name": _ZONE_NAME,
+            "temperature": _ZONE_TEMP,
+            "thermostats": [{"climate": _CLIMATE, "valve_closure": _TRV_CLOSURE}],
+        },
+        {
+            "name": "zone_two",
+            "temperature": _ZONE_TEMP_2,
+            "thermostats": [{"climate": _CLIMATE_2, "valve_closure": _TRV_CLOSURE_2}],
+        },
+    ]
+    app = _tick_app(zone_temp=20.0, setpoint=22.0, hvac_action="heating", args=args)
+    base = app.get_state.side_effect
+
+    def get_state(entity_id: str, attribute: str | None = None):
+        if entity_id in (_TRV_CLOSURE, _TRV_CLOSURE_2):
+            return 80.0
+        if entity_id == _ZONE_TEMP_2:
+            return 20.0
+        if entity_id == _CLIMATE_2:
+            if attribute == "temperature":
+                return 22.0
+            if attribute == "hvac_action":
+                return "idle"
+            return "heat"
+        return base(entity_id, attribute)
+
+    app.get_state = MagicMock(side_effect=get_state)
+    app.control_tick({})
+    writes = _set_value_by_entity(app)
+    assert (_TRV_CLOSURE, 100.0) in writes
+    assert (_TRV_CLOSURE_2, 100.0) in writes
+
+
+def test_trv_hold_expiry_closure_unavailable_clears_episode() -> None:
+    app = _trv_app(closure="unavailable", hvac_action="idle")
+    app._trv_idle_episode = "holding"
+    app._trv_soft_close_hold_token = 4
+    app._trv_soft_close_hold_expired({"token": 4})
+    assert all(eid != _TRV_CLOSURE for eid, _ in _set_value_by_entity(app))
+    assert app._trv_idle_episode is None
+
+
+def test_trv_closed_idle_does_not_refloor() -> None:
+    app = _trv_app(closure=100.0, hvac_action="idle")
+    app._trv_idle_episode = "closed_idle"
+    app.control_tick({})
+    assert all(eid != _TRV_CLOSURE for eid, _ in _set_value_by_entity(app))
+    app.run_in.assert_not_called()
+
+
+def test_trv_demand_cancel_orphan_hold_expiry() -> None:
+    app = _trv_app(closure=80.0, hvac_action="idle")
+    app.control_tick({})
+    stale_token = app._trv_soft_close_hold_token - 1
+    app.get_state = _trv_app(hvac_action="heating").get_state
+    app.control_tick({})
+    app.call_service.reset_mock()
+    app._trv_soft_close_hold_expired({"token": stale_token})
+    assert all(eid != _TRV_CLOSURE for eid, _ in _set_value_by_entity(app))
