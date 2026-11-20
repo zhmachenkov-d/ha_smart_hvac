@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## v3.13.0 (2026-11-20)
+
+### Chores
+
+- **po**: Refine story 7.2 house apps.yaml commission
+  ([`4fdd28d`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/4fdd28dd7fd35e9a0070576ae39a5319be798b29))
+
+### Features
+
+- **trv**: Commission house apps.yaml for house-idle soft-close
+  ([`59b7832`](https://github.com/zhmachenkov-d/ha_smart_hvac/commit/59b7832d8652432dd2990432962051ea63de69b5))
+
+
 ## v3.12.0 (2026-11-20)
 
 ### Bug Fixes
