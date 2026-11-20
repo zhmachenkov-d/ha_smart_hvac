@@ -31,13 +31,14 @@ notes = ["HITL: ask before changing house entity IDs (AGENTS.md).", "Shared R1/R
 id = 3
 type = "story"
 title = "Docs: amend ADR/CONTEXT/AGENTS/knowledge for house-idle soft-close"
-description = "Amends live ADR 0008, CONTEXT.md, AGENTS.md, and knowledge/ to document the law shipped in entry 1: house-idle → floor → hold-or-heating-edge → 100; commissioned = closure-only; overshoot hysteresis and accuracy listeners are not live soft-close law; plant-off still writes 100; App never writes valve_opening_degree. CAP-7 stays out."
-verify = "ADR 0008, CONTEXT.md, AGENTS.md, and live knowledge pages describe house-idle soft-close with floor+hold (not overshoot/accuracy as live law); CAP-7 absent from live commissioning language; uv run pytest and uv run ruff check apps/ha_smart_hvac tests clean."
+description = "Amend live ADR 0008, CONTEXT.md, AGENTS.md, and knowledge/ to document the house-idle soft-close law shipped in entry 1 (tracer Reqs 1–7): first all-idle floors+arms hold; any Heating Demand or hold expiry → 100; plant-off writes 100 and cancels hold; closure-only (accuracy ConfigError); mark overshoot/accuracy TRV decisions historical; CAP-7 out."
+verify = "ADR 0008, CONTEXT, AGENTS bmad:context, and live knowledge teach house-idle soft-close matching entry 1 Reqs 1–7 (not overshoot/accuracy as live); three adr-trv overshoot/accuracy decisions have historical banners; accuracy absent from live listener lists; CAP-7 absent; rg live paths clean of live overshoot/accuracy soft-close; uv run pytest and uv run ruff check apps/ha_smart_hvac tests clean."
 covers = ["R1", "R2"]
 after = [1]
 hitl = false
 risk = "medium"
-notes = ["Shared R1/R2: docs here; App law in entry 1; house yaml in entry 2.", "Can run parallel with entry 2.", "House HITL kept second per re-slice Decision (2026-11-20); docs breadth is amend-only after epic 6."]
+refine = true
+notes = ["R1/R2 split: docs here; App law entry 1; house yaml entry 2.", "Can run in parallel with entry 2; docs must not need house apps.yaml.", "SoT = tracer Reqs 1–7 (not epic R1 rising-edge-only).", "Historical banners on three adr-trv overshoot/accuracy decisions; no new hold decision file.", "AGENTS only inside bmad:context; Verified stamp unchanged.", "7.3 live pointers; 7.4 deferred prune only."]
 
 [[entry]]
 id = 4
