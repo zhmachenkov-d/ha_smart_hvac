@@ -5,13 +5,14 @@
 id = 1
 type = "story"
 title = "Tracer: TRV house-idle soft-close"
-description = "Replaces plant-on floor+overshoot soft-close with house-idle law: commissioned Sonoff TRV = closure entity only (accuracy retired from soft-close); under Plant on and no Heating Demand anywhere write valve_closure_degree=valve_closure_floor (default 80) and start trv_soft_close_hold_s (default 300); on hold expiry while still idle write 100; on any-zone heating rising-edge cancel hold and write 100; on return to all-idle restart floor+hold; Plant off cancel hold and write 100; never write valve_opening_degree; Critical Zone does not drive soft-close; remove overshoot latch and accuracy listeners from live soft-close; apps.yaml.example commissions trv_soft_close_hold_s and closure-only TRV keys (schema house entry 2 will commission against); automated tests lock the law."
-verify = "Under Plant on + all zones idle, commissioned TRVs show floor and a hold is scheduled; after hold expiry while idle or any heating rising-edge they show 100; Plant off shows 100 and hold cancelled; App never calls valve_opening_degree; accuracy not required for commission; Critical Zone does not drive soft-close writes; apps.yaml.example has trv_soft_close_hold_s and closure-only TRV wiring; uv run pytest and uv run ruff check apps/ha_smart_hvac tests clean."
+description = "Replace plant-on floor+overshoot soft-close with house-idle soft-close (config + hold + writes + example yaml) so epic R1/R2 are true in the App and tests, leaving house apps.yaml and live docs to later stories."
+verify = "Plant on enter-idle writes floor and arms hold once; hold expiry while idle or any demand writes 100 and cancel uses flame-style token/orphan; return to idle restarts floor+hold; plant-off writes 100 and cancels hold; closure-only commission (accuracy ConfigError); no valve_opening_degree; Critical Zone does not drive soft-close; apps.yaml.example has trv_soft_close_hold_s + closure-only TRV; uv run pytest and uv run ruff check apps/ha_smart_hvac tests clean."
 covers = ["R1", "R2"]
 after = ["6.2"]
 hitl = false
 risk = "high"
-notes = ["Tracer bullet: config parse + house-idle/hold/edge/plant-off law + example yaml in one path.", "after 6.2: substantive docs epic landed; do not after 6.3 (blocked on this epic — cycle).", "House entity ids stay for entry 2 HITL; docs amend is entry 3."]
+refine = false
+notes = ["Tracer: config + house-idle/hold/edge/plant-off + example yaml + tests.", "after 6.2; not 6.3 (cycle).", "House yaml = 7.2; docs = 7.3.", "Picks 2026-11-20: demand→100; arm hold on first all-idle observe; accuracy reject; flame-style token.", "Risk: wrong soft-close soft-closes under demand or skips soft-close when idle."]
 
 [[entry]]
 id = 2
