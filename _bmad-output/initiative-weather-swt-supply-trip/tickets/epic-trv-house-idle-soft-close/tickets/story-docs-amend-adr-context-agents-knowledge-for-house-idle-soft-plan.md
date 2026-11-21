@@ -3,7 +3,7 @@ title: 'Docs: amend ADR/CONTEXT/AGENTS/knowledge for house-idle soft-close'
 type: 'chore'
 ticket: '3'
 created: '2026-11-20'
-status: 'built'
+status: done
 baseline_revision: 'a6e52d4084d977ba8bda42b655553b0a53cb3af1'
 route: 'full'
 route_source: 'auto'
@@ -174,3 +174,85 @@ Docs-only amend after App law landed; wrong overshoot/accuracy teaching is the r
 - R16 `low` — IA compressed demand (dup R5): rejected same reason
 - R17 `false` — IA set-water sibling (dup R1): rejected same reason
 - R18 `false` — Req 6 gates in plan not diff: expected for docs-only deliverable
+
+### 2026-11-21 — walkthrough Intent Formal review
+**Code review complete.** 0 `decision-needed`, 0 `patch`, 0 `defer`, 17 rejected.
+
+#### Rejected
+- R1 `false` — `set-water-temperature.md` plant-off “still applies”: outside Notes matrix / Req 4; companion holds depth
+- R2 `false` — CONTEXT omits flame-observe negative fence: positive schedule complete; not in Req 3 (prior follow-up R7)
+- R3 `low` — CONTEXT/AGENTS omit demand enum: “any Heating Demand” enough; ADR/knowledge carry flavors
+- R4 `low` — CONTEXT TRV `_Avoid_` not expanded: positive prose already demotes
+- R5 `low` — banner markdown links: bare-ADR pattern match
+- R6 `false` — present-tense historical bodies: by design (banner + leave body)
+- R7 `false` — empty Plan Change Log: scaffolding, not product defect
+- R8 `false` — walkthrough Intent unchecked mid-session: correct process state
+- R9 `false` — hygiene rg omits set-water: follows R1 / Notes matrix
+- R10 `false` — Related drops demoted decisions: intent dropped live cites
+- R11 `low` — index blurb drops plant-off cue: primary page holds detail
+- R12 `false` — AGENTS “still applies (…)”: parenthetical states 100+cancel
+- R13 `false` — ADR floor-write-fail before arm: outside docs SoT Req 1–7
+- R14 `false` — ADR hold-expiry write-fail: outside SoT
+- R15 `false` — ADR hold expiry while demand: outside SoT
+- R16 `low` — IA demand-flavor split (dup R3): rejected same reason
+- R17 `false` — Req 6 verify not in product diff: expected for docs-only
+
+### 2026-11-21 — walkthrough Broad strokes Formal review
+**Code review complete.** 0 `decision-needed`, 1 `patch`, 0 `defer`, 15 rejected.
+
+- [x] [Review][Patch] Walkthrough Broad strokes relative links use four ../ (escape repo); need three [_bmad-output/initiative-weather-swt-supply-trip/walkthrough-story-7-3-docs-house-idle-soft-close/walkthrough-story-7-3-docs-house-idle-soft-close.md]
+
+#### Rejected
+- R2 `false` — set-water sibling: outside Notes matrix
+- R3 `false` — house-calibration: outside story scope
+- R4 `false` — ADR demotion map: banners + dropped cites suffice
+- R5 `low` — banner markdown links: bare-ADR pattern
+- R6 `false` — present-tense historical bodies: by design
+- R7 `low` — CONTEXT `_Avoid_`: positive prose enough
+- R8 `false` — Related drops demoted decisions: intent drop
+- R9 `low` — log Fact unnamed paths: not a nav index
+- R10 `low` — demand enum compression: any Heating Demand enough
+- R11 `low` — index plant-off cue: primary page holds detail
+- R12 `false` — walkthrough metadata lag: process/state nits
+- R13–R15 `false` — ADR write-fail/expiry-while-heating: outside docs SoT
+- R16 `false` — IA residuals: descriptive / already rejected
+
+### 2026-11-21 — walkthrough Slice ADR Formal review
+**Code review complete.** 0 `decision-needed`, 0 `patch`, 0 `defer`, 14 rejected.
+
+#### Rejected
+- R1 `false` — set-water sibling: outside Notes matrix
+- R2 `low` — CONTEXT `_Avoid_`: positive prose enough
+- R3 `false` — Related drops demoted decisions: intent drop
+- R4 `low` — index plant-off cue: primary page holds detail
+- R5 `false` — present-tense historical bodies: by design
+- R6 `false` — ADR cite list no historical breadcrumb: banners are demotion surface
+- R7 `false` — adr-trv-before-water-prelude overshoot provenance: prelude ordering still live; soft-close substance in ADR 0008
+- R8 `low` — demand enum compression: any Heating Demand enough
+- R9 `false` — later slice placeholders: correct mid-walkthrough state
+- R10 `false` — empty Plan Change Log: scaffolding
+- R11 `false` — Intent Problem present tense: frozen Intent paste from plan
+- R12 `false` — demo CAP-7 L56: Out of scope H2 is L55; CAP-7 body is L56 (wc undercount without final newline)
+- R13 `false` — Periphery open: not yet reached
+- R14 `low` — banner bare ADR name: pattern match
+
+### 2026-11-21 — walkthrough Slice CONTEXT+AGENTS Formal review
+**Code review complete.** 0 `decision-needed`, 0 `patch`, 0 `defer`, 16 rejected.
+
+#### Rejected
+- R1 `false` — set-water sibling: outside Notes matrix
+- R2 `false` — house-calibration: outside story scope
+- R3 `low` — CONTEXT `_Avoid_`: positive prose enough
+- R4 `false` — CONTEXT flame-observe fence: positive schedule complete; not in Req 3
+- R5 `low` — index plant-off cue: primary page holds detail
+- R6 `low` — log Fact unnamed paths: not a nav index
+- R7 `false` — Related drops demoted decisions: intent drop
+- R8 `false` — ADR cite list no historical breadcrumb: banners are demotion surface
+- R9 `low` — banner bare ADR: pattern match
+- R10 `false` — present-tense historical bodies: by design
+- R11 `false` — Intent Problem present tense: frozen Intent paste
+- R12 `false` — empty Plan Change Log: scaffolding
+- R13 `false` — followup_review_recommended metadata: workflow signal
+- R14 `false` — Blocks line “in progress” mid-slice: correct process state
+- R15 `low` — demand enum compression: any Heating Demand enough
+- R16 `false` — set-water timestamp / Broad strokes sibling links / prelude provenance: out of slice / cosmetic
