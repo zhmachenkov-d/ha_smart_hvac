@@ -112,3 +112,51 @@ Session: unavailable · Timestamp: 2026-11-21T10:21:00+00:00
 - Result: Current = Slice ADR; tree dirty (plan + walkthrough updates + demo-broad-strokes untracked).
 - Evidence: walkthrough narrative Blocks/Slices
 - Open: Slice ADR acceptance; ask commit?
+
+## 15 — Slice ADR — commit Broad strokes progress
+Session: unavailable · Timestamp: 2026-11-21T10:22:00+00:00
+
+- Action: User said yes to commit; committed Broad strokes evidence + ADR slice open on branch.
+- Result: 7be1c85; tree clean at commit; log append uncommitted.
+- Evidence: git log -1
+- Open: Slice ADR still in progress; push/PR not requested
+
+## 16 — Slice ADR — Demo
+Session: unavailable · Timestamp: 2026-11-21T10:22:00+00:00
+
+- Action: Spot-read ADR 0008 SWT gates / Event path / cites / § TRV vs Req 2 checklist.
+- Result: All Match; CAP-7 out; three overshoot decisions absent from live cites.
+- Evidence: demo-slice-adr-transcript.md; ADR L8/L11/L27/L31-34/L56
+- Open: Slice ADR still in progress
+
+## 17 — Slice ADR — Test
+Session: unavailable · Timestamp: 2026-11-21T10:23:00+00:00
+
+- Action: pytest + ruff + ADR hygiene rg + key-clause spot check.
+- Result: 370 passed; ruff clean; ADR hygiene OK; no live overshoot cites; floor/hold/ConfigError/orphan/cold-start present. Unverified: none for this slice.
+- Evidence: uv run pytest; uv run ruff; docs/adr/0008 L32/L34
+- Open: Slice ADR still in progress
+
+## 18 — Slice ADR — Formal review clean
+Session: unavailable · Timestamp: 2026-11-21T10:24:00+00:00
+
+- Action: Thorough code review; BH/EC/VG/IA; triage all rejected.
+- Result: Clean — 0 patch, 14 rejected. Edge-case empty; verification-gap clean.
+- Evidence: /tmp/cr-7-3-adr-diff-d1oKbA.txt; plan ### 2026-11-21 Slice ADR Formal review
+- Open: code-review next-steps menu
+
+## 19 — Slice ADR — Formal review done
+Session: unavailable · Timestamp: 2026-11-21T11:00:00+00:00
+
+- Action: User chose 3 Done on code-review next steps.
+- Result: Back on Slice ADR; Formal review clean.
+- Evidence: plan Slice ADR Formal review
+- Open: Slice ADR acceptance pending user
+
+## 20 — Slice ADR done; Slice CONTEXT+AGENTS present
+Session: unavailable · Timestamp: 2026-11-21T11:01:00+00:00
+
+- Action: User said Slice ADR done; filled CONTEXT+AGENTS slice; presented it.
+- Result: Current = Slice CONTEXT+AGENTS; tree dirty.
+- Evidence: walkthrough narrative
+- Open: Slice CONTEXT+AGENTS acceptance; ask commit?

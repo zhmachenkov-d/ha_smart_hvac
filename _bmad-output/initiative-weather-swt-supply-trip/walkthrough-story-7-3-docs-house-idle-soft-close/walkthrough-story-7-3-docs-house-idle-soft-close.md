@@ -5,13 +5,13 @@ Target: [PR #166](https://github.com/zhmachenkov-d/ha_smart_hvac/pull/166) · me
 Ticket: [story-docs-amend-adr-context-agents-knowledge-for-house-idle-soft.md](../tickets/epic-trv-house-idle-soft-close/tickets/story-docs-amend-adr-context-agents-knowledge-for-house-idle-soft.md)
 Plan: [story-docs-amend-adr-context-agents-knowledge-for-house-idle-soft-plan.md](../tickets/epic-trv-house-idle-soft-close/tickets/story-docs-amend-adr-context-agents-knowledge-for-house-idle-soft-plan.md)
 
-**Current block:** Slice: ADR 0008 TRV + Event path (in progress)
+**Current block:** Slice: CONTEXT + AGENTS (in progress)
 
 ## Blocks
 - [x] **Intent** — done (Demo + Test + Formal review clean)
 - [x] **Broad strokes** — done (Demo + Test; Formal review 1 patch applied — link depth)
-- [ ] **Slice: ADR 0008 TRV + Event path** — in progress
-- [ ] **Slice: CONTEXT + AGENTS** — open
+- [x] **Slice: ADR 0008 TRV + Event path** — done (Demo + Test + Formal review clean)
+- [ ] **Slice: CONTEXT + AGENTS** — in progress
 - [ ] **Slice: Knowledge + historical banners** — open
 - [ ] **Periphery** — open
 - [ ] **Wrap-up** — open
@@ -47,12 +47,16 @@ Agent-law soft-close now lives in ADR 0008 § TRV: house-idle floor + hold (defa
 Places:
 - [0008-weather-curve-trv-flame-swt.md](../../../docs/adr/0008-weather-curve-trv-flame-swt.md) — § TRV soft-close + Event-path listener list + live cite list + SWT gates plant-off parenthetical
 
+Review notes: Demo — [demo-slice-adr-transcript.md](demo-slice-adr-transcript.md) (Req 2 checklist Match). Test — 370 pytest + ruff; ADR hygiene clean; floor/hold/ConfigError/orphan/cold-start anchors present; no live overshoot decision cites. Formal review Slice ADR 2026-11-21 — clean (14 rejected, 0 patch).
+
 ---
 
 ### Slice: CONTEXT + AGENTS
-Status: open
+CONTEXT glossary and AGENTS `bmad:context` Conventions carry the same house-idle soft-close law as ADR 0008 (floor + hold + any-demand/plant-off cancel; orphan no-op; closure-only; leftover `accuracy` ConfigError; no accuracy soft-close listen). AGENTS edits stay inside markers; Verified stamp unchanged. Demand flavors stay compressed as “any Heating Demand” (ADR/knowledge keep the enum).
 
-(placeholder)
+Places:
+- [CONTEXT.md](../../../CONTEXT.md) — Plant Management off dialogue + **TRV soft-close** glossary + Weather Feedforward listeners (no accuracy)
+- [AGENTS.md](../../../AGENTS.md) — plant-off TRV line; TRV soft-close Conventions bullet; Event listeners inventory; Verified stamp
 
 ---
 

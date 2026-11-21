@@ -216,3 +216,22 @@ Docs-only amend after App law landed; wrong overshoot/accuracy teaching is the r
 - R12 `false` — walkthrough metadata lag: process/state nits
 - R13–R15 `false` — ADR write-fail/expiry-while-heating: outside docs SoT
 - R16 `false` — IA residuals: descriptive / already rejected
+
+### 2026-11-21 — walkthrough Slice ADR Formal review
+**Code review complete.** 0 `decision-needed`, 0 `patch`, 0 `defer`, 14 rejected.
+
+#### Rejected
+- R1 `false` — set-water sibling: outside Notes matrix
+- R2 `low` — CONTEXT `_Avoid_`: positive prose enough
+- R3 `false` — Related drops demoted decisions: intent drop
+- R4 `low` — index plant-off cue: primary page holds detail
+- R5 `false` — present-tense historical bodies: by design
+- R6 `false` — ADR cite list no historical breadcrumb: banners are demotion surface
+- R7 `false` — adr-trv-before-water-prelude overshoot provenance: prelude ordering still live; soft-close substance in ADR 0008
+- R8 `low` — demand enum compression: any Heating Demand enough
+- R9 `false` — later slice placeholders: correct mid-walkthrough state
+- R10 `false` — empty Plan Change Log: scaffolding
+- R11 `false` — Intent Problem present tense: frozen Intent paste from plan
+- R12 `false` — demo CAP-7 L56: Out of scope H2 is L55; CAP-7 body is L56 (wc undercount without final newline)
+- R13 `false` — Periphery open: not yet reached
+- R14 `low` — banner bare ADR name: pattern match
