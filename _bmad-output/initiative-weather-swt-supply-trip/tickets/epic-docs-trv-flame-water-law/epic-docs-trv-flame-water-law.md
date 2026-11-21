@@ -1,18 +1,4 @@
----
-type: epic
-title: "Docs: TRV + flame water law"
-parent: initiative-weather-swt-supply-trip
-covers: ["R4", "R7", "R8"]
-sources:
-  - _bmad-output/initiative-weather-swt-supply-trip/initiative-weather-swt-supply-trip.md
-companions: []
-after: []
-refined: true
-risk: medium
----
-
 # Docs: TRV + flame water law
-
 ## Description
 Align ADR, CONTEXT, AGENTS, and `knowledge/` with the shipped weather-curve + TRV soft-close + flame short-on water law. A new ADR supersedes ADR 0007 for live water law (0007 becomes historical supply-trip era); remove live supply rise-rate trip language; keep CAP-7 out. Does not change runtime behavior owned by epics 4–5.
 
@@ -61,3 +47,4 @@ Owns domain-doc amend after TRV + flame ship. Does not own TRV or flame runtime 
 - Decision: Stale `deferred-work.md` epic-3 bullets are hygiene in tracer/sweep, not a refine blocker; `control_event` docstring remediation stays out of this epic (2026-11-17).
 - Decision: Story slice approved — tracer bullet is 6.1 (new ADR + AGENTS/CONTEXT + live pointers / zombie supply decisions); then 6.2 knowledge live curve+TRV+flame + demote supply-trip (least-certain); then 6.3 Refactor sweep. Declined separate closing e2e suite; ADR written in-story (not toolsmith). No opening refactor. (2026-11-17).
 - Decision: Replan 2026-11-20 — story 6.3 blocked until new TRV house-idle soft-close epic; live R9 no longer overshoot hysteresis; docs amend follows that epic.
+- Decision: 6.3 Intent renegotiated 2026-11-21 after epic 7 — package C post–epic-7 hygiene (PR #159 CAP-8 baseline; deferred G prune + F caveat + epic-4 historical fence; set-water hold/cancel; house-cal hold/floor/accuracy; `control_event` docstring P1 in-scope as comment-only). Prior «docstring stays out of this epic» superseded for story 6.3 only.
