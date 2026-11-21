@@ -3,12 +3,12 @@ type: Concept
 title: Outdoor Temperature
 description: Measured outdoor air T_out; required on the Set Water Temperature demand path and a control_event listener under ADR 0008 — not an input to flame observe.
 tags: [sensing, plant]
-timestamp: 2026-11-17T12:00:00Z
+timestamp: 2026-11-20T12:00:00Z
 ---
 
 # Outdoor Temperature
 
-**Outdoor Temperature** is the measured outdoor air temperature (`T_out`). It is required on the [Set Water Temperature](/concepts/set-water-temperature.md) demand path: Weather Feedforward uses it in `u_ff = base + slope × (comfort_ref − T_out)`, and it is a `control_event` listener that re-evaluates the Outdoor-gated demand writer (with Plant Management, zone air, thermostat `hvac_action` / setpoint, and commissioned accuracy). Unavailable Outdoor under plant-on conditions is a Plant-on non-demand exit (idle).
+**Outdoor Temperature** is the measured outdoor air temperature (`T_out`). It is required on the [Set Water Temperature](/concepts/set-water-temperature.md) demand path: Weather Feedforward uses it in `u_ff = base + slope × (comfort_ref − T_out)`, and it is a `control_event` listener that re-evaluates the Outdoor-gated demand writer (with Plant Management, zone air, and thermostat `hvac_action` / setpoint). Unavailable Outdoor under plant-on conditions is a Plant-on non-demand exit (idle).
 
 Outdoor is **not** an input to `_flame_observe_gate` and is never required for flame observe — that gate is Plant∧Demand∧`ch_active` on∧¬latch only (see [flame short-on trip](/concepts/flame-short-on-trip.md)).
 

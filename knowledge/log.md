@@ -2,6 +2,11 @@
 
 Append-only history of OKF ingest and lint passes.
 
+## 2026-11-20 — Amend live soft-close knowledge for house-idle floor + hold
+
+- **Updated:** `concepts/trv-soft-close`, `concepts/outdoor-temperature`, `concepts/index.md`; live ADR/CONTEXT/AGENTS soft-close prose (docs story).
+- **Fact:** live TRV soft-close is house-idle `valve_closure_floor` + `trv_soft_close_hold_s` then 100 under ADR 0008 (demand/plant-off cancel; closure-only; leftover `accuracy` ConfigError); plant-on overshoot latch and accuracy listen demoted to historical decisions.
+
 ## 2026-11-17 — Align live SWT knowledge with ADR 0008 (TRV + flame; demote supply-trip)
 
 - **Updated:** `concepts/set-water-temperature`, `outdoor-temperature`, `critical-zone`, `multi-zone-coordinator`, `rls-adaptive-pid`, `adrc`, `ladrc`, `madrc`; `references/huang-2018-ladrc-hvac`, `wang-2026-madrc-sst`; `concepts/index.md`, root `index.md`; `AGENTS.md` knowledge line (clear until-6.2 warning).
