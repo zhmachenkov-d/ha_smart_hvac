@@ -160,3 +160,49 @@ Session: unavailable · Timestamp: 2026-11-21T11:01:00+00:00
 - Result: Current = Slice CONTEXT+AGENTS; tree dirty.
 - Evidence: walkthrough narrative
 - Open: Slice CONTEXT+AGENTS acceptance; ask commit?
+
+## 21 — Slice CONTEXT+AGENTS — commit ADR progress
+Session: unavailable · Timestamp: 2026-11-21T11:01:00+00:00
+
+- Action: User said yes to commit; committed ADR slice evidence + CONTEXT+AGENTS open.
+- Result: 261d734; push not requested.
+- Evidence: git log -1
+- Open: Slice CONTEXT+AGENTS still in progress
+
+## 22 — Slice CONTEXT+AGENTS — Demo
+Session: unavailable · Timestamp: 2026-11-21T11:02:00+00:00
+
+- Action: Spot-read CONTEXT plant-off/TRV/listeners and AGENTS stamp/plant-off/TRV/listeners vs Req 3.
+- Result: Match; demand compressed to any Heating Demand; stamp unchanged; no overshoot latch.
+- Evidence: demo-slice-context-agents-transcript.md; CONTEXT:38/61-62; AGENTS:2/32/35/38
+- Open: Slice CONTEXT+AGENTS still in progress
+
+## 23 — Slice CONTEXT+AGENTS — Test
+Session: unavailable · Timestamp: 2026-11-21T11:03:00+00:00
+
+- Action: pytest + ruff + CONTEXT/AGENTS hygiene + markers/stamp assert.
+- Result: 370 passed; ruff clean; hygiene OK; bmad:context markers + Verified stamp OK. Unverified: none for this slice.
+- Evidence: uv run pytest; uv run ruff; CONTEXT.md; AGENTS.md L2
+- Open: Slice CONTEXT+AGENTS still in progress
+
+## 24 — Slice CONTEXT+AGENTS — Formal review clean
+Session: unavailable · Timestamp: 2026-11-21T11:04:00+00:00
+
+- Action: Thorough code review; BH/EC/VG/IA; triage all rejected.
+- Result: Clean — 0 patch, 16 rejected. EC empty; VG clean. Req 3 Reading A.
+- Evidence: /tmp/cr-7-3-ca-diff-r7WIOA.txt; plan ### 2026-11-21 Slice CONTEXT+AGENTS Formal review
+- Open: code-review next-steps menu
+
+## 25 — Slice CONTEXT+AGENTS — Formal review done
+Session: unavailable · Timestamp: 2026-11-21T11:08:00+00:00
+
+- Action: User chose 3 Done on code-review next steps.
+- Result: Back on Slice CONTEXT+AGENTS; Formal review clean.
+- Open: Slice CONTEXT+AGENTS acceptance pending user
+
+## 26 — Slice CONTEXT+AGENTS done; Knowledge+banners present
+Session: unavailable · Timestamp: 2026-11-21T11:08:00+00:00
+
+- Action: User said CONTEXT+AGENTS done; filled Knowledge + historical banners slice; presented it.
+- Result: Current = Knowledge+banners; tree dirty.
+- Open: Slice Knowledge acceptance; ask commit?

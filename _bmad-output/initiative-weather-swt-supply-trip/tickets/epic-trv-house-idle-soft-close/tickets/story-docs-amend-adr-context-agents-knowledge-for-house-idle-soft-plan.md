@@ -235,3 +235,24 @@ Docs-only amend after App law landed; wrong overshoot/accuracy teaching is the r
 - R12 `false` — demo CAP-7 L56: Out of scope H2 is L55; CAP-7 body is L56 (wc undercount without final newline)
 - R13 `false` — Periphery open: not yet reached
 - R14 `low` — banner bare ADR name: pattern match
+
+### 2026-11-21 — walkthrough Slice CONTEXT+AGENTS Formal review
+**Code review complete.** 0 `decision-needed`, 0 `patch`, 0 `defer`, 16 rejected.
+
+#### Rejected
+- R1 `false` — set-water sibling: outside Notes matrix
+- R2 `false` — house-calibration: outside story scope
+- R3 `low` — CONTEXT `_Avoid_`: positive prose enough
+- R4 `false` — CONTEXT flame-observe fence: positive schedule complete; not in Req 3
+- R5 `low` — index plant-off cue: primary page holds detail
+- R6 `low` — log Fact unnamed paths: not a nav index
+- R7 `false` — Related drops demoted decisions: intent drop
+- R8 `false` — ADR cite list no historical breadcrumb: banners are demotion surface
+- R9 `low` — banner bare ADR: pattern match
+- R10 `false` — present-tense historical bodies: by design
+- R11 `false` — Intent Problem present tense: frozen Intent paste
+- R12 `false` — empty Plan Change Log: scaffolding
+- R13 `false` — followup_review_recommended metadata: workflow signal
+- R14 `false` — Blocks line “in progress” mid-slice: correct process state
+- R15 `low` — demand enum compression: any Heating Demand enough
+- R16 `false` — set-water timestamp / Broad strokes sibling links / prelude provenance: out of slice / cosmetic

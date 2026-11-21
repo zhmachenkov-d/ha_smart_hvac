@@ -5,14 +5,14 @@ Target: [PR #166](https://github.com/zhmachenkov-d/ha_smart_hvac/pull/166) · me
 Ticket: [story-docs-amend-adr-context-agents-knowledge-for-house-idle-soft.md](../tickets/epic-trv-house-idle-soft-close/tickets/story-docs-amend-adr-context-agents-knowledge-for-house-idle-soft.md)
 Plan: [story-docs-amend-adr-context-agents-knowledge-for-house-idle-soft-plan.md](../tickets/epic-trv-house-idle-soft-close/tickets/story-docs-amend-adr-context-agents-knowledge-for-house-idle-soft-plan.md)
 
-**Current block:** Slice: CONTEXT + AGENTS (in progress)
+**Current block:** Slice: Knowledge + historical banners (in progress)
 
 ## Blocks
 - [x] **Intent** — done (Demo + Test + Formal review clean)
 - [x] **Broad strokes** — done (Demo + Test; Formal review 1 patch applied — link depth)
 - [x] **Slice: ADR 0008 TRV + Event path** — done (Demo + Test + Formal review clean)
-- [ ] **Slice: CONTEXT + AGENTS** — in progress
-- [ ] **Slice: Knowledge + historical banners** — open
+- [x] **Slice: CONTEXT + AGENTS** — done (Demo + Test + Formal review clean)
+- [ ] **Slice: Knowledge + historical banners** — in progress
 - [ ] **Periphery** — open
 - [ ] **Wrap-up** — open
 
@@ -58,12 +58,19 @@ Places:
 - [CONTEXT.md](../../../CONTEXT.md) — Plant Management off dialogue + **TRV soft-close** glossary + Weather Feedforward listeners (no accuracy)
 - [AGENTS.md](../../../AGENTS.md) — plant-off TRV line; TRV soft-close Conventions bullet; Event listeners inventory; Verified stamp
 
+Review notes: Demo — [demo-slice-context-agents-transcript.md](demo-slice-context-agents-transcript.md) (Req 3 Match; demand compressed). Test — 370 pytest + ruff; CONTEXT/AGENTS hygiene clean; markers+stamp OK; floor/hold/orphan/ConfigError anchors present. Formal review 2026-11-21 — clean (16 rejected, 0 patch).
+
 ---
 
 ### Slice: Knowledge + historical banners
-Status: open
+Primary knowledge teaches house-idle soft-close (cite ADR 0008 + live prelude); concepts index TRV blurb no longer says plant-off keeps overshoot latch; outdoor listener inventory has no commissioned accuracy; `knowledge/log.md` has an append-only Fact. The three overshoot/accuracy TRV decisions open with a leading Historical banner → ADR 0008; no new soft-close hold decision file.
 
-(placeholder)
+Places:
+- [trv-soft-close.md](../../../knowledge/concepts/trv-soft-close.md) — primary page (frontmatter + body + Related)
+- [index.md](../../../knowledge/concepts/index.md) — TRV blurb
+- [outdoor-temperature.md](../../../knowledge/concepts/outdoor-temperature.md) — listener inventory
+- [log.md](../../../knowledge/log.md) — append-only Fact
+- [adr-trv-write-gated-overshoot-latch.md](../../../docs/decisions/adr-trv-write-gated-overshoot-latch.md), [adr-trv-plant-off-no-latch-clear.md](../../../docs/decisions/adr-trv-plant-off-no-latch-clear.md), [adr-trv-accuracy-shared-control-event.md](../../../docs/decisions/adr-trv-accuracy-shared-control-event.md) — Historical banners
 
 ---
 
