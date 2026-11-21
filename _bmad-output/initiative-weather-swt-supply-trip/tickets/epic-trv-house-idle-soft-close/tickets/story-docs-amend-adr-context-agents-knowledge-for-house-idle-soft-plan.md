@@ -150,3 +150,27 @@ Docs-only amend after App law landed; wrong overshoot/accuracy teaching is the r
 - **Verification:** hygiene `rg` no live overshoot/accuracy hits; CAP-7 only out-of-scope/avoid; `uv run pytest` 370 passed; `uv run ruff check apps/ha_smart_hvac tests` clean; AGENTS Verified stamp byte-identical to baseline.
 - **Residual risks:** entry 4 still owns deferred dead-code/test prune; sibling `set-water-temperature.md` still says plant-off soft-close “still applies” without hold-cancel detail (not overshoot teaching).
 
+
+## Code Review
+### 2026-11-20
+**Code review complete.** 0 `decision-needed`, 0 `patch`, 0 `defer`, 18 rejected.
+
+#### Rejected
+- R1 `false` — `set-water-temperature.md` plant-off “still applies”: outside Notes matrix / Req 4 overshoot-accuracy scope; companion link holds depth
+- R2 `false` — banner markdown links: matches `adr-write-gated-supply-trip-latch` bare-ADR pattern
+- R3 `false` — present-tense historical bodies: by design (banner + leave body)
+- R4 `false` — ADR “no-op” vs CONTEXT parenthetical: synonymous, not different law
+- R5 `low` — CONTEXT/AGENTS omit demand enum: “any Heating Demand” enough; ADR/knowledge carry flavors
+- R6 `low` — CONTEXT TRV `_Avoid_` not expanded: positive prose already demotes; Avoid noise
+- R7 `false` — CONTEXT omits flame-observe negative fence: positive schedule complete; not in Req 3 list
+- R8 `false` — AGENTS “still applies (…)”: parenthetical states 100+cancel
+- R9 `false` — Citations omit Historical subsection: intent dropped live cites, did not require re-index
+- R10 `low` — log Fact unnamed paths: Fact is not a nav index
+- R11 `false` — Verification rg skips banners/set-water: correct for overshoot/accuracy hygiene
+- R12 `false` — followup_review_recommended / empty deferred: workflow signal, not docs defect
+- R13 `false` — floor-write-fail before arm omitted: outside story SoT Req 1–7
+- R14 `false` — hold-expiry write-fail re-floor omitted: same, outside SoT
+- R15 `false` — claim vs write-gated arm: claims track story SoT, not App hardening
+- R16 `low` — IA compressed demand (dup R5): rejected same reason
+- R17 `false` — IA set-water sibling (dup R1): rejected same reason
+- R18 `false` — Req 6 gates in plan not diff: expected for docs-only deliverable
