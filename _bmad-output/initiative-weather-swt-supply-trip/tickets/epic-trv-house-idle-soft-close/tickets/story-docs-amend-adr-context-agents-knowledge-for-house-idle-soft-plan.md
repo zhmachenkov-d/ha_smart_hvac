@@ -3,7 +3,7 @@ title: 'Docs: amend ADR/CONTEXT/AGENTS/knowledge for house-idle soft-close'
 type: 'chore'
 ticket: '3'
 created: '2026-11-20'
-status: 'built'
+status: done
 baseline_revision: 'a6e52d4084d977ba8bda42b655553b0a53cb3af1'
 route: 'full'
 route_source: 'auto'

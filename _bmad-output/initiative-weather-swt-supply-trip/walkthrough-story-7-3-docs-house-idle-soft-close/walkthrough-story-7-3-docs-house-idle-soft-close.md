@@ -1,20 +1,20 @@
 # Walkthrough: Docs amend house-idle soft-close (story 7.3)
 
-Target: [PR #166](https://github.com/zhmachenkov-d/ha_smart_hvac/pull/166) · merged on `main` · story `7.3` plan status `built` · branch `chore/walkthrough-story-7-3-intent-review`
+Target: [PR #166](https://github.com/zhmachenkov-d/ha_smart_hvac/pull/166) · merged on `main` · story `7.3` plan status `done` · branch `chore/walkthrough-story-7-3-intent-review`
 
 Ticket: [story-docs-amend-adr-context-agents-knowledge-for-house-idle-soft.md](../tickets/epic-trv-house-idle-soft-close/tickets/story-docs-amend-adr-context-agents-knowledge-for-house-idle-soft.md)
 Plan: [story-docs-amend-adr-context-agents-knowledge-for-house-idle-soft-plan.md](../tickets/epic-trv-house-idle-soft-close/tickets/story-docs-amend-adr-context-agents-knowledge-for-house-idle-soft-plan.md)
 
-**Current block:** Slice: Knowledge + historical banners (in progress)
+**Current block:** Wrap-up (done — commit+push+PR+mark story; merge deferred)
 
 ## Blocks
 - [x] **Intent** — done (Demo + Test + Formal review clean)
 - [x] **Broad strokes** — done (Demo + Test; Formal review 1 patch applied — link depth)
 - [x] **Slice: ADR 0008 TRV + Event path** — done (Demo + Test + Formal review clean)
 - [x] **Slice: CONTEXT + AGENTS** — done (Demo + Test + Formal review clean)
-- [ ] **Slice: Knowledge + historical banners** — in progress
-- [ ] **Periphery** — open
-- [ ] **Wrap-up** — open
+- [x] **Slice: Knowledge + historical banners** — done (accepted without further moves)
+- [x] **Periphery** — done (Demo)
+- [x] **Wrap-up** — done (follow-through 1–3)
 
 ---
 
@@ -74,5 +74,30 @@ Places:
 
 ---
 
+
+### Periphery
+Docs-only story: no App/runtime/test/yaml product changes. Verify gates (hygiene `rg`, pytest, ruff) live in plan Auto Run and walkthrough Test notes. Residual called out earlier and left out of Notes matrix: `knowledge/concepts/set-water-temperature.md` plant-off “still applies” without 100+cancel detail (companion link to trv-soft-close). Entry 4 owns deferred dead-code/test prune — not this story. Walkthrough/plan artifacts under `_bmad-output/` are process evidence for this review.
+
+Places (references only):
+- Plan Verification / Auto Run Result in [story-docs-amend-…-plan.md](../tickets/epic-trv-house-idle-soft-close/tickets/story-docs-amend-adr-context-agents-knowledge-for-house-idle-soft-plan.md)
+- [set-water-temperature.md](../../../knowledge/concepts/set-water-temperature.md) — residual plant-off soft-close pointer (out of Notes matrix)
+- Story Boundaries: no App / `apps.yaml*` / house yaml; entry 4 deferred prune
+
+Review notes: Demo — [demo-periphery-transcript.md](demo-periphery-transcript.md) (verify evidence + SWT residual confirmed out of matrix).
+
+---
+
+### Wrap-up
+Story 7.3 docs amend already merged in [PR #166](https://github.com/zhmachenkov-d/ha_smart_hvac/pull/166). This walkthrough accepted Intent → Broad strokes → ADR → CONTEXT+AGENTS → Knowledge+banners → Periphery. Formal reviews: Intent/ADR/CONTEXT clean; Broad strokes 1 patch (relative links). Plan status still `built` (user marks ticket done).
+
+Suggested follow-through:
+1. Commit remaining walkthrough dirt on `chore/walkthrough-story-7-3-intent-review`
+2. Push branch + open PR for walkthrough/plan evidence
+3. Mark story 7.3 plan `done` (`tickets.py mark` / Sofia board)
+4. Next board: **7.2** HITL house yaml (ready) and/or **7.4** after 7.2+7.3 done
+
+Do not run push/mark until the user confirms.
+
+---
 ### Findings
 - [x] Broad strokes relative link depth (Formal review F1) — fixed `../../../`

@@ -206,3 +206,39 @@ Session: unavailable · Timestamp: 2026-11-21T11:08:00+00:00
 - Action: User said CONTEXT+AGENTS done; filled Knowledge + historical banners slice; presented it.
 - Result: Current = Knowledge+banners; tree dirty.
 - Open: Slice Knowledge acceptance; ask commit?
+
+## 27 — Slice Knowledge — commit CONTEXT progress
+Session: unavailable · Timestamp: 2026-11-21T11:18:00+00:00
+
+- Action: User said yes to commit; committed CONTEXT slice evidence + Knowledge slice open.
+- Result: dc06d64; push not requested.
+- Open: Slice Knowledge+banners still in progress
+
+## 28 — Slice Knowledge done; Periphery present
+Session: unavailable · Timestamp: 2026-11-21T11:18:00+00:00
+
+- Action: User said Knowledge+banners done (no Demo/Test on that slice); presented Periphery.
+- Result: Current = Periphery; tree dirty.
+- Open: Periphery acceptance; ask commit?
+
+## 29 — Periphery — Demo
+Session: unavailable · Timestamp: 2026-11-21T11:21:00+00:00
+
+- Action: Spot-read plan Verification/Auto Run, set-water plant-off residual, Boundaries.
+- Result: Residual confirmed outside Notes matrix; companion link holds depth; no new findings.
+- Evidence: demo-periphery-transcript.md; set-water-temperature.md:15; plan Residual risks
+- Open: Periphery still in progress
+
+## 30 — Periphery done; Wrap-up present
+Session: unavailable · Timestamp: 2026-11-21T11:22:00+00:00
+
+- Action: User said Periphery done; presented Wrap-up with suggested follow-through.
+- Result: Current = Wrap-up; tree dirty.
+- Open: user confirm follow-through; ask commit?
+
+## 31 — Wrap-up — follow-through 1–3
+Session: unavailable · Timestamp: 2026-11-21T11:22:00+00:00
+
+- Action: User chose steps 1,2,3 — commit remaining, push+PR, mark 7.3 done.
+- Result: In progress (commit next).
+- Open: commit → push/PR → confirm mark
