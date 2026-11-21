@@ -174,3 +174,25 @@ Docs-only amend after App law landed; wrong overshoot/accuracy teaching is the r
 - R16 `low` — IA compressed demand (dup R5): rejected same reason
 - R17 `false` — IA set-water sibling (dup R1): rejected same reason
 - R18 `false` — Req 6 gates in plan not diff: expected for docs-only deliverable
+
+### 2026-11-21 — walkthrough Intent Formal review
+**Code review complete.** 0 `decision-needed`, 0 `patch`, 0 `defer`, 17 rejected.
+
+#### Rejected
+- R1 `false` — `set-water-temperature.md` plant-off “still applies”: outside Notes matrix / Req 4; companion holds depth
+- R2 `false` — CONTEXT omits flame-observe negative fence: positive schedule complete; not in Req 3 (prior follow-up R7)
+- R3 `low` — CONTEXT/AGENTS omit demand enum: “any Heating Demand” enough; ADR/knowledge carry flavors
+- R4 `low` — CONTEXT TRV `_Avoid_` not expanded: positive prose already demotes
+- R5 `low` — banner markdown links: bare-ADR pattern match
+- R6 `false` — present-tense historical bodies: by design (banner + leave body)
+- R7 `false` — empty Plan Change Log: scaffolding, not product defect
+- R8 `false` — walkthrough Intent unchecked mid-session: correct process state
+- R9 `false` — hygiene rg omits set-water: follows R1 / Notes matrix
+- R10 `false` — Related drops demoted decisions: intent dropped live cites
+- R11 `low` — index blurb drops plant-off cue: primary page holds detail
+- R12 `false` — AGENTS “still applies (…)”: parenthetical states 100+cancel
+- R13 `false` — ADR floor-write-fail before arm: outside docs SoT Req 1–7
+- R14 `false` — ADR hold-expiry write-fail: outside SoT
+- R15 `false` — ADR hold expiry while demand: outside SoT
+- R16 `low` — IA demand-flavor split (dup R3): rejected same reason
+- R17 `false` — Req 6 verify not in product diff: expected for docs-only
