@@ -3,12 +3,15 @@ title: 'Refactor sweep'
 type: 'chore'
 ticket: '4'
 created: '2026-11-21'
-status: ready-for-dev
+status: built
+baseline_revision: 4881d04b2df87ea853ba2a1a1e8557bd63708827
 route: 'full'
 route_source: 'human'
 risk: 'low'
 review: 'thorough'
-review_source: 'human'
+review_source: 'auto'
+lenses_ran: ['blind-hunter', 'edge-case-hunter', 'verification-gap', 'intent-alignment']
+followup_review_recommended: false
 deferred: []
 context:
   - '{project-root}/_bmad-output/initiative-weather-swt-supply-trip/tickets/epic-trv-house-idle-soft-close/tickets/story-refactor-sweep.md'
@@ -60,11 +63,11 @@ context:
 
 ## Tasks & Acceptance
 **Execution:**
-- [ ] Re-run start-of-work inventory `rg` (commands below); confirm prune set still empty.
-- [ ] Record **Settled — empty prune set** in Implementation Notes with command outputs (or cite clean).
-- [ ] Confirm keep K1–K4 and out O1–O5 untouched (no product file edits expected).
-- [ ] `tickets.toml` entry 4 — confirm description/verify/notes match frozen punch-list (edit only if drifted).
-- [ ] Verify — pytest + ruff + hygiene `rg` below.
+- [x] Re-run start-of-work inventory `rg` (commands below); confirm prune set still empty.
+- [x] Record **Settled — empty prune set** in Implementation Notes with command outputs (or cite clean).
+- [x] Confirm keep K1–K4 and out O1–O5 untouched (no product file edits expected).
+- [x] `tickets.toml` entry 4 — confirm description/verify/notes match frozen punch-list (edit only if drifted).
+- [x] Verify — pytest + ruff + hygiene `rg` below.
 
 **Acceptance Criteria:**
 - Given the freeze inventory, when re-checked at build, then App `rg '_trv_overshoot'` under `apps/ha_smart_hvac` is empty and no dead overshoot soft-close helpers are proposed for delete.
@@ -83,7 +86,54 @@ context:
 - `uv run ruff check apps/ha_smart_hvac tests` — clean
 
 ## Implementation Notes
-_(fill at build: Settled — empty prune set + rg evidence; tickets.toml confirm/edit; suite results)_
+- **Settled — empty prune set** (2026-11-21 build): start-of-work / verify inventory confirms no deferred dead overshoot/accuracy soft-close helpers to delete.
+  - `rg -n '_trv_overshoot' apps/ha_smart_hvac` → no matches (exit 1).
+  - `rg -n '_trv_overshoot_latched|commissioned.*accuracy|accuracy.*control_event|overshoot-100|overshoot latch'` on live soft-close path set (`docs/adr/0008-weather-curve-trv-flame-swt.md`, `CONTEXT.md`, `AGENTS.md`, `knowledge/concepts/trv-soft-close.md`, `knowledge/concepts/index.md`, `knowledge/concepts/outdoor-temperature.md`) → no matches (exit 1).
+  - `_bmad-output/deferred-work.md` has no epic-7 bullets.
+- **K1–K4 spot-check (untouched):** `config.py` L137–138 leftover `accuracy` → `ConfigError`; tests `test_parse_rejects_trv_accuracy_in_mapping` / `test_initialize_trv_no_accuracy_listen` present; Historical banners on three `adr-trv-*` decisions; `_apply_trv_law` / `_arm_trv_soft_close_hold` live in `hvac_app.py`; 7.3 live docs left as-is.
+- **O1–O5:** not edited (no product/docs/house-yaml/CAP-8/stamp/walkthrough changes).
+- **tickets.toml** `[[entry]] id = 4`: description/verify/notes already match frozen punch-list (empty-prune settle + K/O guards) — **confirm-only, no edit**.
+- **Suite:** `uv run pytest` → 370 passed; `uv run ruff check apps/ha_smart_hvac tests` → clean.
+- **Files touched:** this plan only (`status: done`, execution checkboxes, Implementation Notes). No App/test/docs product diff.
+- **Surprises:** none — inventory still empty as frozen 2026-11-21; no re-freeze needed.
 
 ## Plan Change Log
 - 2026-11-21: Pre–bmad-build-auto review path 1 — freeze punch-list P empty / K1–K4 / O1–O5; story + plan authored; ready-for-dev pending human OK to run build-auto.
+- 2026-11-21: Build settle — empty prune recorded with hygiene rg; tickets.toml confirm-only; pytest 370 + ruff clean; status done.
+
+## Review Triage Log
+### 2026-11-21 — Review pass
+- verdicts: 16 findings — high 0, medium 0, low 0, false 16, maybe-false 0
+- findings:
+  - `[false]` `[reject]` Blind Hunter: frontmatter `in-review` vs notes/changelog `status done` — workflow set `in-review` for this review pass after build wrote `done`; finalize sets `built`. Fix would only edit this build's plan notes.
+  - `[false]` `[reject]` Blind Hunter: missing cited `git status`/`diff` for O1–O5 — working tree since baseline is plan-only (`git diff --name-only` / `status --porcelain`); O paths untouched. Fix would only pad plan notes.
+  - `[false]` `[reject]` Blind Hunter: O1–O5 not named individually in settle notes — out-of-scope fence already frozen in story/intent-contract; product paths absent from diff. Fix would only edit this build's plan.
+  - `[false]` `[reject]` Blind Hunter: K2 spot-check mentions banners not bodies — three Historical `adr-trv-*` files still present with Historical banners and bodies on disk; not in diff. Fix would only edit plan notes.
+  - `[false]` `[reject]` Blind Hunter: K3 notes omit disarm/expiry token — `_disarm_trv_soft_close_hold` and `_trv_soft_close_hold_token` / `_trv_soft_close_hold_expired` still live in `hvac_app.py`; untouched. Fix would only edit plan notes.
+  - `[false]` `[reject]` Blind Hunter: deferred-work.md claim without quoted search — `_bmad-output/initiative-weather-swt-supply-trip/deferred-work.md` has no epic-7 hits on re-check. Fix would only edit plan notes.
+  - `[false]` `[reject]` Blind Hunter: tickets.toml confirm-only without excerpt — entry `id = 4` description/verify/notes already match frozen punch-list; no edit required. Fix would only edit plan notes.
+  - `[false]` `[reject]` Blind Hunter: hygiene `rg` paraphrased vs exact Verify line — re-ran exact Verify commands; both empty (exit 1). Fix would only edit plan notes.
+  - `[false]` `[reject]` Blind Hunter: tests/ inventory missing from notes — `rg` overshoot/latch patterns under `tests/` empty; prune still empty. Fix would only edit plan notes.
+  - `[false]` `[reject]` Blind Hunter: story file unchanged after settle — intent records Settled in plan Implementation Notes; ticket story files are not written by build-auto. Not a product gap.
+  - `[false]` `[reject]` Edge Case Hunter: notes/changelog `status done` vs YAML `in-review` — same workflow intermediate as first finding; finalize → `built`. Fix would only edit this build's plan.
+  - `[false]` `[reject]` Intent Alignment: evidence is narrative citation not committed transcripts — expected for empty-prune settle; Verify commands re-ran clean in this pass. Not a product defect.
+  - `[false]` `[reject]` Intent Alignment: K1–K4 keep proven only by absence from diff — correct for no-touch keep; spot-check paths still present. Not a defect.
+  - `[false]` `[reject]` Intent Alignment: tickets.toml match asserted in plan prose — confirm-only already aligned; no toml hunk required under R1.
+  - `[false]` `[reject]` Intent Alignment: suite/hygiene reported in notes, no new tests — matches `covers = []` and Req 4 as verify gates, not new R*. Not a defect.
+  - `[false]` `[reject]` Intent Alignment: notes `status done` vs frontmatter `in-review` — same as first finding; process surface only.
+
+## Auto Run Result
+- **Summary:** Settled epic-7 entry 4 empty prune set: hygiene `rg` clean, K1–K4/O1–O5 untouched, `tickets.toml` entry 4 confirm-only, plan Implementation Notes recorded Settled evidence. No App/test/docs product changes.
+- **Files changed:**
+  - `story-refactor-sweep-plan.md` — in-progress→built workflow fields, execution checkboxes, Settled Implementation Notes, review triage, auto-run result
+- **Review findings:** patches applied 0; deferred 0; all 16 findings rejected (plan-note/process claims or expected empty-settle surfaces; no product defect).
+- **Follow-up review recommendation:** false (no patched high/medium entries this pass; patched counts: high 0, medium 0, low 0).
+- **Verification:**
+  - `rg -n '_trv_overshoot' apps/ha_smart_hvac` → no matches
+  - live soft-close path hygiene `rg` → no matches
+  - `rg` overshoot/latch under `tests/` → no matches
+  - K1 ConfigError + both named tests present; K3 hold helpers present; Historical ADR bodies present
+  - `uv run pytest` → 370 passed
+  - `uv run ruff check apps/ha_smart_hvac tests` → clean
+  - diff since `4881d04b2df87ea853ba2a1a1e8557bd63708827` → plan file only
+- **Residual risks:** invent-scope if someone reopens “prune leftovers” without the frozen P/K/O punch-list.
