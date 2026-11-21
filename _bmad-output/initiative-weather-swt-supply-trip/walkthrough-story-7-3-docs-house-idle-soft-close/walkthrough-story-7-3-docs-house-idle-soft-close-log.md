@@ -57,3 +57,58 @@ Session: unavailable · Timestamp: 2026-11-21T09:48:00+00:00
 - Result: Current block = Broad strokes; tree dirty (plan Code Review + walkthrough folder).
 - Evidence: walkthrough-story-7-3-docs-house-idle-soft-close.md
 - Open: Broad strokes acceptance; ask commit?
+
+## 8 — Broad strokes — commit walkthrough
+Session: unavailable · Timestamp: 2026-11-21T09:52:00+00:00
+
+- Action: User said yes to commit; branched off main (no-commit-to-branch hook); committed walkthrough + plan Formal review.
+- Result: cd21d62 on chore/walkthrough-story-7-3-intent-review; tree clean. Not pushed.
+- Evidence: git log -1; 4 files (+plan Code Review +3 walkthrough)
+- Open: Broad strokes still in progress; push/PR not requested
+
+## 9 — Broad strokes — Demo
+Session: unavailable · Timestamp: 2026-11-21T09:54:00+00:00
+
+- Action: Opened four Broad strokes entry points in order; wrote demo transcript.
+- Result: Each entry readable alone; mechanism clear without full file index.
+- Evidence: demo-broad-strokes-transcript.md; ADR:31; CONTEXT:61; AGENTS:35; trv-soft-close.md; three banners L1
+- Open: Broad strokes still in progress
+## 10 — Broad strokes — Test
+Session: unavailable · Timestamp: 2026-11-21T09:54:00+00:00
+
+- Action: Re-ran plan Verification + spot-checked Broad strokes anchors still present.
+- Result: 370 passed; ruff clean; hygiene 0 hits; ADR:31 / CONTEXT:62 / AGENTS:35 / knowledge / three banners L1 / stamp unchanged. Unverified: none for this block.
+- Evidence: uv run pytest; uv run ruff check apps/ha_smart_hvac tests
+- Open: Broad strokes still in progress
+
+## 11 — Broad strokes — Formal review results
+Session: unavailable · Timestamp: 2026-11-21T10:03:00+00:00
+
+- Action: Thorough code review on plan baseline + unstaged walkthrough; triage+route.
+- Result: 1 patch (broken ../../../../ Broad strokes links → need ../../../); 15 rejected. Plan Code Review ### 2026-11-21 Broad strokes appended.
+- Evidence: /tmp/cr-7-3-bs-diff-di5eW0.txt; /tmp/cr-7-3-bs-triage-dETTLx.md
+- Open: user patch option 1/2/3
+
+## 12 — Broad strokes — Formal review patch applied
+Session: unavailable · Timestamp: 2026-11-21T10:13:00+00:00
+
+- Action: Applied F1 — ../../../../ → ../../../ on Broad strokes repo-root links; checked plan patch [x].
+- Result: All narrative relative links resolve inside repo.
+- Evidence: walkthrough-story-7-3-docs-house-idle-soft-close.md; plan Broad strokes Formal review checkbox
+- Open: code-review next-steps menu
+
+## 13 — Broad strokes — Formal review done
+Session: unavailable · Timestamp: 2026-11-21T10:20:00+00:00
+
+- Action: User chose 3 Done on code-review next steps.
+- Result: Back on walkthrough Broad strokes; F1 patch already applied.
+- Evidence: narrative links ../../../; plan patch [x]
+- Open: Broad strokes acceptance pending user
+
+## 14 — Broad strokes done; Slice ADR present
+Session: unavailable · Timestamp: 2026-11-21T10:21:00+00:00
+
+- Action: User said Broad strokes done; shaped three slices; presented Slice ADR 0008 TRV + Event path.
+- Result: Current = Slice ADR; tree dirty (plan + walkthrough updates + demo-broad-strokes untracked).
+- Evidence: walkthrough narrative Blocks/Slices
+- Open: Slice ADR acceptance; ask commit?

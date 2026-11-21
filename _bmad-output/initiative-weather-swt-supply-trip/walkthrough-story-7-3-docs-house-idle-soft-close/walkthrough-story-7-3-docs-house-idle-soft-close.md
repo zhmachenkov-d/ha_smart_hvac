@@ -1,16 +1,18 @@
 # Walkthrough: Docs amend house-idle soft-close (story 7.3)
 
-Target: [PR #166](https://github.com/zhmachenkov-d/ha_smart_hvac/pull/166) · merged on `main` · story `7.3` plan status `built`
+Target: [PR #166](https://github.com/zhmachenkov-d/ha_smart_hvac/pull/166) · merged on `main` · story `7.3` plan status `built` · branch `chore/walkthrough-story-7-3-intent-review`
 
 Ticket: [story-docs-amend-adr-context-agents-knowledge-for-house-idle-soft.md](../tickets/epic-trv-house-idle-soft-close/tickets/story-docs-amend-adr-context-agents-knowledge-for-house-idle-soft.md)
 Plan: [story-docs-amend-adr-context-agents-knowledge-for-house-idle-soft-plan.md](../tickets/epic-trv-house-idle-soft-close/tickets/story-docs-amend-adr-context-agents-knowledge-for-house-idle-soft-plan.md)
 
-**Current block:** Broad strokes (in progress)
+**Current block:** Slice: ADR 0008 TRV + Event path (in progress)
 
 ## Blocks
 - [x] **Intent** — done (Demo + Test + Formal review clean)
-- [ ] **Broad strokes** — in progress
-- [ ] **Slices** — open (to be shaped after broad strokes)
+- [x] **Broad strokes** — done (Demo + Test; Formal review 1 patch applied — link depth)
+- [ ] **Slice: ADR 0008 TRV + Event path** — in progress
+- [ ] **Slice: CONTEXT + AGENTS** — open
+- [ ] **Slice: Knowledge + historical banners** — open
 - [ ] **Periphery** — open
 - [ ] **Wrap-up** — open
 
@@ -23,19 +25,43 @@ Source: frozen Intent from plan [story-docs-amend-adr-context-agents-knowledge-f
 
 **Approach:** Amend those live surfaces to match entry 1 Requirements 1–7; banner the three overshoot/accuracy TRV decisions as historical; leave App/tests/yaml untouched beyond verify.
 
-Review notes: First pass patched mediums (plant-off parenthetical; orphan no-op; outdoor timestamp). Follow-up code review clean (18 rejected, 0 patch). PR #166 merged 2026-11-21. Demo — [demo-intent-live-docs-transcript.md](demo-intent-live-docs-transcript.md) (Match). Test — 370 pytest + ruff + hygiene clean. Formal review 2026-11-21 — clean (17 rejected, 0 patch).
+Review notes: Demo — [demo-intent-live-docs-transcript.md](demo-intent-live-docs-transcript.md). Test — 370 + ruff + hygiene. Formal review Intent — clean (17 rejected).
 
 ---
 
 ### Broad strokes
 Docs-only: live soft-close teaching moves from overshoot/accuracy to house-idle floor + hold → 100; zombies get historical banners; App/yaml untouched.
 
-1. [0008-weather-curve-trv-flame-swt.md](../../../../docs/adr/0008-weather-curve-trv-flame-swt.md) — § TRV soft-close + Event-path: house-idle floor/`trv_soft_close_hold_s` (80/300), demand/plant-off cancel, closure-only ConfigError
-2. [CONTEXT.md](../../../../CONTEXT.md) + [AGENTS.md](../../../../AGENTS.md) — glossary / `bmad:context` Conventions match ADR; no accuracy listeners; Verified stamp unchanged
-3. [trv-soft-close.md](../../../../knowledge/concepts/trv-soft-close.md) — primary knowledge page for house-idle law (cites ADR 0008 + live prelude)
-4. [adr-trv-write-gated-overshoot-latch.md](../../../../docs/decisions/adr-trv-write-gated-overshoot-latch.md) (+ two siblings) — leading Historical banner → ADR 0008 house-idle hold
+1. [0008-weather-curve-trv-flame-swt.md](../../../docs/adr/0008-weather-curve-trv-flame-swt.md) — § TRV soft-close + Event-path
+2. [CONTEXT.md](../../../CONTEXT.md) + [AGENTS.md](../../../AGENTS.md) — glossary / Conventions
+3. [trv-soft-close.md](../../../knowledge/concepts/trv-soft-close.md) — primary knowledge page
+4. [adr-trv-write-gated-overshoot-latch.md](../../../docs/decisions/adr-trv-write-gated-overshoot-latch.md) (+ siblings) — Historical banners
+
+Review notes: Demo — [demo-broad-strokes-transcript.md](demo-broad-strokes-transcript.md). Test — 370 + ruff + hygiene. Formal review — 1 patch applied (`../../../../`→`../../../`).
+
+---
+
+### Slice: ADR 0008 TRV + Event path
+Agent-law soft-close now lives in ADR 0008 § TRV: house-idle floor + hold (defaults 80/300), demand/plant-off cancel, orphan no-op, closure-only ConfigError; Event-path no longer lists accuracy; live cites drop the three overshoot/accuracy decisions; plant-off SWT gate parenthetical states closure 100 + cancel hold.
+
+Places:
+- [0008-weather-curve-trv-flame-swt.md](../../../docs/adr/0008-weather-curve-trv-flame-swt.md) — § TRV soft-close + Event-path listener list + live cite list + SWT gates plant-off parenthetical
+
+---
+
+### Slice: CONTEXT + AGENTS
+Status: open
+
+(placeholder)
+
+---
+
+### Slice: Knowledge + historical banners
+Status: open
+
+(placeholder)
 
 ---
 
 ### Findings
-(none open)
+- [x] Broad strokes relative link depth (Formal review F1) — fixed `../../../`

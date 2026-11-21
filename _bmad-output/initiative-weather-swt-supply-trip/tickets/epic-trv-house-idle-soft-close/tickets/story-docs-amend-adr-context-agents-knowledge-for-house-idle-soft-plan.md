@@ -196,3 +196,23 @@ Docs-only amend after App law landed; wrong overshoot/accuracy teaching is the r
 - R15 `false` — ADR hold expiry while demand: outside SoT
 - R16 `low` — IA demand-flavor split (dup R3): rejected same reason
 - R17 `false` — Req 6 verify not in product diff: expected for docs-only
+
+### 2026-11-21 — walkthrough Broad strokes Formal review
+**Code review complete.** 0 `decision-needed`, 1 `patch`, 0 `defer`, 15 rejected.
+
+- [x] [Review][Patch] Walkthrough Broad strokes relative links use four ../ (escape repo); need three [_bmad-output/initiative-weather-swt-supply-trip/walkthrough-story-7-3-docs-house-idle-soft-close/walkthrough-story-7-3-docs-house-idle-soft-close.md]
+
+#### Rejected
+- R2 `false` — set-water sibling: outside Notes matrix
+- R3 `false` — house-calibration: outside story scope
+- R4 `false` — ADR demotion map: banners + dropped cites suffice
+- R5 `low` — banner markdown links: bare-ADR pattern
+- R6 `false` — present-tense historical bodies: by design
+- R7 `low` — CONTEXT `_Avoid_`: positive prose enough
+- R8 `false` — Related drops demoted decisions: intent drop
+- R9 `low` — log Fact unnamed paths: not a nav index
+- R10 `low` — demand enum compression: any Heating Demand enough
+- R11 `low` — index plant-off cue: primary page holds detail
+- R12 `false` — walkthrough metadata lag: process/state nits
+- R13–R15 `false` — ADR write-fail/expiry-while-heating: outside docs SoT
+- R16 `false` — IA residuals: descriptive / already rejected
