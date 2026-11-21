@@ -9,6 +9,7 @@ companions: []
 after: []
 refined: true
 risk: high
+status: done
 ---
 
 # TRV house-idle soft-close
@@ -59,3 +60,4 @@ Owns the AppDaemon TRV soft-close law change, yaml commission for floor/hold/clo
 - Decision: Retire `accuracy` from commissioned TRV (closure-only yaml + no accuracy listeners); overshoot hysteresis removed with it — research §§2,5 (2026-11-20).
 - Decision: Soft-close hold semantics — on house all-idle write floor and start `trv_soft_close_hold_s`; on hold expiry while still idle write 100; on any-zone Heating Demand (cold start / rising-edge / sustained) cancel hold and write 100; on return to all-idle restart floor+hold; plant-off cancel hold and write 100; equal-float write skip remains the throttle — research §3 flame hold pattern; tracer 7.1 Req 3 settles demand cancel beyond rising-edge-only (2026-11-20).
 - Source conflict: R1 earlier said “heating rising-edge → 100”; tracer Req 3 / hold Decision above is any Heating Demand. Settled 2026-11-20 — R1 demand cancel follows tracer; docs story 7.3 SoT = tracer Reqs 1–7.
+- Decision: Epic closed via 7.1–7.4 done; retrospective accepted-with-open-items (ADV2/V1/P1 open; ADR D1+D3 written; unblocks 6.3) (2026-11-21).

@@ -2,9 +2,7 @@
 title: 'Refactor sweep'
 type: 'chore'
 ticket: '3'
-status: blocked
-blocked_at: '2026-11-20'
-blocked_reason: 'waiting on new TRV house-idle soft-close epic so refactor sweep matches updated R9'
+status: ready-for-dev
 ---
 
 <frozen-after-approval reason="human-owned intent — do not modify unless human renegotiates">

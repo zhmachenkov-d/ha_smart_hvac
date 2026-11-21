@@ -1,3 +1,11 @@
+---
+title: 'Commission house apps.yaml for house-idle soft-close'
+type: 'feature'
+ticket: '2'
+created: '2026-11-20'
+status: done
+---
+
 <intent-contract>
 
 ## Intent

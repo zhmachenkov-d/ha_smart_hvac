@@ -1,0 +1,3 @@
+# Soft-close Heating Demand probes climate hvac_action (not zone snapshots)
+
+House-idle soft-close decides “any Heating Demand” by reading each climate’s `hvac_action` (`_any_climate_heating`) and must not require readable zone air or thermostat setpoint via `_read_zones` — those gates stay on the Outdoor water path. Recorded from story 7.1 plan Code Review decision F1 / Design Notes (`story-tracer-trv-house-idle-soft-close-plan.md`) and commit `90dcc7a`, because gating soft-close on the same snapshot predicate as SWT would drop a heating zone into house-idle floor whenever air or setpoint flakes while the climate still reports `hvac_action=heating`.
