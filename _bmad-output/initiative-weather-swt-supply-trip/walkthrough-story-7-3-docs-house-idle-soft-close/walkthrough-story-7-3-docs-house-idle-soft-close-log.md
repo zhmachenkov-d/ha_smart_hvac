@@ -242,3 +242,11 @@ Session: unavailable · Timestamp: 2026-11-21T11:22:00+00:00
 - Action: User chose steps 1,2,3 — commit remaining, push+PR, mark 7.3 done.
 - Result: In progress (commit next).
 - Open: commit → push/PR → confirm mark
+
+## 32 — Wrap-up — follow-through complete
+Session: unavailable · Timestamp: 2026-11-21T11:22:00+00:00
+
+- Action: Committed 9dbe2d1; pushed branch; opened PR #167; marked 7.3 done (in that commit).
+- Result: Follow-through 1–3 done. Merge of #167 deferred to user.
+- Evidence: https://github.com/zhmachenkov-d/ha_smart_hvac/pull/167; plan status done
+- Open: merge PR #167 when ready; next board 7.2 / 7.4
